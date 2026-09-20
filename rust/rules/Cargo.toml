@@ -1,0 +1,22 @@
+# spectra-rules - rule table to guard AST to generated Rust.
+# Spec: Part I 32.4, 34.4; Part II 63 (guard language), 75.2 C4.
+# Status: not started.
+
+[package]
+name = "spectra-rules"
+description = "SPECTRA rule table and guard AST. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet.
+# TODO(build.rs): Part I 32.4 generates guard code at build time. No build script
+# is declared until the generator exists; a build.rs that did nothing would be a
+# lie about codegen.
