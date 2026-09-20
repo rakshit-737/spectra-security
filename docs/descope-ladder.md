@@ -11,7 +11,9 @@ Gate note (TODO — decision made here): this file names verdict tokens inside i
 (for example `zero-false-ROBUST`). Either register `docs/descope-ladder.md` as an exempt path in
 `docs/banned.toml`, or rename the invariant so no bare verdict token appears. The first option is
 taken here; change it by renaming the invariant in this file and in the gate that enforces it, in
-the same commit.
+the same commit. `docs/banned.toml` does not exist yet, so the exemption is a decision taken and
+not a registration performed. TODO(M0): create `docs/banned.toml` with `docs/descope-ladder.md` as
+an exempt path, in the commit that lands the `G-CLAIM-BANNED` gate.
 
 ## The rule of use
 
@@ -43,7 +45,7 @@ that adds a numbered rung and states where it sits.
                            |   D9  UI polish, theming, animation
                            |   D8  kernel stage E exactness -> SUBSET default
                            |   D7  Go checker re-grounding -> instance-set check
-                           |   D6  Tier D languages (R, Julia, Octave)
+                           |   D6  Tier D languages (analysis and reporting)
                            |   D5  Tier C languages (range-realism emitters)
                            |   D4  bench registry, bindings, API surface
                            |   D3  FSM dimensions beyond the first four
@@ -90,8 +92,8 @@ in tier order, so a half-cut tier is worse than a cut tier.
 
 ### D6 — Tier D languages
 
-Analysis and reporting (R, Julia, Octave). Their outputs move into the Python analysis path, which
-already exists.
+Analysis and reporting. Their outputs move into the Python analysis path, which already exists. The
+tier roster is the Tier D row below.
 
 ### D7 — Go checker re-grounding
 
@@ -149,11 +151,12 @@ complete tiers — rather than half-scaffolded everywhere.
 
 ```
 TIER A  critical path          Python, Rust, Go, TypeScript, SQL, Bash
-TIER B  independent oracles    Haskell, C, C++, one JVM language, x86-64 asm
+TIER B  independent oracles    Haskell, C, C++, one JVM language, C#, x86-64 asm
         and measured perf
 TIER C  range-realism          PowerShell, PHP, Ruby, Perl, Lua, Kotlin,
         emitters               Swift, Dart, ...
-TIER D  analysis & reporting   R, Julia, GNU Octave
+TIER D  analysis & reporting   R, Julia, GNU Octave, F#, Solidity, Verilog,
+                               VHDL, YARA, WebAssembly text
 ```
 
 ## Never carry a stub forward
