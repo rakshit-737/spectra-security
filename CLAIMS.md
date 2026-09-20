@@ -115,7 +115,8 @@ docs/cv-bullets.md
 docs/commit-message-template.txt
 ```
 
-None of these files exists yet except `LIMITATIONS.md`, `CLAIMS.md` and part of `docs/`.
+Of these, only `README.md`, `LIMITATIONS.md`, `SECURITY.md`, `CLAIMS.md`,
+`.github/PULL_REQUEST_TEMPLATE.md` and part of `docs/` exist yet.
 
 ## The banned-phrase list
 
