@@ -1,14 +1,18 @@
 # SPECTRA — PLAN v1
 
-Status: **DRAFT, AWAITING HUMAN APPROVAL.** No implementation has started. No repository skeleton
-has been created. Per `KICKOFF.md` §4, nothing is built until this plan is approved in-session.
+Status: **APPROVED IN-SESSION 2026-09-20; SESSION-ONE SKELETON BUILT.** No implementation has
+started: there is no kernel, no generator, no ingest, and no gate has ever run. What exists is the
+skeleton this plan authorises — directories, root files, make targets that exit non-zero as not
+implemented, and CI jobs declared and skipped. The approval `KICKOFF.md` §4 requires is recorded
+in `BUILD_LOG.md`, increment INC-0002.
 
 ---
 
 ## 0. How this plan was produced, honestly
 
-The specification is 24,755 lines across 77 sections. It was **not** read end to end by one reader.
-It was read by delegated agents, each assigned specific section files, each returning a structured
+The specification is 25,919 lines across 77 sections (`docs/prompt/part1/` and
+`docs/prompt/part2/`, counted 2026-09-20). It was **not** read end to end by one reader. It was
+read by delegated agents, each assigned specific section files, each returning a structured
 extraction. Coverage:
 
 | Part | Sections | Read for this plan |
@@ -48,7 +52,7 @@ in exactly one tier, and fails the build in that tier".
 |---|---|---|
 | **M0** | A clone builds, lints and tests an empty system, offline, on Linux/macOS/WSL2. New: Bash, Make, Docker, YAML. | `make m0-verify` |
 | **M1** | Seeded synthetic telemetry with recorded ground truth, honestly generated. New: Python. | `make m1-verify` |
-| **M2** | Heterogeneous records become entity-resolved, time-indexed, stable-ID events in Postgres. New: SQL. | `make m2-verify` |
+| **M2** | Heterogeneous records become entity-resolved, time-indexed, stable-ID records in Postgres. New: SQL. | `make m2-verify` |
 | **M3** | **Vertical slice.** One command: scenario → generation → replayed control configuration rendered in the browser. | `make demo-slice`, `make m3-verify` |
 | **M4** | Kernel stages A–D: liveness, licenses, silent envelope, fixpoint. New: C, only if the liveness hot loop demonstrably needs it. | `make m4-verify` |
 | **M5** | Kernel stage E and the certificate object: two-sided minimal cut. No new languages. | `make m5-verify` |
@@ -57,6 +61,12 @@ in exactly one tier, and fails the build in that tier".
 | **M8** | The flagship interaction complete: full UI and PROVE flow. New: HTML, CSS/SCSS. | `make m8-verify` |
 | **M9** | The polyglot long tail, each language with a stated technical reason, plus measured performance. | `make m9-verify`, `make polyglot-report` |
 | **M10** | The repository is presentable and the demo cannot rot: docs, demo, release. | `make release-check` |
+
+None of the names in the Gate column has a row in `ci/gates.toml`. Each is a declared `Makefile`
+target that exits non-zero as not implemented — honest, but not a gate: per §7, a gate is a row in
+`ci/gates.toml` in exactly one tier and there is no other place a gate may be declared. The column
+records the target each milestone is INTENDED to carry. TODO(M0): register each name in
+`ci/gates.toml`, or replace it with the registered gate id that will cover the milestone.
 
 M3 is the mandatory early vertical slice. Everything before it is scaffolding; everything after
 deepens a slice that already runs end to end.
@@ -174,26 +184,26 @@ inflate the bar.
 | A | SQL | `db/` | Fact-base schema, recursive-CTE state view, migrations |
 | A | TypeScript | `frontend/src/` | Frontend, proof UX, demo pane |
 | B | C | `c/ingest_scanner/` | Ingest hot path: record framing + field scanner, with a **measured** differential against Rust |
-| B | C++ | *(unassigned — see CONFLICTS)* | Deterministic entity-key interner on the same hot path |
-| B | Haskell | *(rename required — see CONFLICTS)* | Policy oracle: license admissibility relation + guard evaluator |
+| B | C++ | `cpp/entity_interner/` | Deterministic entity-key interner on the same hot path — the Rust interner it is to be measured against has no owner (see CONFLICTS) |
+| B | Haskell | `haskell/policy-oracle/` | Policy oracle: license admissibility relation + guard evaluator |
 | B | Java | `java/` | Token/identity service in the observed estate, dual-instrumented |
 | B | C# | `dotnet/` | Resource/service host in the observed estate, dual-instrumented |
 | B | x86-64 Assembly | `fixtures/asm/` | Syscall-trace fixture emitter, byte-exact |
-| C | Kotlin | *(role superseded)* | API gateway; emits logback JSON |
+| C | Kotlin | `estate/kotlin-gateway/` (proposed, decision 4) | API gateway; emits logback JSON |
 | C | PHP | `estate/php-portal/` (proposed, decision 4) | Legacy self-service web app; emits `error_log` + access logs |
 | C | Ruby | `estate/ruby-console/` (proposed, decision 4) | Internal admin console; Rails-style tagged logger |
 | C | Perl | `estate/perl-rotator/` (proposed, decision 4) | Cron/rotation utility; plain syslog lines, no field structure |
 | C | Lua | `estate/lua-proxy/` (proposed, decision 4) | OpenResty reverse proxy; nginx `log_format` |
-| C | Scala | *(role superseded)* | Nightly batch reconciliation; log4j2 pattern layout |
+| C | Scala | `estate/scala-batch/` (proposed, decision 4) | Nightly batch reconciliation; log4j2 pattern layout |
 | C | Groovy | `estate/groovy-pipeline/` (proposed, decision 4) | Build pipeline; emits build/deploy events |
-| C | Swift | *(role superseded)* | Linux-hosted session service; swift-log structured output |
-| C | Objective-C | *(role superseded)* | Legacy agent, clang + GNUstep on Linux |
+| C | Swift | `estate/swift-session/` (proposed, decision 4) | Linux-hosted session service; swift-log structured output |
+| C | Objective-C | `estate/objc-agent/` (proposed, decision 4) | Legacy agent, clang + GNUstep on Linux |
 | C | Dart | `estate/dart-client/` (proposed, decision 4) | Desktop client issuing API calls |
 | C | PowerShell | `estate/pwsh-host/` (proposed, decision 4) | Admin host automation running as `pwsh` on Linux |
 | D | R | `analysis/r/` | Degradation-matrix statistics: median, IQR, bootstrap |
 | D | Julia | `analysis/julia/` | Independent re-implementation of the same degradation statistics |
 | D | GNU Octave | `octave/` | Inter-arrival quantile sensitivity (q95/q99/q999) |
-| D | F# | *(role superseded)* | Pareto frontier over enumerated corridors |
+| D | F# | `fsharp/frontier/` | Pareto frontier over enumerated corridors |
 | D | Solidity | `chain/authz-fixture/` | Offline EVM event-log source class (Foundry/anvil, offline) |
 | D | Verilog | `hw/verilog/` | Bounded FIFO log sink, simulated; generates a loss trace |
 | D | VHDL | `hw/vhdl/` | Independently authored implementation of the *same* FIFO |
