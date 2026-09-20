@@ -1,0 +1,100 @@
+# budgets/default.toml
+#
+# The deterministic step budget. Part II section 69.10.
+#
+# WALL-CLOCK TIMEOUTS ARE FORBIDDEN in every decision path of the kernel and the checker. This
+# overrides Part I: ECLIPSE section 6 and section 4B permitted "caps" and the feasibility critic
+# proposed "a solver time budget". A wall-clock bound makes flags, and therefore verdicts,
+# machine-dependent, which destroys byte-identical replay. Every timeout is replaced by a
+# deterministic step budget. There is no key in this file that measures time, and none may be added.
+#
+# The one permitted wall-clock guard is operational and lives outside the decision path: the Python
+# layer may SIGKILL the subprocess after a generous bound (section 69.10.7). If it fires, the run is
+# recorded as INFRA_KILLED, produces NO certificate, and is excluded from every published number. It
+# is an operational event, never an input to a verdict, and it must never be confused with exit 7.
+#
+# HOW THE BUDGET BEHAVES
+#
+#   - Every counter is decremented at a single, documented call site (section 69.10.2). Never by
+#     sampling, never by a background thread, never by a signal.
+#   - Exhaustion is deterministic and PRODUCES OUTPUT, not an abort (section 69.10.4): the run sets
+#     the corresponding flag, which structurally suppresses ROBUST, emits a partial artifact, and
+#     exits 7.
+#   - Exit 7 is a PASS for the API — the user gets a flagged, honest, degraded result — and a FAIL
+#     for CI on any core fixture. `make gates` fails if any core fixture exits 7 under this file,
+#     because that means the declared budget no longer fits the declared scale (section 69.10.5).
+#   - A flagged run may never be presented as ROBUST. That is enforced in the type system: the
+#     safety field is constructible only from a flag set proven empty (section 69.10.6).
+#   - `arena_cells` is an ALLOCATION COUNTER inside a bump arena, in 8-byte cells. It is not
+#     resident set size. RSS depends on allocator, kernel and machine, and a ceiling expressed in
+#     RSS would reintroduce machine dependence (section 69.10.3).
+#
+# This file is CAS-stored, compiled to a struct and hashed into the run manifest.
+#
+# Status: not started. EVERY BUDGET VALUE IS UNSET. A loader given this file has no budget and must
+# fail closed with a named missing key and a non-zero exit. It must not substitute a default, and it
+# must not run unbudgeted.
+
+schema_version = 1
+
+# The ABI this budget object is written against. Part II section 69.5.3 defines ABI 1.
+abi = 1
+
+# ---------------------------------------------------------------------------
+# Budget counters. All unset.
+#
+# The figure quoted beside each key is the value printed in Part II section 69.10.1. It is recorded
+# here as a REFERENCE ONLY and has not been validated against any fixture, any scenario or any
+# measurement in this repository. Do not uncomment a key by copying its quoted figure: section
+# 69.10.5 requires the budget to be revised deliberately, in a commit, with a rationale, on the
+# strength of the observed budget_used distribution that nightly publishes. No such distribution
+# exists.
+#
+# TODO(M5, blocking): set every key below. Each value is a hard design constraint, not a
+# measurement, and each needs a written rationale in the commit that sets it.
+# ---------------------------------------------------------------------------
+
+# TODO: ground_steps   semi-naive derivation attempts.
+#       Exhaustion sets the grounding-capped flag. Section 69.10.1 prints 20_000_000.
+# ground_steps = <unset>
+
+# TODO: relaxations    Dowling-Gallier counter decrements.
+#       Section 69.10.1 prints 50_000_000.
+# relaxations = <unset>
+
+# TODO: bnb_nodes      branch-and-bound nodes over u64 masks.
+#       Section 69.10.1 prints 2_000_000.
+# bnb_nodes = <unset>
+
+# TODO: corridors      enumerated corridors before capping.
+#       Exhaustion sets the corridor-capped flag. Section 69.10.1 prints 4_096.
+# corridors = <unset>
+
+# TODO: instances      rule instances materialized.
+#       Section 69.10.1 prints 1_000_000.
+# instances = <unset>
+
+# TODO: arena_cells    8-byte cells; the memory ceiling, COUNTED not measured.
+#       Any allocation outside the arena in the kernel's decision path is a build failure.
+#       Section 69.10.1 prints 268_435_456.
+# arena_cells = <unset>
+
+# TODO: checker_steps  the checker's own single budget.
+#       Section 69.10.1 prints 200_000_000.
+# checker_steps = <unset>
+
+# ---------------------------------------------------------------------------
+# Negative requirements
+# ---------------------------------------------------------------------------
+#
+# - Do not add a key whose unit is seconds, milliseconds, nanoseconds of wall clock, or any other
+#   measure of elapsed time. Not for the kernel, not for the checker, not "just for CI".
+# - Do not add a key whose unit is resident set size, virtual memory, or any allocator statistic.
+#   The memory ceiling is `arena_cells` and it is counted, not observed.
+# - Do not check a budget by sampling, by a background thread, or by a signal handler.
+# - Do not raise a budget to make a fixture pass. Section 69.10.5 requires a deliberate revision
+#   with a rationale, on evidence from the published budget_used distribution.
+# - Do not treat exit 7 as a crash, and do not treat INFRA_KILLED as exit 7. They are different
+#   events with different artifacts and different CI meanings.
+# - Do not present a budget-exhausted run as ROBUST. The type system forbids it; do not work around
+#   the type system.
