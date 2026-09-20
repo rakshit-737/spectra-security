@@ -1,0 +1,19 @@
+# spectra-cut - hitting-set search over threshold literals.
+# Spec: Part I 25, 32.4; Part II 69.10 (deterministic step budgets).
+# Status: not started.
+
+[package]
+name = "spectra-cut"
+description = "SPECTRA cut search over the control catalog. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet.
