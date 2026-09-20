@@ -1,0 +1,137 @@
+# SPECTRA - spectra.toml
+#
+# The repository-level project descriptor. One file, at the root.
+#
+# Status: session one. This file is the thing being delivered. Nothing it
+# describes has been built: the kernel, the checker, the generator, the API and
+# the frontend are all "not started".
+#
+# WHAT THIS FILE IS FOR. The specification names spectra.toml in exactly one
+# place: Part II section 69.7.4, where the Python layer executes
+# `spectra-kernel abi` and `spectra-verify abi` at worker start and refuses to
+# serve if either binary's supported ABI set does not contain the ABI pinned
+# here. That pin is this file's load-bearing content. Everything else below is
+# identity, recorded because it is stated elsewhere in the specification and
+# has to live somewhere machine-readable.
+#
+# WHAT THIS FILE IS NOT. It is not a build manifest, not a dependency list and
+# not a status board:
+#   - toolchain and image pins live in toolchains.lock and images.lock
+#     (Part II section 74.1)
+#   - the language roster and its load-bearing edges live in polyglot.toml
+#     (Part II section 73.4) and languages.toml (Part II section 74.0)
+#   - CI gate registration lives in ci/gates.toml (Part II section 74.0)
+#   - behaviour lives in config/ (Part I section 34.1)
+# Do not mirror a value from any of those files here. A second copy of a pin is
+# a second thing that can be wrong.
+
+schema_version = 1
+
+# ---------------------------------------------------------------------------
+# [abi] - the pin Part II section 69.7.4 requires
+# ---------------------------------------------------------------------------
+[abi]
+# ABI versions are integers and are never reused (Part II section 69.7.5).
+# `--abi <n>` is mandatory on every invocation; there is no default and no
+# auto-detection (Part II section 69.7.1).
+#
+# Both binaries must list this integer in `abi_supported` or the Python layer
+# refuses to serve. Raising it requires a new abi/vN/ directory, new
+# hand-written structs on both sides, and a migration note; dropping support
+# for an ABI is a breaking release recorded in docs/abi-history.md.
+pinned = 1
+
+# TODO(decision): `rules_dialect` is versioned independently of the ABI
+# (Part II section 69.7.6), but the specification does not say that it is
+# pinned in this file - the kernel rejects a rules object whose dialect it does
+# not implement, at exit code 6. It is therefore NOT recorded here. If a later
+# session decides the orchestration layer should pre-check the dialect the way
+# it pre-checks the ABI, add `rules_dialect_pinned` to this table and to the
+# worker-start check in python/spectra_api, in the same commit.
+
+# ---------------------------------------------------------------------------
+# [project] - identity, as stated in Part I section 1.5 and Part II section 75
+# ---------------------------------------------------------------------------
+[project]
+name    = "spectra"
+# Part I section 1.5 wrote the repository name as `spectra-security`. Resolved
+# to `spectra` because the binary, the Python package and the certificate media
+# type are all already `spectra`, and a repository name that differs from the
+# artifact name by a suffix is a name people get wrong once each.
+# TODO(decision): to reverse, change this value and the `repository` URL below;
+# nothing machine-readable derives from it in session one.
+
+version = "0.0.0"
+# Not a release. Part I section 15 tags `v0.1.0` at milestone M10, behind the
+# full gate set. Until a gate has run, the version stays 0.0.0 so no tool and
+# no reader can mistake a skeleton for a prototype.
+
+license_spdx = "Apache-2.0"
+# Part II section 75: single licence, no dual-licensing, no non-commercial
+# rider. LICENSE at the root; `SPDX-License-Identifier: Apache-2.0` headers on
+# every source file, enforced by `make license-header-lint`.
+
+description = "Local-first, offline, Dockerized security-research platform for reconstructing security state and proving what the available telemetry does and does not determine."
+
+tagline = "Reconstruct the state. Prove the cut. Price the blindness."
+# Part I section 1.4, verbatim. It describes intent, not an achieved result.
+
+repository = "https://github.com/rakshit-737/spectra-security"
+# TODO(decision): PLACEHOLDER. The owner segment is unconfirmed. It must match
+# the Go module path below and the `repository` field of CITATION.cff before
+# anything is published. Change all three together.
+
+# ---------------------------------------------------------------------------
+# [names] - the naming surface, fixed so that nothing has to guess it
+# ---------------------------------------------------------------------------
+[names]
+# Part I section 1.5, as amended by Part II section 73.10 clause 2: the internal
+# acronym for the proof kernel exists in prose only and appears in no crate,
+# module, package or directory name, no binary on PATH, no HTTP path segment,
+# no JSON field name, no file extension and no certificate magic bytes. The
+# grep gate named in that clause enforces it, and this file is part of the
+# surface that gate checks - which is why the acronym itself does not appear
+# anywhere in this file, not even in a comment.
+cli            = "spectra"
+prove_command  = "spectra prove"
+verify_command = "spectra verify"
+python_package = "spectra"
+rust_crate_prefix = "spectra-"
+go_module      = "github.com/rakshit-737/spectra-security/go/verify"
+# TODO(decision): PLACEHOLDER owner segment, as above. It must match
+# `repository` and the module line in go/verify/go.mod.
+
+# ---------------------------------------------------------------------------
+# [runtime] - the supported set, stated exactly (Part II section 74.11.7)
+# ---------------------------------------------------------------------------
+[runtime]
+# Say exactly this and nothing more. linux/arm64 is explicitly unsupported and
+# no multi-arch manifest may imply otherwise (Part II section 74.1.3). Native
+# Windows and macOS are not supported: no make target runs on cmd.exe or
+# PowerShell (Part II section 74.0).
+platforms = ["linux/amd64"]
+host_development = ["wsl2", "devcontainer"]
+
+# Determinism charter, Part II section 58.1 clause 6. These are set in every
+# Dockerfile, every CI job, every devcontainer and the Makefile itself. They
+# are recorded here so a reader of this file learns the posture without
+# reading the Makefile; the Makefile remains the thing that exports them.
+[runtime.env]
+TZ                = "UTC"
+LC_ALL            = "C"
+SOURCE_DATE_EPOCH = "0"
+
+# ---------------------------------------------------------------------------
+# Fields deliberately absent
+# ---------------------------------------------------------------------------
+# TODO(decision): the following were considered and left out because the
+# specification does not define them for this file, and inventing a field here
+# would create a second source of truth:
+#   - dependency or toolchain versions  -> .tool-versions, toolchains.lock
+#   - image digests                     -> images.lock
+#   - the language roster and counts    -> polyglot.toml, languages.toml,
+#                                          artifacts/polyglot/audit.json
+#   - CI gate ids and tiers             -> ci/gates.toml
+#   - benchmark or accuracy figures     -> bench/results/, and nowhere else
+# Add a field here only when a consumer exists that reads it, and name that
+# consumer in the comment above it.
