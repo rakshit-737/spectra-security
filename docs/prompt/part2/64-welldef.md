@@ -48,6 +48,12 @@ Two distinct orders exist. Confusing them is the defect that made cuts unstable.
     the catalog contents and is *history-independent*: inserting a new control never changes the
     relative order of two pre-existing atoms.
 
+    OVERRIDES Part I section 22.5: the catalog schema's `control_id` pattern
+    `^[a-z][a-z0-9_]{2,31}$`, enforced by `schemas/controls.schema.json`, is replaced by
+    `^[a-z][a-z0-9_]{2,47}$`, which is the single authority for both the lint and the catalog
+    validator. An implementer following Part I rejects at catalog compile time the longer ids this
+    section's atom order and bit-lock generator accept.
+
 (2) **Bit positions** — used only for `u64` blocker masks, mask arithmetic and hashing. Assigned from
     an append-only registry `controls/catalog-bits.lock`, never from file position:
 
@@ -66,11 +72,20 @@ Rules, each with a build gate:
 - 64.1.1 A `(control_id, level)` pair keeps its bit position forever. Removing a control sets
   `state = "tombstone"`; the position is never reused. `make bits-lock` may only append. CI fails if
   the lock file's diff against `HEAD~` contains any deletion or any change to an existing `pos`.
+  OVERRIDES Part I section 22.7: deriving bit positions from `build/controls.toml`, i.e. from
+  catalog file or compilation order, is replaced by assignment from the append-only
+  `controls/catalog-bits.lock` registry. An implementer following Part I renumbers every existing
+  bit on any catalog edit, which this rule and `make stability-cut` step 4 forbid.
 - 64.1.2 Live + tombstoned positions must satisfy `max(pos) < 64`. The gate is
   `make atom-budget`, which prints live and tombstoned counts and fails at `pos == 64`. At exhaustion
   the only sanctioned action is a `lock_version = 2` epoch: a new lock file, a new
   `catalog_epoch` field in the certificate, and an explicit statement in `docs/` that certificates
   from different epochs are not comparable by mask. Silent renumbering is forbidden.
+  OVERRIDES Part I section 22.2: the `E_ATOM_BUDGET` check, taken over currently declared live atoms
+  only as `Σ_k m_k ≤ 64` and published as that live count in `build/controls.meta.json`, is replaced
+  by a budget over live plus tombstoned positions, `max(pos) < 64`, gated by `make atom-budget`. An
+  implementer following Part I accepts a catalog whose tombstoned positions have already exhausted
+  the mask width, and frees those positions for reuse.
 - 64.1.3 The certificate records, for every atom in the cut, all three of `control_id`, `level`,
   `bit`, and the `rank` (0-based index in `≺` over live atoms), plus `hashes.catalog_bits`. The Go
   checker recomputes `rank` from the catalog and rejects the certificate on mismatch.
@@ -141,6 +156,12 @@ the `cut_cmp`-minimum admissible cut of cardinality `r`, independent of internal
   solver terminating inside budget, and is never inferred from atom count.
 - 64.2.2 `safety` and `minimality` are independent certificate fields. A `SUBSET` minimality never
   degrades `safety`.
+  OVERRIDES Part I section 25.9: the rule that a run with any of `grounding_capped`,
+  `subset_minimal_only` or `greedy_cover` set MUST NOT be presented as ROBUST — the API returning
+  `mode: "OPTIMISTIC_ONLY"` with `downgraded_by: [...]` and a grey badge — is replaced by two
+  independent fields, where degradation is carried by `minimality` and never rewrites `safety`. An
+  implementer following Part I emits one `mode` field carrying both meanings and suppresses a
+  ROBUST verdict that this section holds to be sound.
 - 64.2.3 Property test `prop_cut_canonical`: for 512 seeded shuffles (illustrative, not a target) of
   clause order, atom insertion order and rule-instance order, `canonical_min_cut` returns
   byte-identical output. Failure fails the build.
@@ -255,6 +276,11 @@ type Residual struct {
   of the corridor's atom ranks in ascending `≺` order, rendered as 32 lowercase hex characters. It is
   stable across runs with the same catalog and rule table, and is the join key for every residual,
   redundancy and frontier output.
+  OVERRIDES Part I section 25.7: the small integer `corridor_id` assigned as corridors are
+  discovered by the hitting-set loop, and used as the key of `spectra eclipse corridors --explain
+  <corridor_id>` and `GET /api/v1/eclipse/corridors` in section 25.11, is replaced by this content
+  hash. An implementer following Part I emits a solver-order-dependent identifier, so the join keys
+  of residual, redundancy and frontier outputs change between runs over identical inputs.
 - 64.4.2 **Scalarisation ban.** There is no field named `residual_reachability`, `residual_score`,
   `residual_pct`, `coverage`, `severity`, `risk`, `confidence`, `probability`, `score`, `rating`,
   `index` (except `redundancy_index`, which is the Jaccard defined in 64.5 and is name-registered) on
@@ -334,6 +360,11 @@ Consequences, each of which must be written in the docs in these terms:
   extracted from P_max, may combine silent instances that no single consistent world realizes. The
   tree may depict an attack that could not have happened. This is the demo's climax and it must
   carry its status on screen.
+  OVERRIDES Part I section 25.9: the definition of `UNSAFE` as the goal being reachable in `P_min`
+  under the user's current configuration — an observed-only property — is replaced by a verdict and
+  counterexample trees that may be extracted from `P_max`, a superset of realizable worlds. An
+  implementer following Part I builds counterexamples from `P_min` alone, so no tree can ever be
+  unrealizable and the realizability apparatus of 64.6 has nothing to run on.
 - 64.6.3 **Not sound for any OPTIMISTIC artifact derived from P_max.** Blindness premium members,
   decisive observation sets and frontier points computed over Ψ_max inherit the superset semantics
   and carry `program: "PMax"` so that no consumer can forget it.
@@ -377,6 +408,11 @@ The decidable subset, which is mandatory to implement:
 - 64.6.7 GHOST labelling is orthogonal and still mandatory: every silent instance renders as GHOST at
   every zoom level and in every export, and never enters any observed-event count. A `REALIZABLE`
   badge does not make a GHOST an observation.
+  OVERRIDES Part I section 25.8: checker check (e)'s requirement that each redundancy witness
+  re-derive the goal under `S \ {c}` from real `EventId` leaves, and section 25.11's counterexample
+  endpoint returning a derivation tree with `EventId` leaves, are replaced by trees whose silent
+  instances appear as GHOST leaves carrying `evidence: []`. An implementer following Part I rejects
+  with exit code 4 exactly the `P_max`-derived trees this section mandates.
 
 
 64.7 COST FRONTIER: NO UNIT-COST DEFAULT
@@ -464,6 +500,10 @@ independently and are held equal by the differential corpus (§62).
   enumerated corridors, and enumeration reached fixpoint"; `SUBSET` → "no control can be removed from
   this cut; smaller cuts were not ruled out". The Go checker rejects a certificate whose rendered
   verdict strings (carried in `render_strings`) do not match the registry for its flag combination.
+  OVERRIDES Part I section 25.13: the licensed phrasing "no smaller cut exists over the declared
+  control catalog" is replaced by these two registered strings, and is itself now a banned form. An
+  implementer following Part I ships a sentence that omits the enumeration-fixpoint qualifier and
+  the controls-versus-atoms distinction, and that the claims-registry check rejects.
 
 CLI transcript for a suppressed run (illustrative, not a target — every number and hash here is a
 placeholder and the docs gate fails if any of these literal values reaches `docs/` or `README.md`):
@@ -509,6 +549,10 @@ keep the headline objects honest.
 - Do not report any cut without its `minimality` tag. Do not print "the minimum cut" — print "a
   cardinality-minimum cut over the declared catalog, canonical representative" or, for `SUBSET`,
   "a subset-minimal cut".
+  OVERRIDES Part I section 25.11: the mandated UI result header "Minimum cut {session_binding>=device,
+  egress_seg>=1} — ROBUST — …" and section 25.8's checker line "OK: no cut of size 1 satisfies Psi"
+  (both quoted illustratively, not as targets) are replaced by the phrasings required here and by
+  64.8.3. An implementer following Part I ships literal strings that the banned-phrase gate fails.
 - Do not compute `S_rob \ S_opt` and call it the blindness premium. That expression is deleted.
 - Do not scalarise residual reachability. Do not add a percentage, a ratio, a normalised coverage, a
   "% of attack paths blocked", or a progress bar backed by one.
