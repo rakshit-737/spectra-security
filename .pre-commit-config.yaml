@@ -2,8 +2,8 @@
 #
 # STATUS: not started. Two hooks run (`skeleton-verify` and `guard-sandbox`).
 # The other two are declared and parked on the `manual` stage because their make
-# targets are not written yet. See "WHAT `manual` MEANS HERE" below; it does not
-# mean optional.
+# targets are declared stubs that exit non-zero, not working checks. See "WHAT
+# `manual` MEANS HERE" below; it does not mean optional.
 #
 # Authority: ci/gates.toml (section 74.4). Every hook below corresponds to a gate
 # row there, and a hook here that does not is not a gate. This file declares
@@ -38,7 +38,8 @@
 # WHAT `manual` MEANS HERE
 #   `stages: [manual]` on a hook below means NOT IMPLEMENTED, not "optional" and
 #   not "skipped because it is noisy". The hook does not run on commit because
-#   its make target does not exist. Run one deliberately with:
+#   its make target is a declared stub: it prints the owning section and the
+#   milestone and exits non-zero. Run one deliberately with:
 #
 #       pre-commit run --hook-stage manual <id>
 #
@@ -82,10 +83,11 @@ repos:
 
       # ----------------------------------------------------------------------
       # ENABLED.
-      # Non-authoritative local mirror of the T1 gate G-SKELETON-001, the only
-      # implemented gate in this repository. It checks that the committed
-      # skeleton is self-consistent. It does not build, exercise or verify any
-      # part of the platform, because no part of the platform exists.
+      # Non-authoritative local mirror of the T1 gate G-SKELETON-001. It checks
+      # that every required directory and root file listed in the Makefile is
+      # present -- existence only, contents unchecked. It does not build,
+      # exercise or verify any part of the platform, because no part of the
+      # platform exists.
       # ----------------------------------------------------------------------
       - id: skeleton-verify
         name: "T0 skeleton-verify (mirror of T1 G-SKELETON-001, not authoritative)"
@@ -137,8 +139,9 @@ repos:
         always_run: true
         stages: [manual]
         description: >-
-          NOT IMPLEMENTED. `manual` here means the target does not exist yet, not
-          that the check is optional. Enabled at M0.
+          NOT IMPLEMENTED. The target exists (Makefile line 341) but is a
+          $(call todo,...) stub that exits non-zero; `manual` here means not
+          implemented, not that the check is optional. Enabled at M0.
 
       # ----------------------------------------------------------------------
       # NOT IMPLEMENTED - parked on the manual stage.
@@ -164,5 +167,6 @@ repos:
         always_run: true
         stages: [manual]
         description: >-
-          NOT IMPLEMENTED. `manual` here means the target does not exist yet, not
-          that the check is optional. Enabled at M0.
+          NOT IMPLEMENTED. The target exists (Makefile line 344) but is a
+          $(call todo,...) stub that exits non-zero; `manual` here means not
+          implemented, not that the check is optional. Enabled at M0.
