@@ -73,6 +73,12 @@ operator-id   = "op:"   snake
 oracle-id     = "orc:"  snake
 ```
 
+OVERRIDES Part I section 10.2: `source_id` matching `^src-[a-z2-7]{16}$` and `collector_id` matching `^col-[a-z2-7]{16}$` — content-addressed base32 digests produced by section 12's resolver from the `src` and `col` entity kinds declared in section 9.2 — are replaced by the authored symbolic forms `src:` snake and `col:` snake `@` u16, which are never derived from a digest and are not entity kinds at all. An implementer following section 10.2 emits `src-`/`col-` base32 values that fail the `source_id` and `collector_id` grammars, invalidating both worked examples in section 10.7, and requires section 12's resolver to materialize two kinds that no longer exist.
+
+OVERRIDES Part I section 10.2: `scenario_id` matching `^[a-z0-9][a-z0-9_-]{2,63}$`, with the version held separately in section 23.2's `version` key, is replaced by `sc:` snake `@` u16, in which hyphens are illegal and the `@` suffix is the only place the scenario schema version is recorded. An implementer following section 10.2 emits `s07-token-pivot` or section 23.2's `sc_oauth_token_pivot`, both invalid here, and because section 9.3 anchors every `EntityId` on `scenario_id` every entity digest in every fixture is then computed over the wrong string.
+
+OVERRIDES Part I section 13: the SCREAMING_SNAKE state names of section 13 (`AUTHENTICATED`, `EXFIL_STAGED`, `ELEVATED_JIT`), written bare, are replaced by lowercase `st:` `<dimension>` `:` `<state>` identifiers such as `st:session:active`. An implementer following section 13 generates Rust `enum` and Python `StrEnum` variant spellings that fail the case rule above, prints unprefixed names in section 15.4's mandatory CLI transcript, and stores states in section 15.2's `SMALLINT` columns rather than the `state_id` text domain.
+
 Prefix uniqueness is a hard invariant: no prefix is a prefix of another prefix. `make lint-vocab` recomputes this from `vocab.toml` and fails on violation.
 
 **Certificate width rule.** Any identifier matching an `h128` form appearing anywhere inside a certificate is a hard rejection by `spectra verify`, not a warning. Rationale: `h128` IDs derive from run-local structure and are never adversarially reachable; integrity-critical IDs derive in part from untrusted telemetry bytes, where 128 bits of truncated digest permits a birthday-grinding attack at roughly 2^64 work. Do not "optimize" certificate size by truncating these.
@@ -91,6 +97,8 @@ DIGEST(kind, payload) = BLAKE3-256( "spectra/v1/" || kind || 0x1F || payload )
 2. An `h256` ID renders all 32 output octets as lowercase hex. An `h128` ID renders **the first 16 octets only**, lowercase hex. Truncation is a prefix, never a fold, never a XOR.
 3. `payload` is the concept's canonical byte encoding, defined per concept in `vocab.toml` field `payload`. Canonical encodings are built only from: ASCII identifiers as written; unsigned integers as fixed-width big-endian (`u8`, `u16`, `u32`, `u64`); and ordered sequences as `count:u32` big-endian followed by elements. **No JSON, no floats, no locale-sensitive formatting, no platform-endian writes, no length-prefixed UTF-8 with implementation-defined normalization.**
 4. Sequences inside a payload are sorted by plain bytewise (`memcmp`) ascending order of the element's canonical bytes before hashing. Sorting is stable and total. Never sort by a language's default collation.
+
+   OVERRIDES Part I sections 9.3, 10.2, 11.3, 14.1, 23.4 and 23.5: the five distinct digest recipes of Part I — base32 `BLAKE3_128` over LF/US-delimited anchor bytes, `BLAKE3_128` over RFC 8785 JCS JSON, `BLAKE3_256` over a `spectra.chain.v1` prefix with a little-endian `u64le(epoch)`, `blake3` over canonical JSON bodies, and a truncated `blake3(trace_root || seq || emit_index)` — are all replaced by the single `DIGEST(kind, payload)` construction of rule 1, whose domain prefix is `spectra/v1/` + `kind`, whose payload admits no JSON and no platform-endian write, and whose only permitted truncation is the h128 prefix of rule 2. An implementer following any Part I recipe produces a digest differing in domain prefix, payload encoding, byte order or width, so every golden hash, every `tests/golden/traces.json` entry and every committed certificate fixture changes value.
 5. On the wire (JSONL bundles, certificate JSON, TOML catalogs, HTTP APIs) every identifier is the ASCII string of §57.2 — never a byte array, never base64, never an integer.
 6. In SQL, every identifier is `text` constrained by a `DOMAIN`, never `bytea`, never `uuid`:
 
@@ -103,7 +111,15 @@ CREATE DOMAIN tick        AS bigint CHECK (VALUE >= 0);
 -- ... one DOMAIN per row of Table A that has an ID type.
 ```
 
+   OVERRIDES Part I sections 9.2 and 9.3: the twenty-one-code entity-kind set (`idn, acct, svcacct, cred, sess, tok, dev, host, ctr, proc, svc, api, res, role, grant, netif, flow, zone, ctl, src, col`) and the wire form `EntityId := kind "-" b32` over lowercase base32 are replaced by the closed `EntityKind` set of Table C and the wire form `en:` `<kind>` `:` `<hex>` constrained by the `entity_id` domain above. An implementer following section 9.2 emits values shaped like `sess-k4m2q9x7t1b0dfe3`, which fail the `entity_id` domain on prefix, separator, alphabet and digest rendering and void section 10.2's `EntityRef` pattern, and builds resolvers for kinds that no longer exist (token, device, container, role, grant, zone, network interface, control instance, telemetry source, collector) while leaving `key`, `file` and `api_client` without an anchor tuple.
+
+   OVERRIDES Part I sections 15.2 and 25.5: `event_id BYTEA`, `tid BYTEA`, `chain_hash BYTEA`, `run_id UUID`, `entity_id BIGINT`, `license_id BIGINT` and the `SMALLINT` columns for dimension, state, trigger, support and classification, together with `LicenseId(u32)` and `EventId(u64)` in code, are replaced by `text` columns constrained by the DOMAINs above and by the byte widths Table B declares, so `LicenseId` is a certifiable `lic:` h256 rather than a run-local integer and `RunId` is `run:` h256 rather than a UUID or section 10.2's `^[0-9a-f]{32}$`. An implementer following section 15.2 builds a schema in which every identifier column and every foreign key has the wrong type, and emits `run_id` values that fail the `run_id` domain on every canonical event and every fixture.
+
 7. `Tick` is `u64`, an integer count of nanoseconds since the scenario epoch (tick 0). All intervals are half-open `[t0, t1)`. There is no floating point anywhere in the time model and no wall-clock value in any hashed payload.
+
+   OVERRIDES Part I sections 14.4, 16.6 and 23.2: `tick = floor((t_norm_ns - run_origin_ns) / tick_width_ns)` with `tick_width_ns` configurable in `config/constants.toml`, and section 23.2's separate `tick_unit_s` simulator unit exported by section 23.8, are replaced by a tick fixed at one nanosecond; `tick_width_ns` and `tick_unit_s` cease to exist. An implementer following section 14.4 builds a quantized clock in which every TTL, idle and absolute expiry deadline, blind-window bound, `horizon_ticks`, `burst_window_ticks`, `snapshot_interval_ticks` and `min_reorg_horizon_ticks` is scaled by the old tick width, and one following section 11.4's closed gap interval `[a.observed_at_ns, b.observed_at_ns]` includes the upper bound, changing the SUPPRESSED licensing basis at that boundary.
+
+   OVERRIDES Part I section 14.1: `wall_ns` as a required field of the transition record, hashed into `tid = blake3(canonical_json(record minus {tid, seq, superseded_by}))`, is replaced by a transition payload carrying no wall-clock value at all. An implementer following section 14.1's schema produces different `tid` values for two byte-identical runs on different machines, breaking the determinism guarantee asserted in section 15.6.
 
 ---
 
@@ -150,6 +166,10 @@ CREATE DOMAIN tick        AS bigint CHECK (VALUE >= 0);
 | 35 | degradation spec | `DegradationId` (`deg:`) | PART-II/degradation | An ordered list of (operator, parameters, seed) defining one matrix cell. |
 | 36 | run manifest | `RunId` (`run:`) | PART-II/determinism | The hashed core of one execution: all input digests, git SHA, toolchain versions, seeds. |
 | 37 | oracle | `OracleId` (`orc:`) | §62 | An independently implemented judge of a property; a closed set of five. |
+
+OVERRIDES Part I sections 11.3 and 15.2: the raw-bytes digest carried twice, under two names and two widths — `content_hash_n = BLAKE3_256(raw_record_bytes_n)` stored as `evidence.content_hash` and keyed by `event_id` (section 10.6.1), and `raw_event.event_id` as a blake3-128 of the raw bytes — is replaced by row 2's single `RecordId` (`rc:` h256) digested over the exact pre-parse bytes and stored on table `record`. An implementer following section 11.3 or 15.2 builds a `raw_event`/`evidence` pair keyed by a run-local ID instead of the `record` table Table B requires, and the h128 `raw_event.event_id` is a hard `spectra verify` rejection under the certificate width rule of §57.2 if it ever reaches a certificate.
+
+OVERRIDES Part I sections 13.3.4, 13.3.7, 13.3.10 and 14.1: transitions scoped to a composite subject — `principal x scope` for privilege, `host x interface` for network exposure, an ordered pair of zones or principals for trust — and written with section 14.1's `kind:name` entity pattern, shown as `principal:svc-deploy` in section 15.4, are replaced by row 10's single-`EntityId` key: one entity, one dimension, one tick. An implementer following section 14.1 emits transitions whose `entity` field matches no ID domain in either part, since `principal` is a union type by section 9.2's own statement, is not an `EntityKind` in Table C, and is a forbidden synonym in Table D.
 
 ---
 
@@ -220,6 +240,12 @@ EntityKind     : user host process session credential key service
                  account file netflow api_client resource           (exactly 12)
 ```
 
+OVERRIDES Part I sections 13.3, 13.5 and 14.1: the dimension enum `authentication, session, credential, privilege, device_trust, process, network_exposure, resource, service_identity, trust` is replaced by the closed `Dimension` set above, in which `authentication`, `device_trust`, `network_exposure` and `service_identity` are illegal `DimensionId`s and `identity`, `network` and `api` stand in their place. An implementer following section 13 generates FSMs, `st:` StateIds, coupling edges such as `service_identity -> credential` and `network -> device_trust`, a `dimension` SQL type and Rust/Python/Go/TypeScript enums keyed on names that are not members of the closed set; Part I defines no FSM, transition table or illegal-edge list for `api`, and that gap is owned by §13, not resolved by renaming.
+
+OVERRIDES Part I section 10.2: the `Degradation.mutation` enum `["none","delayed","duplicated","reordered","corrupted","suppressed"]` is replaced by the closed `Operator` set above — bare verbs, no `none` member, `delete` added — each carrying an `op:` `OperatorId`. An implementer following section 10.2 emits past-participle values that fail the `Operator` domain, has no operator for `delete` and no `OperatorId` for `none`, and names the field `mutation`, which Table D bans as a synonym of degradation operator.
+
+OVERRIDES Part I section 12.6: the certificate flag `ambiguous_entity` for a derivation whose leaves include an unresolved entity is replaced by `er_ambiguous` from the closed `Flag` set above. An implementer following section 12.6 emits an unknown flag that fails the closed-enum check in `spectra verify`, on exactly the runs section 12.6 says may not be presented as ROBUST without that flag shown.
+
 OVERRIDES Part I / ECLIPSE §5: `Cert.mode: ROBUST|OPTIMISTIC` is deleted. A certificate carries independent `safety` and `minimality` fields plus a scope binding, because subset-minimality is a statement about cut size and has nothing to do with whether the goal is reachable. Collapsing them suppressed honest safety results for unrelated reasons and created an incentive to keep the control catalog small.
 
 OVERRIDES Part I / ECLIPSE §8: a verdict is never rendered as a bare word. The only renderable form is
@@ -270,6 +296,10 @@ Matching is at identifier-segment granularity after splitting `snake_case`, `cam
 | run manifest | `metadata`, `run_info`, `provenance_blob`, `context` |
 | oracle | `validator`, `truth`, `reference_impl`, `baseline` |
 
+OVERRIDES Part I sections 10.2, 22.5, 23.2, 24.8 and 24.9: the required schema and CLI names `outcome`, `actor`, `stream_id`, `sensor_kind`, `control_context` / `ControlObservation`, `ground_truth` / `GroundTruth`, `coverage_limits`, `bypass[].condition`, `step` and `--axis` / `axes` are banned identifier segments under this table and must carry the canonical name of the concept instead. An implementer following section 10.2's canonical event schema, section 22.5's control-catalog schema or section 24.8's CLI ships identifiers that fail check V5, and because Table A supplies no replacement for several of them the rename is not mechanical — the owning section must bind the canonical term first.
+
+OVERRIDES Part I sections 11.3, 11.4, 12 and 16.1: `chain_hash`, `chain_prev` and `chain_checkpoints`, the `POLICY_VIOLATING` classification with `policy.toml`, the `classify::policy` module and its per-rule `edge:` key, the `finding` table and its `/findings` API resource, `GAP_BEFORE` and its gap counts, section 9.8's edge table and the `ingest_report.json` / `integrity_report.json` / `resolution_report.json` producers all spell themselves with segments banned by this table (`chain`, `policy`, `finding`, `gap`, `edge`, `report`). An implementer building sections 11, 12 and 16 to their written spelling fails V5 on every one of those identifiers and must take the name from Table A, not from the Part I text.
+
 **Universally banned identifier segments**, with no canonical counterpart, because the concept itself is forbidden by the project constraints: `score`, `confidence`, `probability`, `likelihood`, `risk_score`, `severity`, `priority`, `weight`, `ranking`, `percent_certain`, `residual_reachability`, `cost_mass`, `threat_level`.
 
 OVERRIDES Part I / ECLIPSE §4H: `residual reachability` is retired as a name and as a quantity. The frontier reports two sets — `residual_goal_facts: Vec<FactHash>` and `open_corridors: Vec<CorridorId>` — and nothing collapses them into a scalar. The lint bans the old name outright.
@@ -281,6 +311,8 @@ OVERRIDES Part I / ECLIPSE §4H: `residual reachability` is retired as a name an
 **OVERRIDES Part I: `atom` is retired.** ECLIPSE §3's comment `FactId(u32) // ground, time-indexed atom` reads `// ground, time-indexed fact`. ECLIPSE §2's "atom set A" reads "literal set L". `Cert.cut: Vec<Atom>` reads `Vec<LiteralId>`. `goal.toml`'s "objective atom" reads "goal fact", and goals are a set with one verdict each.
 
 **OVERRIDES Part I: evidence cites `RecordId`, never `EventId`.** `RuleInst.evidence: Vec<EventId>` becomes `Vec<RecordId>`, and every witness tree leaf is a `RecordId`. `EventId` is the generator's private identity for an occurrence; it is carried on the oracle channel, never in a bundle the kernel reads. This is what makes the zero-false-ROBUST invariant measurable under degradation: operators mutate records and therefore `RecordId`s, while `EventId`s survive, so §62 can re-link a perturbed bundle to ground truth through the `oracle_link(event_id, record_id)` table.
+
+OVERRIDES Part I sections 10.2, 10.5 and 15.2: `event_id` content-addressed adapter-side as `evt-` + base32 of `BLAKE3_128(canonical_json_without_event_id)`, re-derived on schema migration by section 10.5 and redefined again in section 15.2 as a blake3-128 of the raw ingested bytes, is replaced by an `ev:` h128 minted by the generator when the occurrence is emitted, rendered as lowercase hex, and never recomputed from anything the kernel reads. An implementer following section 10.2 makes `EventId` a function of the possibly corrupted ingested bytes, so `oracle_link(event_id, record_id)` cannot re-link a perturbed bundle under the corrupt operator and the zero-false-ROBUST measurement silently stops working.
 
 ```
          GENERATOR                          KERNEL-VISIBLE                 ORACLE CHANNEL
@@ -443,6 +475,8 @@ CI binding: `lint-vocab` is a required check on every pull request and is listed
 3. Do NOT use `atom` for anything. It is retired, not deprecated.
 4. Do NOT put an `EventId` in a bundle, a fact, a rule instance, a license, a witness tree or a certificate. Do NOT read `event_id` from any kernel, collector or checker code path.
 5. Do NOT emit any field, column, JSON key, GraphQL field, metric name or UI label containing `score`, `confidence`, `probability`, `severity`, `risk`, `likelihood` or `priority`. There is no numeric grading anywhere in SPECTRA.
+
+   OVERRIDES Part I section 16.5: the normative severity tuple `Sev(x) = (K, D, R, E)`, its `CRITICAL/HIGH/MEDIUM/LOW/INFO` band table, the `band=` query parameter on the findings endpoint, `dimension.criticality`'s stated purpose in section 13.2 and the mandatory severity doctest are deleted rather than renamed, because there is no grading concept for them to be renamed to. An implementer following section 16.5 ships a severity subsystem whose every identifier fails check V5, which §57.11.8 classifies as a correctness defect with no waiver path, so the work cannot merge.
 6. Do NOT compare two `blockers` bitmasks, two bit positions, or two cut encodings across differing `catalog_hash` values, and do NOT display a raw bitmask to a user.
 7. Do NOT render a verdict as a single word, and do NOT construct a verdict string by concatenation in any language.
 8. Do NOT treat `make lint-vocab` findings as style. A synonym drift across two languages is a correctness defect, because the Rust kernel and the Go checker must agree on what they are checking.
