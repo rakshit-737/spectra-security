@@ -64,6 +64,13 @@ input reference. They accept only `blake3:<64 lowercase hex>` object ids plus ex
 `--cas-root` directory. This closes path traversal and SSRF on the ingest and PROVE endpoints at
 the ABI layer rather than in request validation.
 
+OVERRIDES Part I section 37: the checker invoked on a filesystem path
+(`spectra verify cert build/cert_3f9a12.json`) is replaced by object-id-only arguments,
+`--cert blake3:<64 lowercase hex>` plus exactly one `--cas-root`; a certificate supplied inline in
+the body of Part I section 36's verify endpoint must be written into the CAS by the Python layer
+before the checker sees it. An implementer following Part I hands the checker a path under
+`data/runs/`, which the binary rejects with exit 2.
+
 ------------------------------------------------------------
 69.2 PROCESS TOPOLOGY
 ------------------------------------------------------------
@@ -117,6 +124,13 @@ var/spectra/cas/
   runs/<run_id>/manifest.json               # symlink-free index of this run's objects
   tmp/                                      # write-then-rename staging only
 ```
+
+OVERRIDES Part I section 32: the root tree's run-artifact home `data/runs/`, and its instruction to
+produce that structure exactly and invent no extra top-level directories, are replaced by the CAS
+root above; section 69 additionally requires the top-level paths `abi/v1/` (69.5.4),
+`budgets/default.toml` (69.10.1) and `services/kernel_client.py` (69.12.1). An implementer who
+writes run artifacts to `data/runs/<run_id>/cert.json` produces files the kernel, the checker and
+the GC cannot address, because every input reference is a CAS object id.
 
 69.3.2 Object id = `blake3:` + hex of BLAKE3-256 over the payload bytes AS STORED. If the payload is
 compressed, the hash covers the compressed bytes and `.meta.json` records the uncompressed hash as
@@ -357,6 +371,12 @@ every forged certificate; a corpus entry that yields exit 0 fails the build.
 in the form `ROBUST(rules@<hash>,catalog@<hash>,licenses@<hash>,non_adaptive)`. A bare `ROBUST`
 string is not a valid ABI value and must be unrepresentable in both the Rust and Go types.
 
+OVERRIDES Part I section 38: `CREATE TYPE verdict_t AS ENUM ('ROBUST','OPTIMISTIC_ONLY','UNSAFE')`,
+the `mode` CHECK over the same bare strings, and the `"mode": "ROBUST"` value in Part I section 36's
+payload are replaced by the scope-bound safety string stored as `safety text` (69.14.1). An
+implementer who builds the enum stores a value the checker rejects with exit 22, and Part I's
+`robust_never_flagged` CHECK stops matching any row instead of failing loudly.
+
 ------------------------------------------------------------
 69.9 STDERR DIAGNOSTIC FORMAT
 ------------------------------------------------------------
@@ -411,6 +431,15 @@ arena_cells    = 268_435_456   # 8-byte cells; the memory ceiling, counted not m
 checker_steps  = 200_000_000   # checker's own single budget
 ```
 
+OVERRIDES Part I section 34: the atom limit, B&B node budget, corridor cap and grounding caps held
+in `config/defaults/eclipse.toml` and `config/defaults/recon.toml` under `config/schema/`
+validation, with level-6 environment overrides such as `SPECTRA__ECLIPSE__CORRIDOR_CAP`, are
+replaced by this single CAS-stored budget object, passed as `--budget blake3:<hex>` and hashed into
+the run manifest; the binaries may not read these values from the environment at all (69.21.3). An
+implementer who wires the environment override that Part I's precedence transcript requires can
+change a corridor cap without changing the run manifest hash, which is exactly the hidden
+nondeterminism this contract exists to prevent.
+
 69.10.2 Every counter is decremented at a single, documented call site. Exhaustion is checked with
 `if budget.ground_steps == 0 { return Exhausted(Stage::Ground) }` — never by sampling, never by a
 background thread, never by signal.
@@ -441,6 +470,11 @@ for CI on any fixture in the core suite. `make gates` fails if any core fixture 
 `budgets/default.toml`, because that means the declared budget no longer fits the declared scale.
 Nightly publishes the observed budget_used distribution so the budget can be revised deliberately,
 in a commit, with a rationale — never silently.
+
+OVERRIDES Part I section 36: the error code `GROUNDING_CAP_EXCEEDED` at HTTP 507, and Part I section
+35's classification of `CapExceeded` as a terminal error, are replaced by a successful API response
+carrying the flagged, degraded artifact. An implementer following Part I returns an error envelope
+and discards the deterministic partial certificate that the flag and verdict machinery depends on.
 
 69.10.6 A flagged run may never be presented as ROBUST. That rule is enforced in the type system:
 the safety field is constructible only from a flag set proven empty; see the verdict-algebra section
@@ -474,6 +508,12 @@ operational event, never an input to a verdict, and it must never be confused wi
 inputs produces identical output, so retrying can only mask an infrastructure fault. Python retries
 ONLY on failure modes 1 and 5, at most once, and records the retry in the run manifest.
 
+OVERRIDES Part I section 35: the retry policy of three attempts with exponential backoff and jitter
+for `TransientError`, together with the `retrying` job state and the `attempts` CHECK of Part I
+section 38, is replaced by at most one retry confined to failure modes 1 and 5. An implementer who
+keeps Part I's policy masks the infrastructure faults this section exists to surface and builds a
+job state that the `run.status` CHECK in 69.14.1 does not admit.
+
 ------------------------------------------------------------
 69.12 THE PYTHON CLIENT
 ------------------------------------------------------------
@@ -481,6 +521,12 @@ ONLY on failure modes 1 and 5, at most once, and records the retry in the run ma
 69.12.1 Exactly one module, `services/kernel_client.py`, may spawn either binary. A lint fails the
 build if `subprocess`, `asyncio.create_subprocess_exec` or `os.exec*` appears anywhere else in the
 Python tree.
+
+OVERRIDES Part I section 35: the kernel call placed in the pure engine layer as
+`engines/eclipse_bridge.py`, reaching the Rust kernel in-process via pyo3 under the engine-purity
+import contract, is replaced by a single spawning module `services/kernel_client.py` that runs the
+binary as a subprocess. An implementer who keeps the engine-layer bridge fails
+`make one-spawner-lint` and builds the pyo3 extension module 69.1.2 forbids.
 
 ```python
 def prove(inputs: ProveInputs, budget: ObjId, seed: int) -> ResultPointer:
@@ -524,6 +570,13 @@ the CAS alone; the resulting `pg_dump --data-only` must be byte-identical to the
 the rebuild. If it is not, a projection has acquired state that is not in the CAS, and the build
 fails.
 
+OVERRIDES Part I section 38: `proof_cert.document JSONB`, the full certificate body held in
+PostgreSQL alongside `cut_atoms`, `corridor_count`, `instance_count` and `silent_count`, is replaced
+by the CAS `cert` object plus the derived `proj_cert_summary` and `proj_cut_atom` projections; a
+certificate body carries the invariant set, which 69.21.5 forbids in a JSON column. An implementer
+who builds the Part I table puts the invariant set into PostgreSQL and fails `make schema-lint` and
+`make rebuild-projections`.
+
 RULE P2 — THE FACT BASE IS NEVER MATERIALIZED IN POSTGRESQL. No table may contain facts, rule
 instances, hypergraph nodes, hypergraph edges, corridors, invariant sets, or licenses as rows. The
 fact base exists in the kernel's arena during a run and as one SFB object afterwards. It is read by
@@ -542,6 +595,14 @@ performance, convenience, observability, or caching.
 ------------------------------------------------------------
 
 69.14.1 Four families only: run index, run metadata, entity catalog, API-facing projections.
+
+OVERRIDES Part I section 35: the durable `job` and `idempotency_key` tables — the latter storing
+`fingerprint`, `state`, `response_status`, `response_body_hash` and `job_id` so a replay can return
+the stored response and a fingerprint mismatch can return `409 IDEMPOTENCY_KEY_REUSE` — are
+replaced by the run index plus the ephemeral Redis keys in 69.15.1; neither table is one of the four
+permitted families. An implementer who ships the Part I DDL adds a fifth family that
+`make schema-lint` rejects, while the Redis key that replaces it holds only key -> run_id, so Part
+I's fingerprint comparison and stored-response replay have no backing store.
 
 ```sql
 -- RUN INDEX AND METADATA -------------------------------------------------
@@ -592,6 +653,25 @@ CREATE TABLE proj_quarantine (
   PRIMARY KEY (run_id, record_index));
 ```
 
+OVERRIDES Part I section 38: hash columns declared `BYTEA` with an octet-length CHECK, and the
+negative requirement forbidding `TEXT` for a hash, are replaced by `char(71)` columns holding
+`'blake3:' + 64 lowercase hex`. An implementer who builds the Part I columns produces keys that
+neither join to nor match those of `run_artifact` and `proj_cert_summary`, and
+`make rebuild-projections` compares dumps of two different column types.
+
+OVERRIDES Part I section 38: the ULID-like prefixed `TEXT` public identifiers (`cert_`, `jb_`,
+`rp_`, `bn_`, `ev_`, `en_`) used as primary keys, including `proof_cert.cert_id` and `job.job_id`,
+are replaced by `run_id uuid` for runs and the `blake3:` object id for certificates and artifacts.
+An implementer who keys the certificate table on `cert_id TEXT` has no column by which Part I
+section 36's `/api/v1/eclipse/proofs/{cert_id}` route can reach `proj_cert_summary`.
+
+OVERRIDES Part I section 38: the entity catalog's `entity_uid`, `canonical_name`, `first_seen`,
+`last_seen` and `attrs` columns, and `entity_alias`'s `alias_kind`, `merge_rule`, `evidence_uids`
+and `(alias_kind, alias)` uniqueness, are replaced by the two tables above, with aliases keyed
+`(entity_id, alias, source_id)`. An implementer who builds the Part I catalog gets key columns that
+do not match this schema, and the merge evidence Part I section 36's `GET /entities/{id}/aliases`
+returns has no column here to come from.
+
 69.14.2 Projection tables are prefixed `proj_` without exception. `make schema-lint` asserts: every
 `proj_` table is written only by the projection builder; no `proj_` table is read by the kernel,
 the checker, the generator, or the bench harness; no non-`proj_` table is written by the projection
@@ -622,6 +702,13 @@ nothing else.
 | `spectra:lock:gc`          | str  | 1h       | GC mutex                                      |
 | `spectra:idem:<key>`       | str  | 24h      | idempotency key -> run_id                     |
 | `spectra:sse:<run_id>`     | pubsub| n/a     | progress frames for the PROVE stream          |
+
+OVERRIDES Part I section 35: the six Redis Streams with consumer groups, per-queue `maxlen~`,
+explicit `XACK` and an untrimmed dead-letter stream `spectra:dlq`, together with the admission
+control that computes `XLEN(stream)` against a soft limit and returns `429 QUEUE_SATURATED`, are
+replaced by the closed key set above, whose only queue is the arq list `arq:queue:prove`. An
+implementer following Part I creates keys this table does not permit and a dead-letter stream that
+contradicts `save ""` / `appendonly no`, and a depth check by `XLEN` has no meaning against a list.
 
 69.15.2 NEGATIVE: Redis never holds a certificate, a verdict, a cut, a fact, an instance, a license,
 an event, an entity, or any bytes from the CAS. A value larger than 4 KiB (a hard design constraint,
@@ -679,6 +766,16 @@ new runs at 90% occupancy with a clear error rather than failing mid-run.
 | SCRATCH     | Developer runs, `make demo` re-runs, failed runs                | 14 days                      |
 | TMP         | `cas/tmp/` staging files                                        | swept every GC pass          |
 
+OVERRIDES Part I section 34: run-artifact lifetime declared in `config/policies/retention.yaml` as
+schema-validated data under `config/` is replaced by these six retention classes, which are
+normative in this section and have no config file. An implementer who writes the retention policy as
+config data gives the GC a second, editable source of truth for what may be collected.
+
+OVERRIDES Part I section 32: the claim file whose references pin the PERMANENT class is
+`docs/claims.md`, not the repository-root `CLAIMS.md`. An implementer who keeps Part I's file name
+gets a GC whose PERMANENT root set is empty, and the sweep then collects claim-referenced
+certificates.
+
 69.17.1 A MATRIX run's `bundle`, `factbase` and `instances` objects may be collected while its
 `run_manifest`, `liveness` and `cert` are retained, because the first three are regenerable from
 (seed, scenario, degradation spec, rules) by a deterministic generator and the last three are the
@@ -730,6 +827,12 @@ regeneration command. Deleting run history to make the index tidy destroys the a
 69.19.1 PostgreSQL migrations are forward-only, numbered, checked in, and applied by one tool.
 Because every `proj_` table is derivable, a projection migration is always: drop, recreate, rebuild
 from CAS. Never write a data-backfill migration for a `proj_` table.
+
+OVERRIDES Part I section 38: the requirement that every migration implement a real `downgrade()`,
+with CI running `upgrade head -> downgrade base -> upgrade head` on an empty and on a seeded
+database, is replaced by a forward-only migration set. An implementer who keeps Part I's gate must
+author downgrades for migrations this section declares irreversible, and the two CI gates cannot
+both pass.
 
 69.19.2 Migrations may not alter CAS objects. There is no such thing as migrating a certificate. An
 old certificate is verified by a checker that still supports its ABI, or it is marked unverifiable in
