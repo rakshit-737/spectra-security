@@ -26,6 +26,15 @@ the kernel's guard evaluator is generated. See 63.10 and 63.13, and the oracle p
    (`blocked_when`), a positive monotone formula over threshold literals only. They cannot mix.
    A data expression may not mention `ctl.`; a control expression may not mention a variable, a
    literal, an arithmetic operator, or `not`.
+   OVERRIDES Part I sections 22.3, 22.5 and 22.6: the single gate field `admit_when`, an antitone
+   formula in which control literals may appear only negated, is replaced by `blocked_when`, a
+   positive monotone formula, alongside the separate data field `when`. The polarity is inverted:
+   Part I states the condition under which a gated transition is still permitted, this section
+   states the condition under which the instance is blocked. An implementer following Part I
+   authors every control gate on the admit side, is rejected on the `not` (E-SYN-009), and
+   silently turns permit into block if the negations are stripped mechanically; the `admit_when`
+   key required by 22.5's schema and the `dnf_mask_equivalence` property test of 22.7 have no
+   counterpart here and must be restated against `blocked_when`.
 2. **Monotone by construction.** The CONTROL sort has no negation, no equality, no `<`, and no
    level predicate other than `ctl.X >= LEVEL`. `ctl.X == 2`, `ctl.X < 3`, `ctl.X != 0` and
    `not (ctl.X >= 2)` are parse errors, not lint warnings.
@@ -58,6 +67,11 @@ bool_lit    = "true" | "false" ;
 Reserved (may never be an `ident`):
 `and or not in true false ctl min max abs within overlaps distinct`
 
+OVERRIDES Part I section 22.3: the control-reference keyword `ctrl.` is replaced by `ctl.`;
+`ctrl` is not reserved in SGL and no guard spelled that way compiles. An implementer following
+Part I authors the whole control catalog against `ctrl.`, and every such reference lexes as an
+ordinary identifier and then fails as an unknown field path (E-TYP-014).
+
 SGL has **no comments and no string literals**. Rationale for comments: a guard is a TOML string;
 prose belongs in the sibling `note` field, which is not hashed into `guard_ast_hash` (63.7), so
 commentary can be edited without invalidating certificates. Rationale for strings: every
@@ -89,6 +103,15 @@ literal     = dur_lit | int_lit | sym_lit | bool_lit ;
 set_lit     = "{" , sym_lit , { "," , sym_lit } , "}" ;  (* 1..=32 members *)
 ```
 
+OVERRIDES Part I sections 22.3 and 25.4: the single `guard` field carrying one formula that mixes
+control and state predicates is replaced by two disjoint sorts in two fields, and Part I's state
+constructs are removed — there is no `has(path)`, no prefix `in(path, list)` form, no string
+literal, no user-defined predicate such as `ctx_matches_bind`, and no unbounded `Path`; `in` is an
+infix operator over a symbol-set literal, the builtins are exactly those listed above, and path
+depth is capped by the structural caps of this section. An implementer following Part I's worked
+rule `r_session_replay` writes a guard that does not parse, on the mixed sorts, on the negated
+control literal and on the call to a predicate SGL gives no way to declare.
+
 CONTROL sort:
 
 ```
@@ -98,6 +121,12 @@ b_and       = b_atom , { "and" , b_atom } ;
 b_atom      = threshold | "(" , block_expr , ")" ;
 threshold   = "ctl" , "." , ident , ">=" , ident ;       (* level by NAME, never by number *)
 ```
+
+OVERRIDES Part I section 22.3: the threshold production whose right operand may be an integer
+(`Int | LevelName`) is replaced by one whose right operand must be the level's declared symbolic
+name. An implementer following Part I writes the level as the index defined in 22.2 and used in
+the atom names of 23.4, 24.7 and 25.7, and every such guard is E-SYN-012 (63.11) rather than a
+build; the name-to-index direction exists only in the atom record of 63.7.
 
 Precedence, loosest to tightest: `or` < `and` < `not` < rel_ops (non-associative, at most one per
 `rel_expr`) < `+ -` (left) < `*` (left, literal RHS) < unary application. `a < b < c` is
@@ -342,6 +371,12 @@ manifest for provenance, and is explicitly non-load-bearing.
 | Python services | none — shells out to `sglc`; never evaluates a guard | n/a | n/a |
 | TypeScript frontend | renders a pretty-printed AST for display; **must not evaluate guards or compute verdicts** | n/a | n/a |
 
+OVERRIDES Part I section 25.2: the paths `crates/spectra-eclipse`, `crates/spectra-guard` and
+`cmd/spectra-verify` are replaced by `crates/eclipse-kernel`, the `sglc` compiler of this section
+as the sole shared guard front end, and `go/spectra-verify`. An implementer following Part I ships
+a separate guard-parser crate that nothing here builds against, and writes the grep-based
+independence and staleness gates (63.10, 63.8) over paths that do not exist in the tree.
+
 DECISION: generated code is **committed**, and CI regenerates and requires byte-identity.
 
 Justification (all four must hold, or the decision is wrong):
@@ -545,6 +580,12 @@ blocked_when  = "ctl.session_binding >= bound or (ctl.egress_seg >= l1 and ctl.m
 note          = "free prose; NOT hashed into guard_ast_hash"
 attck         = ["T1550.004"]
 ```
+
+OVERRIDES Part I sections 25.3 and 25.4: the single free-prose `provenance` field with the
+technique id embedded in its text is replaced by two fields, `note` for prose and `attck` for the
+list of technique ids. An implementer following Part I produces a rule table with no `attck`
+field, so `rules_table_hash` (63.7) cannot be computed as specified, and the guarantee that
+editing a comment does not invalidate a certificate holds only for prose kept in `note`.
 
 63.14 NEGATIVE REQUIREMENTS AND FORBIDDEN CLAIMS
 
