@@ -4,13 +4,13 @@ The README's first screen links to this file with the anchor text
 `Limitations and known-unsound regions`. That exact anchor text is gated; do not reword it.
 
 This file is part hand-written frame and part generated. The prose frames a measurement; it never
-states one. Every number belongs inside a generated block, and `make limitations` regenerates every
-block from `artifacts/limits/limits.json`.
+states one. Every number belongs inside a generated block, and `make limitations` will regenerate
+every block from `artifacts/limits/limits.json`; the target is not declared in the Makefile.
 
 **Nothing has been measured.** `artifacts/limits/limits.json` does not exist, the validation matrix
 that produces it has not been run, and every block below therefore renders its NOT MEASURED
-placeholder. `make release` refuses to produce a release artifact while any required block is NOT
-MEASURED, which is the intended state of this repository today.
+placeholder. `make release`, once it exists, will refuse to produce a release artifact while any
+required block is NOT MEASURED. The target is not declared and nothing enforces this today.
 
 Status of this document: the stub is delivered. Status of every measurement it will carry: not
 started.
@@ -37,8 +37,8 @@ No generated block: this frame states a scope limit, not a measurement.
 
 ## What we cannot see
 
-Suppression detection leans on sources that carry an ordering or chaining guarantee intrinsic to the
-producer. Most telemetry has no such guarantee. Where a record can be removed without leaving a
+Suppression detection leans on sources that carry an ordering or chaining property intrinsic to the
+producer. Most telemetry has no such property. Where a record can be removed without leaving a
 structural trace, and the surrounding window stays inside the calibrated baseline, the removal is
 permanently invisible: no obligation fires, no blind window opens, and the kernel cannot license a
 hypothesis it has no reason to consider. The block below will report, per declared suppression
@@ -119,4 +119,4 @@ No generated block: this frame states a naming disclaimer, not a measurement.
 A generated block whose run manifest disagrees with the current rule-table, control-catalog or
 entity-resolution configuration hash is stale and fails its gate. Limitations go stale exactly when
 the claims that depend on them go stale. If you are reading a rendered copy of this file outside the
-repository, it carries no freshness guarantee at all.
+repository, it carries no freshness assurance at all.
