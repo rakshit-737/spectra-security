@@ -1,0 +1,249 @@
+# T3 - the weekly tier, main only.
+#
+# Authority: ci/gates.toml. This file runs gates; it does not declare them
+# (74.4). A check here without a gate id in the registry is not a gate.
+#
+# STATUS: not started. Every job below is declared and explicitly skipped with
+# `if: false`, a stated reason and the milestone that enables it. A skipped job
+# renders grey; it is not a pass. No job in this file has ever run, so no number
+# anywhere in this repository is backed by a T3 artifact.
+#
+# There is no enabled job in this workflow, for the same reason as T2: the one
+# implemented gate is a T1 gate and runs in T1.
+#
+# MEANING OF A FAILURE (74.4): the release is blocked and every headline number
+# in docs is invalidated until this tier is green again.
+#
+# WHAT LIVES HERE AND WHY
+#   74.4 puts the benchmark harness and every published number in T3 only,
+#   because the variance protocol needs a quiet runner. 74.11.9 forbids
+#   reporting a CI minute figure, an image size or a job duration in README or
+#   docs unless it comes from the T3 budget artifact with its run manifest hash.
+#   Since no T3 job has run, no such figure may appear anywhere.
+#
+# ON MUTATION JOBS
+#   Half of this tier is mutation testing: deliberately breaking the system and
+#   requiring a named gate to go red. A gate that has never been observed to
+#   fail is decoration (60.12, 63.15, 65.9). These jobs are what make the other
+#   tiers evidence rather than ceremony.
+#
+# TIER CEILING: 6 h (74.4, illustrative, not a target). Per-job
+# `timeout-minutes` are derived from budget_s in ci/gates.toml and are likewise
+# illustrative. Nothing here has been measured.
+#
+# TODO(budget): ci/gates.toml declares more T3 seconds than this ceiling allows
+# and says so in its budget summary. Reconcile before enabling any job here.
+# 74.9 permits three remedies and no others: sample it, demote it, or delete the
+# requirement.
+#
+# TODO(runner): 74.4 and 46.7 require a documented, quiet runner label for the
+# benchmark job, and 74.8.2 requires two runners with differing CPU models for
+# G-FLAKE-002. `runs-on: ubuntu-24.04` below is a placeholder that satisfies
+# neither. Replace it with the declared labels when the first T3 job is enabled,
+# and record the hardware in the run manifest.
+#
+# 74.8.1: no retry, no continue-on-error, no rerun-failed. G-FLAKE-001 greps
+# this directory for them.
+
+name: t3-weekly
+
+on:
+  schedule:
+    # 03:00 UTC on Sundays. TZ=UTC everywhere (58, 74.3).
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+# 74.7: a run whose artifacts back a published number is never cancelled.
+concurrency:
+  group: t3-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  LC_ALL: C
+  SPECTRA_OFFLINE: "1"
+  SOURCE_DATE_EPOCH: "0"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: active flake detection (74.8.2). Runs the whole T1 tier R times
+  # across two runner CPU models and diffs every artifact hash. Any
+  # nondeterministic outcome fails the week's release.
+  # Non-quarantinable (74.8.6).
+  flake-sweep:
+    name: T3 flake / repeat the T1 tier across two CPU models (NOT IMPLEMENTED)
+    if: false # enabled at M0, once the T1 tier has jobs worth repeating
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-FLAKE-002"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the degradation matrix at every declared seed (74.4, 74.5). T1 runs
+  # the spine, T2 runs the matrix, this runs all seeds. Only this artifact has
+  # full coverage; only this one may back a headline number (G-SAMP-001).
+  # Non-quarantinable (74.8.6).
+  degradation-all-seeds:
+    name: T3 degradation / full matrix, every seed (NOT IMPLEMENTED)
+    if: false # enabled at M7 (degradation, tampering, redundancy, frontier)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-KERNEL-FALSE-ROBUST-SEEDS"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: declared baselines, executed and published beside the system arm (62)
+  baselines:
+    name: T3 baselines / declared comparison arms (NOT IMPLEMENTED)
+    if: false # enabled at M7 (degradation, tampering, redundancy, frontier)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-BASELINES"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: gate liveness for the guard layer (63.15). Each injected guard
+  # defect must turn its named gate red, per the published mutation-to-gate
+  # table.
+  mutation-guard:
+    name: T3 mutation / guard defects turn named gates red (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice), with the guard table
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-GUARD-MUTATION"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: gate liveness for liveness (65.9). Inject a self-calibrating
+  # threshold; G65.2 and G65.3 must go red. Mandatory, not optional.
+  mutation-liveness:
+    name: T3 mutation / self-calibrating threshold turns G65.2 and G65.3 red (NOT IMPLEMENTED)
+    if: false # enabled at M4 (liveness, licences, silent envelope, fixpoint)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G65.9"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: gate liveness for the checker (68). Each injected checker bug turns
+  # a named gate red.
+  mutation-cert:
+    name: T3 mutation / checker defects turn named gates red (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-CERT-MUTATION"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: kernel mutation score (43.5.4). The real gate on the kernel.
+  mutation-kernel:
+    name: T3 mutation / kernel surviving-mutant ratio (NOT IMPLEMENTED)
+    if: false # enabled at M5 (two-sided minimal cut and certificate)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-MUTATION-PY"
+          echo "not implemented: G-MUTATION-RS"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: long-horizon checker parser fuzz (74.4: cost scales with time
+  # budget, so a short run lives in T2 and the long run lives here).
+  fuzz-long:
+    name: T3 fuzz / long-horizon checker parser fuzz (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-CERT-FUZZ-LONG"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: published performance numbers (74.4: T3 only; the variance protocol
+  # needs a quiet runner). 46.7: raw samples alongside summaries, hardware and
+  # toolchain versions in the artifact, no interpolation of missing points.
+  bench:
+    name: T3 bench / benchmark harness and store sizing (NOT IMPLEMENTED)
+    if: false # enabled at M9 (polyglot surface and performance)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-BENCH"
+          echo "not implemented: G-SIZING-REPORT"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: every number in docs regenerated from scratch (74.4).
+  # Non-quarantinable (ci/gates.toml marks it soundness = true).
+  reproduce:
+    name: T3 reproduce / regenerate every published number (NOT IMPLEMENTED)
+    if: false # enabled at M10 (documentation, demo, release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-REPRODUCE"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: third-party verifiability (69). The published verifier image
+  # verifies a published certificate on a machine that has never built this
+  # repository. Non-quarantinable (ci/gates.toml marks it soundness = true).
+  airgap-verify:
+    name: T3 air gap / verify a published certificate on a clean machine (NOT IMPLEMENTED)
+    if: false # enabled at M10 (documentation, demo, release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-VERIFY-AIRGAP"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: release completeness (71). A required LIMITATIONS block left at
+  # NOT MEASURED blocks the release.
+  release-limits:
+    name: T3 release / no required limitation left unmeasured (NOT IMPLEMENTED)
+    if: false # enabled at M10 (documentation, demo, release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-LIMITS-COMPLETE"
+          exit 1
