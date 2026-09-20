@@ -31,6 +31,13 @@ every document and every interface.
 Authored executing languages: 32. Configuration and markup formats: 11. Linguist language-bar rows:
 43. The number 43 is the size of the colour bar and is never used in a prose sentence (§73.7).
 
+OVERRIDES Part I section 30.6: the audit transcript line that prints `languages declared` as 43, and
+§31.44's description of the Makefile as a dependency graph across 43 toolchains, are replaced by
+three separately counted figures — 32 authored executing languages, 11 configuration formats, 43
+Linguist bar rows — of which only the first may appear in a prose sentence. An implementer
+reproducing §30.6's exact transcript shape emits the "43 languages" claim §73.11 forbids, over a set
+that is not even this one (Part I's 43 counts JavaScript and MATLAB; this roster has neither).
+
 TIER A — CRITICAL PATH (6). Promise: *this is the product*. Deleting any of these deletes SPECTRA.
 
 | Language   | Component                                             | Consumer edge (what breaks)                    |
@@ -41,6 +48,16 @@ TIER A — CRITICAL PATH (6). Promise: *this is the product*. Deleting any of th
 | TypeScript | frontend, proof UX, demo pane                          | `make demo` has no UI; Playwright tier empty    |
 | SQL        | fact-base schema, recursive-CTE state view, migrations | run metadata and state view unresolvable        |
 | Bash       | make targets' shell layer, range compose driver        | no reproducible entrypoints                     |
+
+OVERRIDES Part I section 30.2: the four numbered tiers and their membership are replaced by the four
+lettered tiers of this section, which assign different members — Bash moves from the observed lab to
+the critical path; Java and C# move from observed subjects to oracle duty; Solidity, x86-64 assembly
+and YARA leave the observed lab; WebAssembly drops from the hot path to a research artifact; and
+JSON, YAML, TOML, XML and HCL leave the tier system entirely for §73.2. An implementer following
+§30.2 applies its Tier 3 rule — never import SPECTRA libraries, never read the rule table, never
+know they are being watched — to Bash, assembly, YARA and Solidity, which are no longer observed
+subjects, and applies its Tier 2 agreement-gate obligation to a WebAssembly component that no longer
+computes anything to agree about.
 
 TIER B — INDEPENDENT ORACLES AND MEASURED PERFORMANCE (6). Promise: *each of these is consumed by a
 gate or a published benchmark; none is a demonstration*. Tier B exists to make claims falsifiable,
@@ -64,6 +81,21 @@ Tier B honesty requirement: the C and C++ components are justified by the existe
 benchmark, not by its outcome. If the Rust scanner is faster, `docs/bench/ingest.md` says so, the C
 and C++ components remain (they are the comparison arm), and no document anywhere claims a speedup.
 Forbidden sentence: "we rewrote the hot path in C for speed."
+
+OVERRIDES Part I section 31.7: the C component — a single-producer/single-consumer lock-free
+shared-memory ring buffer plus a `ptrace`-based syscall tap, justified as a capability argument
+("stable ABI and cache-line control: this is exactly what C is for") — is replaced by the record
+framing and field scanner of the ingest hot path, justified solely by the existence of a published
+benchmark against a Rust scanner. An implementer following §31.7 and §32.6's `c/libspectra_frame/`
+builds a component with no Rust comparison arm, so the benchmark that licenses C to exist here
+cannot be run at all.
+
+OVERRIDES Part I section 31.8: the C++ component — offline pcap flow reassembly plus the interval
+tree that computes the per-source liveness windows feeding `liveness.json` — is replaced by the
+deterministic entity-key interner measured against a Rust interner on the same hot path. An
+implementer following §31.8 and §32.6's `cpp/temporal_index/` builds pcap reassembly and an interval
+index that no component in this roster owns or consumes, and no Rust interner exists to compare
+against.
 
 TIER C — HETEROGENEOUS OBSERVED ESTATE (11). Promise, stated exactly and narrowly:
 
@@ -89,12 +121,38 @@ contain no language-specific branch (§73.3.4).
 | Groovy      | build pipeline scripts                    | build/deploy events                        |
 | Scala       | nightly batch reconciliation job          | log4j2 pattern layout                      |
 
+OVERRIDES Part I sections 31.11, 31.14, 31.15, 31.19, 31.20, 31.23 and 32.6: Kotlin as an Android
+session-telemetry fixture generator and typed scenario DSL, Scala as a streaming reconstruction
+baseline used to quantify what batch reconstruction gains, Groovy as Gradle build logic plus the
+scenario authoring DSL the demo scenario is written in, Perl as `tools/perl/logxlate/` translating
+legacy formats into canonical NDJSON, Lua as user-supplied event transformers hosted by
+`rust/spectra-normalize` through `mlua`, Dart as a certificate console that calls the verifier, and
+Ruby as the attacker choreography runner are all replaced by observed estate services whose only job
+is to emit idiomatic telemetry. An implementer following Part I puts Perl and Lua inside the ingest
+path and lets Dart call the verifier, which §30.2's own Tier 3 rule, this tier's promise and the
+§73.3.4 language-branch grep gate all forbid.
+
 Tier C honesty clauses that must appear in `docs/polyglot/tier-c.md`:
 1. PowerShell runs as `pwsh` on Linux. It emits Windows-event-*shaped* records. It is not Windows,
    and no document may imply a Windows endpoint was observed.
+   OVERRIDES Part I section 31.34: PowerShell as the Windows-side developer bootstrap and as the
+   collector wrapper that forwards the C# identity emitter's output into the ingest pipeline on
+   Windows hosts, with Pester tests and the job `lang-powershell` on a `windows-latest` runner, is
+   replaced by an observed admin-host component running as `pwsh` on Linux whose records the ingest
+   path must not know are PowerShell's. An implementer following §31.34 turns an estate subject into
+   a SPECTRA ingest tool and declares a `windows-latest` CI job that §73.9.3's single prebuilt Linux
+   toolchain image cannot run.
 2. Objective-C is compiled with clang against GNUstep on Linux. It is not an Apple platform agent
    and no document may imply macOS or iOS telemetry.
 3. Swift is the open-source Linux toolchain. Same clause.
+   OVERRIDES Part I sections 31.21, 31.22 and 32.6: Swift as an iOS session-telemetry fixture
+   generator (app foreground/background transitions, jailbreak-check outcome, device-attestation
+   result), Objective-C as `mobile/ios-keychain-shim/` emitting keychain-shaped events because the
+   keychain APIs are Objective-C, and the `swift/macshim/` macOS endpoint shim with its
+   `objc/macshim-compat/` CoreFoundation collection path, are replaced by Linux-hosted components
+   built with the open-source Swift toolchain and with clang against GNUstep. An implementer
+   following Part I ships components whose directory names and event vocabulary assert the macOS and
+   iOS telemetry these clauses and §73.11 ban, before a single document is written.
 
 Tier C load-bearing reinforcement — **the held-out language rule**: exactly one Tier C component is
 authored *after* `rules.toml` and `axioms/` are frozen and hash-pinned (see §62's leakage protocol).
@@ -117,16 +175,66 @@ TIER D — RESEARCH AND FORMAL ARTIFACTS (9). Promise: narrow, and stated narrow
 | WebAssembly| hand-authored `.wat` canonical-preimage encoder        | lets the browser re-derive a certificate's content address offline; it does **not** compute or verify any verdict         |
 | YARA       | declarative labelling of generator artifact blobs      | sole pattern language for fixture technique labels used by the goal-correspondence test                                   |
 
+OVERRIDES Part I sections 31.13 and 31.26: F# emitting the canonical `artifacts/state_table.json`
+(states, legal transitions, guards, dimension tags) that Python's engine and the Rust kernel both
+load rather than hard-coding, under a regeneration gate, and Julia performing the brute-force
+minimum-cardinality hitting set over Ψ for `|A| ≤ 20` fixtures plus the cost sensitivity sweep, are
+replaced by F# owning the multiple-choice knapsack Pareto frontier (which §31.26 gave to Julia) and
+Julia owning an independent re-implementation of R's degradation statistics. An implementer
+following §31.13 and §31.26 builds a state-table generator and a Ψ-minimality brute-forcer that no
+component in this roster owns, while the F# and Julia promises declared above go unimplemented.
+
+OVERRIDES Part I sections 31.25 and 32.6: Octave producing `artifacts/analysis/q99_thresholds.json`
+for the liveness pass to consume, together with the periodicity and beaconing analysis by
+autocorrelation and Welch PSD in `matlab/liveness_ref/`, is replaced by an exact-rank quantile
+sensitivity sweep (q95/q99/q999) cross-checked downstream against the Rust liveness quantile. An
+implementer following §31.25 wires the dependency edge backwards, making the Rust liveness pass a
+consumer of Octave instead of its reference, which inverts both the §73.3.1 consumer edge and the
+§73.3.3 mutation target for this component.
+
+OVERRIDES Part I section 31.31: YARA matches becoming evidence events with stable `EventId`s that
+feed rules whose bodies require file-content facts, and appearing as evidence leaves in the
+counterexample tree, are replaced by declarative labelling of generator artifact blobs for the
+goal-correspondence test only. An implementer following §31.31 makes the kernel ground over YARA
+output and the demo display it, placing the counterexample tree behind a Tier D job that §73.9 rule
+1 says does not block a milestone.
+
 Tier D negative requirements:
 - Solidity provides **no** security property that the BLAKE3 sequence chain does not already provide
   for SPECTRA's own artifacts. It is an estate source class, not a notary. `docs/polyglot/tier-d.md`
   states this in those words. Forbidden claims: "blockchain-anchored", "immutable audit anchor",
   "tamper-proof certificates". No SPECTRA certificate, hash or verdict is ever written to a chain.
+  OVERRIDES Part I sections 31.27 and 32.6: Solidity as the control case of the tampering study —
+  the one source where SUPPRESSED is provably impossible, demoed as "one blind window on
+  `iam_audit`, zero possible blind windows on `chain_authz`" — and `solidity/anchor/`, the
+  local-chain append-only certificate anchor registry, are replaced by an estate source class that
+  anchors nothing. An implementer following Part I ships the certificate anchor registry this bullet
+  says must not exist and a demo line the claims gate rejects as tamper-proofing.
 - The Verilog/VHDL FIFOs model a lossy buffer. They do not model any real logging appliance and no
   document may name one.
+  OVERRIDES Part I sections 31.28, 31.29 and 32.6: Verilog as the security state machine in
+  synthesizable RTL (a Moore FSM with an `illegal_transition` output, `casez` generated from
+  `state_table.json`, elaborated with `yosys -p synth` and gated on hw/sw illegal-transition
+  agreement), VHDL as a hardware liveness monitor asserting `blind` on q99 inter-arrival overrun
+  against a Rust differential oracle, and §32.6's RTL model of the unit-propagation counter
+  datapath, are all replaced by a pair of independently authored simulated bounded FIFOs that
+  produce drop ground truth. An implementer following Part I builds a synthesis step, a
+  state-table-driven generator and a liveness differential oracle that no component in this roster
+  owns, and describes the result in the RTL terms §73.11 forbids.
 - The `.wat` module re-derives a content address. Part I's frontend invariant stands: the verdict is
   never computed client-side. A test asserts the `.wat` module exports exactly one function and that
   no frontend code path calls it with anything but the certificate preimage.
+  OVERRIDES Part I sections 31.30, 31.4, 32.4 and 32.7: WebAssembly as the checking half of ECLIPSE
+  compiled to `wasm32-unknown-unknown` — closure check, goal exclusion, license validation, witness
+  re-derivation and Ψ minimality running entirely in the browser — built from the
+  `eclipse-verifier-wasm`/`spectra-wasm` crates and `web/packages/wasm`, shipped as
+  `web/public/eclipse_verifier.wasm`, loaded by the standalone `verify.html` to verify a certificate
+  from `file://`, under a size budget and a three-way wasm/Rust/Go verdict agreement gate, is
+  replaced by a hand-authored `.wat` preimage encoder that computes no verdict and exports exactly
+  one function. The "frontend invariant" this bullet preserves is §32.7's rule for the React console
+  only; an implementer following §31.30 and §31.4 ships a client-side verifier and the demo's final
+  offline-verify beat, and a compiled wasm artifact that this section excludes from the roster
+  entirely.
 - Rust-to-wasm and any other compiled output is a **build target, not an authored language**. It is
   excluded from the roster, excluded from the count, and marked `linguist-generated=true`.
 
@@ -164,15 +272,37 @@ suite fails with `SELF_CONSUMING`.
 73.3.2 **CI job.** A named job in `.github/workflows/*.yml` that executes the component (not merely
 lints or builds it) on every change to its paths, at the cadence its tier permits (§73.6).
 
+OVERRIDES Part I section 30.4.3: the `weak_exercise` allowance — compile-only CI jobs declared as
+such in `languages.toml`, with the audit failing only when more than three exist, and §30.6's
+transcript printing `weak_exercise` as 2 / 3 allowed — is replaced by an unconditional requirement
+that the declared job execute the component. An implementer following §30.4.3 keeps up to three
+build-only components that this check marks PADDING and §73.6 then deletes.
+
 73.3.3 **Mutation.** A declared, deterministic corruption of the component's *output* which, when
 applied, turns a named downstream gate RED. The audit applies the mutation in a scratch worktree and
 records the job name and the failing assertion. A component whose mutation leaves every gate green is
 padding and is deleted.
 
+OVERRIDES Part I section 30.3.3: the mutation test that injects a known deviation into the core so
+that a `differential_oracle` fails, stored as `tests/mutation/<oracle>/mut_XX.patch` with expected
+exit codes, is replaced by a seeded corruption of the component's own output, drawn from the closed
+operator set of §73.5 and declared as `mutation.op`, `seed` and `expect_red` in `polyglot.toml`. An
+implementer following §30.3.3 writes the core patches named in §31.4, §31.6, §31.16, §31.26 and
+§31.29 — canonicalizer, kernel, blind interval, licensing, popcount ordering, interval endpoint —
+for which no operator in §73.5 and no field in §73.4 provides an encoding, so those gates cannot be
+declared here at all.
+
 73.3.4 **Demo or benchmark role.** A one-line statement of what this component does in `make demo`,
 in the degradation matrix, or in a published benchmark. Tier D components may declare
 `role = "none"` only if they additionally declare `published_artifact = "<path>"` pointing at a
 results file regenerated by `make reproduce`.
+
+OVERRIDES Part I sections 30.4.1 and 30.4.2: the two-ring scheme that assigns every non-Tier-1
+component to `DEMO_PATH` or `DEMO_ARTIFACT`, bans `CI_ONLY`, and requires that a component no demo
+output depends on be deleted with the deletion recorded in `docs/ADR/`, is replaced by a role that
+may equally be a benchmark or a published artifact, and by the deletion ledger
+`docs/polyglot/deleted.md` (§73.6). An implementer following §30.4.2 deletes benchmark-only
+components that are load-bearing here, and files the record of it in a directory no gate reads.
 
 Additional Tier C rule: the ingest path must contain no language-specific branch. A grep gate fails
 the build if any adapter identifier, filename or conditional in `ingest/` matches the name of a Tier
@@ -242,6 +372,14 @@ benchmark     = "docs/bench/ingest.md#scanner-comparison"
 published_artifact = "artifacts/bench/ingest/results.jsonl"
 ```
 
+OVERRIDES Part I section 32.9: the negative requirement "Do not vendor third-party source. Pin
+versions in lockfiles instead." is replaced by a required `offline_source` field per component,
+pointing at a committed archive under `vendor/`, which §73.6 resolves with the network off and §73.8
+marks `linguist-vendored=true`. An implementer who obeys §32.9 has no `vendor/` tree to resolve
+against and fails `make polyglot-audit` on every component on its first run; §33.5's offline model,
+which fetches each toolchain during `make setup` before the network is cut, does not satisfy
+`offline_source`.
+
 Required per-component fields: `id, language, tier, paths, toolchain, offline_source, entrypoint,
 promise, consumer.*, ci.*, mutation.*, role.*`. Lints:
 - `promise` must be ≥ 120 characters, must not contain "TODO", "placeholder", "various", "misc",
@@ -251,6 +389,16 @@ promise, consumer.*, ci.*, mutation.*, role.*`. Lints:
 - Every file in the tree whose extension maps to an executing language must be matched by exactly one
   component's `paths` — unmatched files fail `ORPHAN_SOURCE`; doubly-matched files fail
   `AMBIGUOUS_OWNERSHIP`.
+
+OVERRIDES Part I sections 30.4.4, 30.5 and 31.46 rule 7: `languages.toml` and its schema (`name`,
+`dir`, `tier (1..4)`, `reason`, `duplication_kind`, `build`, `test`, `ci_job`, `mutation_tests`,
+`demo_ring`, `produces`, `consumes`, `weak_exercise`, `loc_budget`), and the `make lang-audit` gate
+that parses it and cross-checks `.gitattributes` against it, are replaced by `polyglot.toml` with
+the fields above, lettered tiers A..D, and `make polyglot-audit` as the only manifest gate;
+`.gitattributes` is cross-checked against `polyglot.toml` (§73.8). An implementer who keeps both
+declares every component twice, with `tier = 2` and `tier = "B"` meaning unrelated things for the
+same component, and points §31.46 rule 7's cross-check at a manifest that no gate in this section
+reads.
 
 73.5 The mutation operator set
 
@@ -373,6 +521,13 @@ Gate: a CI step fails with `UNSUBSTITUTED_TOKEN` if any `<<AUDIT:...>>` token su
 doc, and with `UNBACKED_COUNT` if a numeral adjacent to the word "language", "languages" or "polyglot"
 appears anywhere in `README.md` or `docs/` outside the generated block.
 
+OVERRIDES Part I sections 31.46 rule 8 and 30.7.5: the README language inventory reported as a table
+with a tier column and a one-sentence reason for each entry, stated once, is replaced by the
+generated prose block above, which carries no per-entry reason column and no tier numerals. An
+implementer who writes Part I's table fails `UNBACKED_COUNT` on every row that places a tier number
+beside the word "language", and the per-language reason it carried now lives only in
+`polyglot.toml`'s `promise` field and `docs/polyglot/audit.md`.
+
 73.8 `.gitattributes` — Linguist rules and the anti-inflation ban
 
 ```gitattributes
@@ -409,6 +564,17 @@ golden/**            linguist-generated=true
 *.cert.json          text eol=lf
 ```
 
+OVERRIDES Part I section 32.2: the mandated top-level tree and the per-language homes fixed by
+§32.3, §32.4, §32.6 and §32.7 are replaced by the paths this block and §73.4 name — `frontend/` for
+`web/`, `rust/kernel/` and `rust/ingest/` for the `eclipse-*` crates, `ingest/` for
+`python/spectra_ingest/`, root-level `fixtures/`, `golden/`, `artifacts/`, `vendor/`,
+`third_party/`, `octave/`, `perl/`, `c/ingest_scanner/` and `wasm/preimage/` for their `data/`,
+`native/`, `polyglot/` and `analysis/` placements — together with `docs/polyglot/`, `docs/bench/`,
+`docs/research/` and `docs/naming.md` beside §32.2's `adr/`, `eclipse/`, `diagrams/` and `paper/`
+subtrees. An implementer who produces §32.2's structure exactly gets a `.gitattributes` whose
+patterns match nothing and a §73.3.4 ingest grep gate that reports green because the directory it
+scans does not exist.
+
 Hard ban: `linguist-language=` may be used **only** to correct a genuine misdetection, and every use
 requires a one-line comment stating the misdetection it corrects. Using it to relabel a file as a
 language it is not — renaming `.txt` fixtures to a source extension, declaring config as code,
@@ -417,6 +583,15 @@ inflation. `make polyglot-audit` re-derives the Linguist breakdown itself and fa
 `LINGUIST_OVERRIDE_UNJUSTIFIED` if any override lacks a comment, and with `BAR_INFLATION` if the
 authored-source byte count attributed to any language falls below the declared floor for a real
 component while that language still occupies a bar row.
+
+OVERRIDES Part I section 31.46: the fourteen `linguist-language=` overrides in its `.gitattributes`
+block, and rule 5's pairing of them with `linguist-detectable=true` so that those languages are
+counted, are replaced by the comment-per-override requirement above and by the exclusions in this
+block — `schemas/**/*.json → JSON`, `infra/terraform/**/*.tf → HCL` and `mk/*.mk → Makefile` are
+declaring config as code, and `fixtures/asm/**/*.asm linguist-detectable=true` is the inverse of
+`fixtures/** linguist-detectable=false` above. An implementer who commits §31.46's file fails
+`LINGUIST_OVERRIDE_UNJUSTIFIED` on thirteen uncommented lines before the inflation check is even
+reached.
 
 73.9 CI tiering, budget and blocking rules
 
@@ -463,6 +638,16 @@ DECISION: keep the acronym, bind it everywhere, and keep the rename cost bounded
    file extension or magic bytes in any certificate. The kernel crate is `spectra-kernel`, the binary
    is `spectra prove`, the checker is `spectra verify`, the certificate media type carries `spectra`.
    A grep gate enforces this with `ECLIPSE_IN_ARTIFACT_SURFACE`.
+   OVERRIDES Part I sections 31.5, 31.4, 32.2, 32.3, 32.4, 32.6, 34.2 and 34.6: the crates
+   `eclipse-kernel`, `eclipse-rulegen` and `eclipse-verifier-wasm`; the workspace members
+   `eclipse-core/`, `eclipse-rules/`, `eclipse-cut/`, `eclipse-liveness/` and `eclipse-cert/`; the
+   packages `python/spectra_eclipse/` and `haskell/eclipse-ref/`; the directory `docs/eclipse/`; the
+   shipped `web/public/eclipse_verifier.wasm`; and `config/defaults/eclipse.toml` with the keys
+   `eclipse.atom_limit`, `eclipse.corridor_cap` and the environment override
+   `SPECTRA__ECLIPSE__CORRIDOR_CAP`, are all replaced by `spectra`-named equivalents. An implementer
+   who builds Part I's workspace, package, config and artifact names cannot pass this grep gate or
+   §73.12.6, and renaming later is the certificate- and schema-affecting change that item 3 exists
+   to avoid.
 3. Because of (2), the name exists only in prose. If the collision causes confusion — a reviewer
    remark, a maintainer complaint, or an indexing problem — the project renames by editing
    documentation, with no certificate, schema or API change. `docs/naming.md` records the collision,
