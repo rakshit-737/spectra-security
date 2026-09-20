@@ -64,6 +64,15 @@ edge into any box below `cert.json`. Enforce that in the build graph (72.12).
 vendored `llama.cpp` build against a single GGUF blob. No hosted API, no paid
 service, no token metering, no telemetry callback, no auto-download at any point.
 
+OVERRIDES Part I section 21.10: the transport committed in `config/llm.toml` —
+`provider = "ollama"`, `endpoint = "http://ollama:11434"`, `model =
+"llama3.1:8b-instruct-q4_K_M"`, reached over the compose network — is replaced by
+a vendored `llama.cpp` runtime loading the single GGUF blob pinned in
+`narration/model.lock`, and the Ollama compose service, its pinned image and its
+model tag are deleted. An implementer who builds Part I's design ships an HTTP
+client that fails the dependency allowlist gate of 72.3.2 at build time and could
+reach no endpoint anyway under the `network_mode: none` requirement of 72.1.4.
+
 72.1.2 The model blob is NOT committed to git and is NOT a build dependency.
 Record it in `narration/model.lock`:
 
@@ -139,6 +148,15 @@ on_violation       = "fallback"    # fallback | fail ; never "emit"
 on_timeout         = "fallback"
 ```
 
+OVERRIDES Part I section 21.10: the committed `config/llm.toml` and its `[llm]`
+keys `enabled`, `provider`, `endpoint`, `model`, `temperature`, `seed`,
+`max_output_chars`, `timeout_seconds` and `cache` are replaced by this
+`narration.toml` plus `narration/model.lock`; `provider`, `endpoint`,
+`temperature`, `seed` and `cache` have no successor key here, and the two budgets
+move to `narration.max_chars_total` and `narration.llm.timeout_ms`. An implementer
+who keeps `config/llm.toml` ships a tree with no `narration.llm.enabled` literal,
+so the CI lint of 72.2.3 fails on an otherwise correct build.
+
 72.2.3 A CI lint asserts the committed default of `narration.llm.enabled` is
 `false` and that the Cargo feature is not in `default = [...]`. The lint fails the
 build on any change not accompanied by a `WAIVER.md` entry.
@@ -158,6 +176,16 @@ reads `bundle.jsonl`, raw or parsed events, `liveness.json`, `rules.toml`,
 environment variables, the git tree, or any prior narration. There is no code path
 that opens a second input.
 
+OVERRIDES Part I section 21.10: the permitted-input list — the certificate JSON,
+the cut, the corridor list, the counterexample derivation trees, the license list,
+the blindness premium, the state timeline, the provenance subgraph and the
+degradation table — is replaced by exactly one canonical `cert.json`; the
+`state_timeline` and `provenance_subgraph` query results of section 20.9 and the
+degradation matrix of section 19 are withdrawn as narration inputs, so nothing
+narration says may rest on them. An implementer who wires those structures into
+the narrator, as Part I explicitly authorises, trips the filesystem tracer and the
+dependency allowlist of 72.3.2.
+
 72.3.2 Enforce structurally, not by review:
 
 - `spectra-narrate` is a separate binary whose `main` accepts exactly one
@@ -168,6 +196,15 @@ that opens a second input.
   and stdin/stdout.
 - A test harness runs the narrator under a filesystem tracer and fails if any path
   outside {the certificate, the model blob, `/tmp`} is opened.
+
+OVERRIDES Part I section 2.3.6: the requirement that any function calling a model
+live under the Python package `spectra/narration/`, enforced by `make audit-llm`
+grepping for a model client imported outside that package, is replaced by the Rust
+crate `spectra-narrate` and its `narrate-llm`-gated companion binary
+`spectra-narrate-llm`. An implementer who keeps `make audit-llm` as Part I
+specifies holds a component of `make verify` that can never go green once the
+inference code is a Rust crate, and the CI jobs G21.0 and G21.8, which key on
+deleting a `llm/` package, have no such directory to delete under this layout.
 
 72.3.3 The model sees strictly less than the certificate. The projection `P`
 produces a `NarrationDoc` in which every telemetry-derived string has already been
@@ -257,6 +294,16 @@ Required surface form for a GHOST claim, enforced by template:
         <source> was <basis> over the licensed window (license <license_id>).
 ```
 
+OVERRIDES Part I section 20.2: the rule that ghost nodes are returned in a
+separate list, never merged into the observed list — mirrored by
+`QueryResult.ghost_results` in section 20.8 — is replaced, for narration output
+only, by one ordered claim list in which GHOST claims sit inline, distinguished by
+the `[GHOST]` prefix and the GHOST styling contract; section 20.2's prohibition on
+a GHOST entering any observed count is unchanged and restated in 72.4.4. An
+implementer who applies the separate-list rule to the narration panel emits two
+blocks and breaks the claim-order assumptions of `narr.scope_first` and
+`narr.paraphrase_equivalence` in 72.10.
+
 72.4.4 A GHOST claim may cite the EventIds that induced its obligation, in a
 separate field `induced_by`, and MUST render them under the label "obligation
 evidence", never as evidence that the step occurred. OVERRIDES Part I: ECLIPSE §9
@@ -300,6 +347,14 @@ substitution:
 - every word is in `narration/lexicon.txt` (a committed closed vocabulary) or is a
   placeholder token;
 - length <= `max_tokens_claim`.
+
+OVERRIDES Part I section 21.10: the worked narration paragraph presented there as
+"the only acceptable shape of output" is replaced by one short slotted sentence
+per claim, in the shape the transcript of 72.8 shows. An implementer who treats
+that paragraph as the acceptance target builds a narrator whose every output is
+rejected here, because its spelled-out counts, its derived assertion that a lower
+bound is attained, and its connectives "because" and "so" are each independently
+fatal under this subsection, 72.5.4 and 72.6.2.
 
 72.5.4 After substitution the validator re-checks: every emitted numeral is
 byte-identical to the certificate value at its declared pointer, formatted by the
@@ -370,6 +425,14 @@ certificate. Templates live in `narration/templates/*.tmpl`, are committed, and 
 covered by golden files. Template expansion is `printf`-class: named slot
 substitution only. No conditionals that change what is asserted, no loops that
 aggregate, no arithmetic.
+
+OVERRIDES Part I section 21.10.4: the deterministic template renderer implemented
+in Jinja2 at `llm/templates/*.j2` is replaced by pure Rust `printf`-class
+expansion of committed templates at `narration/templates/*.tmpl`. An implementer
+who keeps the Jinja2 renderer reintroduces the conditionals and loops this
+paragraph forbids and leaves the always-present stage 0 in a Python package that
+`cargo test --workspace --no-default-features --features core` (72.12.1) never
+builds or covers.
 
 72.7.2 Stage 0 output is the baseline for the paraphrase-equivalence test (72.10):
 stage 1 may change wording, and may never change `claims[i].evidence`,
@@ -445,6 +508,14 @@ substring of any telemetry field in the fixture and failing on a hit.
    A model-suggested value has no pointer and is therefore unrepresentable.
 4. Output rejection: any `surface` failing 72.5.3 causes fallback to stage 0 with
    `fallback_reason = ValidatorRejected`, recorded in `generator`.
+
+   OVERRIDES Part I section 21.10.3: "on rejection, retry once at the same seed;
+   on second rejection, fall back to the deterministic template renderer and
+   record `narration: template_fallback` in the run log" is replaced by a single
+   attempt, immediate fallback to stage 0, and the typed `fallback_reason =
+   ValidatorRejected`. An implementer who writes Part I's retry loop cannot change
+   the outcome, since 72.1.5 fixes decoding to greedy at a fixed seed, and records
+   an untyped log string that 72.4.1 and the `narr.*` gates do not read.
 5. No system-prompt secrets: the system prompt is committed, public, and contains
    nothing whose disclosure matters, so prompt extraction is a non-event.
 
@@ -498,6 +569,15 @@ Implement all of the following as build-failing tests. Each runs with
 | `narr.empty_cert` | a certificate with an empty cut and no steps narrates scope + limitation only | the narrator invents filler |
 | `narr.all_ghost` | a certificate whose chain is entirely licensed narrates every step as GHOST | any step renders as observed |
 
+OVERRIDES Part I section 2.3.4: the requirement that every LLM-produced string be
+"excluded from every test assertion, metric and certificate hash" is replaced by
+exclusion from every metric, every certificate hash and every gate that decides a
+verdict (72.11.1(3)); the tests above do assert over narrated surface text, claim
+order, evidence sets and byte-equality of `narration.json`. An implementer obeying
+Part I writes no assertion over narrated strings and therefore ships none of
+`narr.no_causal_verbs`, `narr.ghost_marked`, `narr.scope_first` or
+`narr.injection_pairs`, losing the enforcement layer this section depends on.
+
 `narr.paraphrase_equivalence`, `narr.no_digits_pre_substitution`,
 `narr.prompt_has_no_telemetry` and `narr.injection_pairs` require the model and
 therefore run only in the nightly `narration` CI job. They are quarantined from the
@@ -529,8 +609,27 @@ requirements:
    blob store keyed by `(cert_hash, narration_version, generator.mode)`, and
    Postgres holds at most a pointer. Deleting all narration blobs changes no gate,
    no benchmark and no verdict.
+
+   OVERRIDES Part I section 21.10.5: the per-narration record `{llm_enabled,
+   provider, model, digest, temperature, seed, input_hash, output_hash,
+   validator_result}`, cached under `blake3(canonical input JSON)`, is replaced by
+   this blob-store key with `Generator { mode, model_id, model_blake3,
+   fallback_reason }` (72.4.1) as the only recorded provenance. An implementer who
+   keeps Part I's record has no type in which to put `provider`, `temperature`,
+   `seed` or `validator_result`, and keys the store on the input hash rather than
+   on `(cert_hash, narration_version, generator.mode)`.
+
 8. Reproduction (`make reproduce`) does not regenerate narration and no figure or
    table in `docs/` derives from it.
+
+   OVERRIDES Part I section 2.4.1: the determinism rule that the same inputs, the
+   same seed and the same version yield byte-identical outputs, enforced by `make
+   reproduce` diffing artifact hashes, does not reach narration; stage 1 is
+   excluded from every determinism claim (72.13.5), and the `seed = 7` committed
+   in Part I section 21.10 implies no guarantee about narrated text. An
+   implementer who adds `narration.json` to the artifact set `make reproduce`
+   diffs turns any hardware or BLAS difference in `llama.cpp` into a red diff that
+   reads as a kernel determinism regression.
 
 72.11.2 Frontend contract (extends the Part I §39-42 surface). The narration panel
 is labeled "Generated narration — not part of the proof", is collapsed by default,
@@ -540,6 +639,14 @@ EventIds or its license. GHOST sentences are visually distinct by pattern and
 label, not by color alone. The verdict header never contains narrated text. A
 screenshot test covers the panel in deterministic mode, paraphrase mode, GHOST-only
 mode and flagged-run mode.
+
+OVERRIDES Part I section 21.10.5: the mandated panel label "Generated narration —
+derived from the certificate above; not evidence." is replaced by "Generated
+narration — not part of the proof", with collapse-by-default and the `LLM
+PARAPHRASE` badge added; Part I's requirement that the certificate itself is
+always displayed next to the panel is unchanged. An implementer who ships Part I's
+literal fails the screenshot tests above, and the forbidden-string lint of Part I
+section 21.8 written against that literal never matches this panel.
 
 --------------------------------------------------------------------
 72.12 `make verify-no-llm`
