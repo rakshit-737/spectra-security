@@ -163,5 +163,6 @@ placeholder or an empty test file, or is named in `mpc.toml` artifacts with no e
 Stubs are deleted at descope time. `make stub-scan` enumerates them and fails the build if any stub
 exists outside the single documented extension point permitted by rung D3.
 
-Status of `make stub-scan`: not started. Status of `mpc.toml`: not started. Status of
-`ratchet.json`: not started.
+Status of `make stub-scan`: not started. `mpc.toml` and `ratchet.json` are delivered; every
+component they record is not started, and no target that reads them (`make mpc-status`,
+`make ratchet-check`) exists.
