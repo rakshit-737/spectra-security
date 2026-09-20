@@ -54,16 +54,19 @@ This directory has a real consumer edge and it must be declared before the first
 committed, per section 73.11.
 
 If this directory is deleted, the committed scenario that includes the session source loses that
-source. Three things break, in order:
+source. Two things break, in order:
 
-1. The scenario's bundle no longer contains the session records, so the bundle manifest hash gate
-   for that scenario fails against its committed expectation.
-2. The session-lifecycle obligations that the rule table grounds over lose their observed anchor in
+1. The session-lifecycle obligations that the rule table grounds over lose their observed anchor in
    that scenario. Steps that were derived from observed records become candidates for licensed
    unobserved steps instead, which changes the reconstructed state and changes the cut.
-3. The estate loses its only subject that emits session establishment, resumption, refresh and
+2. The estate loses its only subject that emits session establishment, resumption, refresh and
    expiry as distinct records rather than as connection events, which is the case that makes
    reconstruction of one session identity across a gap in observation testable at all.
+
+Deleting the directory would also change the bundle hash of any scenario that had included it, so a
+gate pinned to that hash would go red. That is the edge of removing any source at all, not an edge
+specific to this one, and it is deliberately not counted above. No bundle hash gate for a scenario
+is registered in `ci/gates.toml` at this time in any case.
 
 The consumer must be an artifact owned by a different component (section 73.3.1). The scenario gate
 and the ingest corpus are owned by the scenario and ingest components respectively, not by this one.
