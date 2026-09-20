@@ -246,3 +246,6 @@ credentials.env
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local agent workspace, not part of the project.
+.opencode/
