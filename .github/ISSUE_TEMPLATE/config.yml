@@ -1,0 +1,43 @@
+# Issue template chooser.
+#
+# STATUS: not started. One template exists, and the links below point at files
+# that the milestone-zero work is expected to create. A link here to a file that
+# does not exist yet renders as a 404, which is visible and therefore honest;
+# a link removed to avoid the 404 would quietly hide the obligation to write the
+# file. They stay.
+#
+# TODO(paths): every URL below hard-codes the placeholder repository owner
+#   `rakshit` and the branch `main`. Change both here if the repository moves,
+#   or replace these absolute URLs with relative repository paths if GitHub ever
+#   supports them in this file. See the module-path TODO in go.mod for the same
+#   placeholder decision.
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security finding
+    url: https://github.com/rakshit/spectra/blob/main/SECURITY.md
+    about: >-
+      Do not open a public issue for a security finding. SECURITY.md states the
+      reporting route and the threat model the finding will be judged against.
+
+  - name: What SPECTRA does not do
+    url: https://github.com/rakshit/spectra/blob/main/LIMITATIONS.md
+    about: >-
+      Read this before reporting a missing capability. LIMITATIONS.md is
+      generated from measured artifacts, and every block that has not been
+      measured says so. A capability absent from it is a capability nobody has
+      claimed.
+
+  - name: The gate registry
+    url: https://github.com/rakshit/spectra/blob/main/ci/gates.toml
+    about: >-
+      A requirement with no gate id is not a requirement (section 74.0). If you
+      believe something should be enforced, check whether a gate declares it
+      before filing; if none does, that absence is the report.
+
+  - name: How CI tiers work
+    url: https://github.com/rakshit/spectra/blob/main/.github/workflows/README.md
+    about: >-
+      Which gates run on a push, nightly and weekly, why a skipped job is not a
+      passing job, and why no retry is permitted anywhere.
