@@ -267,13 +267,16 @@ skeleton-verify: ## Check the session-one repo layout and required root files ex
 # The layout skeleton-verify asserts. Kept as data so the list is editable without
 # touching a recipe.
 #
-# TODO(decision: directory layout) These paths track Part I section 32.2, amended
-# by Part II section 73.10, which bans the proof kernel's internal acronym from
+# DECIDED (directory layout) These paths track Part I section 32.2, amended by
+# Part II section 73.10, which bans the proof kernel's internal acronym from
 # every directory name -- the docs subdirectory section 32.2 named after it is
 # therefore docs/kernel/ here.
-# docs/plan/PLAN_v1.md proposes a different roster (db/ for sql/, frontend/ for
-# web/, analysis/ for the Tier D languages) and that conflict is open. When it is
-# resolved, edit these two lists and nothing else in this file.
+# The roster conflict with docs/plan/PLAN_v1.md is resolved in favour of the
+# tree that exists: db/ not sql/, frontend/ not web/, CLAIMS.md not
+# docs/claims.md. CLAIMS.md records why the registry sits at the root. Part II
+# is NOT self-consistent on the frontend path -- section 73.8 says frontend/src/
+# while sections 66 and 72 say web/src/ -- and that contradiction is open; only
+# the gate's expectation is settled here, not the specification.
 #
 # Tier B / C / D package roots are deliberately absent: session one gives them a
 # directory with a README stating the tier and "not started", and those READMEs
@@ -297,10 +300,10 @@ SKELETON_DIRS := \
   rust \
   scripts \
   scripts/lib \
-  sql \
+  db \
   tests \
   tools \
-  web
+  frontend
 
 SKELETON_FILES := \
   Makefile \
@@ -316,7 +319,7 @@ SKELETON_FILES := \
   .dockerignore \
   .env.example \
   scripts/lib/common.sh \
-  docs/claims.md \
+  CLAIMS.md \
   docs/plan/PLAN_v1.md \
   docs/research/preregistration.md
 
