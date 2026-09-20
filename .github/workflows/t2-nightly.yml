@@ -146,7 +146,7 @@ jobs:
     name: T2 oracles / SMT, grounding, guard, minimality, antitonicity (NOT IMPLEMENTED)
     if: false # enabled at M6 (independent Go checker and differential gates)
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
+    timeout-minutes: 56
     steps:
       - name: not implemented
         run: |
