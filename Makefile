@@ -53,7 +53,7 @@ ifneq ($(UNAME_S),Linux)
 endif
 
 ifeq ($(or $(IS_WSL),$(SPECTRA_DEVCONTAINER),$(CI)),)
-  $(error not running in WSL2, the devcontainer or CI. Set SPECTRA_DEVCONTAINER=1 only from inside the container image. docs/dev/wsl.md is not written yet; until it is see docs/prompt/part2/74-build.md section 74.10.)
+  $(error not running in WSL2, the devcontainer or CI. Set SPECTRA_DEVCONTAINER=1 only from inside the container image. See docs/dev/wsl.md.)
 endif
 
 ifneq ($(filter /mnt/%,$(CURDIR)),)
