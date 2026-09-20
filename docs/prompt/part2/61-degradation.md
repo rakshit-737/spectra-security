@@ -64,6 +64,14 @@ before entity resolution, before `EventId` assignment. It is never applied to `b
   metrics (61.11) : cert x anchor_map x objective --> metrics.json
 ```
 
+OVERRIDES Part I section 26.7: the requirement that every telemetry event originate in a range
+service and traverse collector -> normalizer, with direct synthesis forbidden outside
+`tools/fixture-mint`, is replaced by the generator above, which writes `truth/emission.jsonl` and
+byte-stable `raw/clean/<source>.log` per source as the only ingest input perturbation acts on. An
+implementer following Part I builds the live range and the `raw.jsonl` collector path of Part I
+sections 26.3 and 27.1, which produce no byte-stable per-source clean log and no generator-assigned
+`record_id` or `emit_time_ns`, so every gate in 61 is undefined on their output.
+
 Hard rules:
 - The perturber MUST NOT read entity-resolution output, `rules.toml`, `controls.toml`, `goal.toml`,
   or any kernel artifact. A build-graph gate (`make dep-audit`) fails if the perturber binary's
@@ -285,6 +293,13 @@ Semantics: insert `count` fabricated records into the chosen window and, with `r
 recompute the BLAKE3 sequence chain from the insertion point forward so no sequence gap is visible.
 Ledger fate `SYNTHETIC{parent = none, kind = FORGED}`.
 
+OVERRIDES Part I section 50.2: the `forge_provenance` operator, which rewrites BLAKE3 sequence-chain
+links so an existing deletion looks like a clean chain, is replaced by CHAIN-FORGE, which only
+inserts fabricated records and reseals forward from its own insertion point; no operator in this
+closed catalog conceals a deletion. An implementer who maps the Part I section 48.3 manifest entry
+`forge_provenance` onto CHAIN-FORGE keeps the name while substituting "add records" for "hide a
+deletion", and 61.5 then classes DELETE on a CHAINED source as `OBS-C` in every cell.
+
 Hard rule: CHAIN-FORGE never creates a `StepId`. Ground truth is unchanged by fabrication. A fact the
 kernel derives whose entire evidence set anchors to synthetic lines is a `phantom_derivation` and is
 counted as such (61.11). Forbidden: describing a forged record as an attacker action in any output.
@@ -306,6 +321,12 @@ Every source declares `chain_class` in `sources.toml`: `CHAINED` (BLAKE3 sequenc
 MUST be `BARE`. OVERRIDES Part I: results that rely on chain-detectable suppression must be reported
 per `chain_class` and never pooled; demonstrating deletion detection only on chained sources and
 presenting it as a result about suppressed telemetry is disallowed.
+
+OVERRIDES Part I section 26.3: the single collector that BLAKE3 sequence-chains every source, and the
+`sources.toml` that declares no observability attribute, are replaced by a per-source `chain_class`
+declaration with at least one `BARE` source in every scenario. An implementer following Part I chains
+all sixteen sources, so every deletion classes as `OBS-C`, `invisible_class_volume` comes out empty,
+and the generated `LIMITATIONS.md` reads as a stronger result than the system supports.
 
 Observability classes: `OBS-C` detectable from a chain break; `OBS-B` detectable from bracketing,
 inter-arrival or obligation reasoning; `OBS-N` no signal exists in the delivered bundle — only the
@@ -434,6 +455,16 @@ Fate variants, closed set: `KEPT`, `DELETED`, `MUTATED`, `STRIPPED`, `BACKDATED`
 applied class in the 61.4.0 order. Lint `ledger-fate-total`: every pre-perturbation `record_id`
 appears exactly once, and every delivered line appears exactly once. Gate `make ledger-bijection`.
 
+OVERRIDES Part I section 29.4: degraded variants as child datasets that carry the parent's
+`truth.jsonl` with `suppressed_by: "degradation"` written onto dropped events — together with the
+`dataset.parent_dataset_id` degradation lineage of Part I section 29.3, build-failing invariant I-5,
+and the `make dataset-degrade` and `make dataset-matrix` targets of Part I section 29.5 — are
+replaced by this ledger: `truth/emission.jsonl` and `truth/steps.jsonl` are never rewritten,
+perturbation is recorded only in `truth/ledger.jsonl`, and per-cell artifacts live under
+`runs/matrix/<matrix_id>/cells/<cell_id>/` (61.9.2). An implementer following Part I writes
+`suppressed_by` back into an `EventId`-keyed truth stream that 61.0 bans and that the perturbation
+itself destroys.
+
 61.7.3 The anchor map. The relinker produces:
 
 ```jsonc
@@ -549,6 +580,12 @@ and diffs certificate hashes.
 `seed_index` ranges over a declared seed set of size `n_seeds >= 5` (illustrative, not a target: the
 repo ships 5 and nightly runs 20). A single run per cell is not a result; every reported quantity
 carries its per-cell median and IQR over `seed_index`, and never a mean alone.
+
+OVERRIDES Part I section 49.7: the floor of ten seeds per reported cell, and the `NOT REPORTABLE`
+renderer refusal of Part I section 48.8 that enforces it, are replaced by the `n_seeds >= 5` floor
+above with per-cell median and IQR reported over `seed_index`. An implementer following Part I sizes
+the seed set, the BCa bootstrap and the signed-rank tests for ten seeds and then refuses to publish
+any cell this section declares reportable.
 
 61.9.2 Artifact layout.
 
