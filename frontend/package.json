@@ -1,0 +1,22 @@
+{
+  "name": "@spectra/console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SPECTRA console. Not started: no component, no router, no data path.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "echo 'spectra: console build not implemented (Part I 32.7, 39). Status: not started.' 1>&2; exit 1",
+    "dev": "echo 'spectra: console dev server not implemented (Part I 33.3, target dev). Status: not started.' 1>&2; exit 1",
+    "test": "echo 'spectra: console tests not implemented (Part I 43). Status: not started.' 1>&2; exit 1"
+  },
+  "devDependencies": {
+    "typescript": "5.6.2"
+  },
+  "spectra": {
+    "status": "not started",
+    "todo": "Part I 33.6 pins no TypeScript version; 5.6.2 is chosen to match the pinned Node 20.17.0 line and must be added to .tool-versions and toolchains.lock. The bundler (Part I 32.7 names Vite) and every runtime dependency are deliberately absent until the first screen is written.",
+    "invariant": "No component may fabricate a verdict, count or hash; every displayed number traces to an API field (Part I 32.7), and the verdict is never computed client-side (Part II 75.2 C10)."
+  }
+}
