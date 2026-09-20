@@ -1,0 +1,27 @@
+# spectra_cli - the `spectra` console entry point.
+# Spec: Part I 32.3, 34.5 (the spectra config show transcript).
+# Status: not started.
+
+[project]
+name = "spectra-cli"
+version = "0.0.0"
+description = "SPECTRA command-line entry point. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them (Part II 74.2).
+# TODO(entry point): no [project.scripts] entry is declared, because installing a
+# `spectra` console script that has no entry function would be a command that
+# fails on import. Declare it in the commit that writes the function.
+# TODO(conflict: binary naming). Part II 73.10 and 75.1.15 spell the kernel
+# invocation `spectra prove` and the checker `spectra verify`, while 69.4.1
+# spells the kernel binary `spectra-kernel prove` and 69.2.2 ships the checker
+# image as spectra-verify. Resolve before either CLI surface is written.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): see python/spectra_core/pyproject.toml.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_cli"]
