@@ -11,6 +11,6 @@
 // client. Vendoring is go mod vendor with GOFLAGS=-mod=vendor and GOPROXY=off
 // (Part II 74.2).
 
-module github.com/rakshit-737/spectra-security/verify
+module github.com/rakshit-737/spectra-security/go/verify
 
 go 1.23.2
