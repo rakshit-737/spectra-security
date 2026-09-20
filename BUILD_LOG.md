@@ -52,7 +52,7 @@ Nothing was measured. No code exists.
 
 ### Findings
 
-The conflict audit compared each Part II section against its Part I counterparts and found 353
+The conflict audit compared each Part II section against its Part I counterparts and found 453
 disagreements:
 
 | Class | Count |
