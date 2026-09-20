@@ -36,6 +36,15 @@ Hard rules, enforced by gates named below:
 | Max size | 64 MiB (normative limit, not a measurement) |
 | Content address | `blake3(canonical_bytes(body))`, lowercase hex, printed as `blake3:<64 hex>` |
 
+OVERRIDES Part I sections 25.2, 25.7 and 25.11: the artifact `cert.json` — ordinary JSON whose
+top level carries `mode`, `hashes`, `lower_bound`, `eclipse_version`, `redundancy_witnesses` and
+`measured`, with a numeric `seed` — is replaced by a `.spcert` file whose entire content is
+`{"body":…,"cert_hash":…}` in canonical SCF, carrying only the members of §68.2, with `seed` as a
+`0x`-prefixed hex string (C7). An implementer following Part I emits a file that fails the
+magic-byte check before parsing, and every surface that names `cert.json` — the §25.2 independence
+gate's shared-format list, `spectra verify cert build/cert.json`, the certificate API endpoint —
+points at an artifact that no longer exists under that name or that shape.
+
 The outer object has exactly two members:
 
 ```json
@@ -142,6 +151,14 @@ Each triple is `[control_id, level, bit]`. `n` ≤ 64. Bit assignment is derived
 from `controls.toml` (documented order) and is hashed into `controls_hash`. All 64-bit masks are
 encoded as fixed-width lowercase hex strings `"0x0000000000000021"` — never as JSON numbers.
 
+OVERRIDES Part I sections 25.7 and 36.4: the cut as a list of atom name strings
+(`["x_session_binding_2","x_egress_seg_1"]`, rendered as `session_binding>=bound`) is replaced by
+`cut: Vec<AtomRef>` over this bit assignment, sorted ascending by bit, unique, and upward-closed
+under `x_{k,l+1} -> x_{k,l}`, checked at O6 (`E-CUT-*`). Part I's own example cut is not
+upward-closed — it carries level 2 of `session_binding` without level 1 — so it is rejected at O6,
+and because closure pulls in the lower levels, `|S|`, the `|S|-1` exhaustive obligation and any
+"no cut of size 1" statement are computed over a larger atom set than Part I assumes.
+
 ### 68.2.6 `flags`, `budgets`, `derived`
 
 ```json
@@ -158,6 +175,21 @@ zeroed, whenever `grounding_capped` or `corridor_capped` is set; the emitter mus
 the checker rejects a certificate that carries it alongside those flags (`E-FLAG-DERIVED`).
 `residual` inside a frontier point is a **set** — `{"goal_atoms":[…],"open_corridors":[…]}` —
 never a scalar. A scalar residual is `E-FLAG-SCALAR`.
+
+OVERRIDES Part I section 25.6 B: continuing the pipeline through F (redundancy index), G (decisive
+observations) and H (cost frontier) on a capped run — setting `flags.grounding_capped`, publishing
+the sizes and downgrading the verdict — is replaced by omitting `derived` entirely whenever
+`grounding_capped` or `corridor_capped` is set. An emitter following Part I publishes redundancy,
+decisive-observation and frontier data on every capped run, and every such certificate is rejected
+with `E-FLAG-DERIVED`; the Part I endpoints that serve those three artifacts per certificate have
+nothing to return on a capped run.
+
+OVERRIDES Part I section 25.6 H: the Pareto set of `(declared_cost, residual_reachability)`,
+exposed by Part I as `[{cost, residual, cut, evidence:[EventId]}]` with one scalar `residual` per
+point, is replaced by frontier points whose `residual` is a set of `goal_atoms` and
+`open_corridors`. An implementer following Part I emits a scalar — and, if it is expressed as a
+fraction, a float — which is rejected as `E-FLAG-SCALAR` or `E-CANON-FLOAT`, and any API model or
+scatter plot typed for one number per axis has no single residual to carry.
 
 ============================================================
 
@@ -274,6 +306,13 @@ Rules:
   checked-in `cert-schema.toml`; `make cert-schema-sync` fails if either generated file is stale.
   The schema table is *data*, not guard semantics: this sharing is declared in
   `docs/checker-scope.md` and does not make the two grounders non-independent.
+  OVERRIDES Part I section 25.2: the independence gate's statement that the only shared artifacts
+  are the on-disk formats (`rules.toml`, `bundle.jsonl`, `controls.toml`, `liveness.json`,
+  `cert.json`) and their JSON Schemas is replaced by that list plus `cert-schema.toml` and the
+  field tables generated from it into both the Rust emitter and the Go checker — including the
+  §68.7 flag algebra, which is generated from the same file. An implementer who leaves
+  `gates/checker_independence.sh` worded as Part I states it puts that gate in direct conflict
+  with `make cert-schema-sync`, and one of the two will have to be disabled in CI.
 
 ============================================================
 
@@ -300,6 +339,16 @@ O13 psi-hit         cut hits every clause of psi                              E-
 O14 flags           flag algebra (§68.7)                                      E-FLAG-*
 O15 minimality      per verdict.minimality, §68.6.2                           E-MIN-*
 ```
+
+OVERRIDES Part I section 25.8(d): the checker RECOMPUTING the liveness derivation from the bundle
+— bracketing, blake3 chain-gap detection, per-run q99 inter-arrival, and the Bellman–Ford
+difference-constraint pass that voids backdated licenses — is replaced by O10, which checks only
+that every silent instance cites a license implied by the `liveness.json` whose bytes O4 pinned
+through `liveness_hash`; backdating enters the certificate only as the emitter-set flag
+`license_voided_by_backdating`. An implementer following Part I builds a second liveness engine in
+Go that no obligation here calls for and that O10's linear cost (§68.6.1) does not permit, and
+states the wrong guarantee: an ACCEPT establishes that `liveness.json` was the file hashed, not
+that its licenses were honestly derived from the bundle.
 
 ### 68.6.1 The linear-pass argument, stated honestly
 
@@ -335,6 +384,12 @@ claiming 2^24 entries can therefore not cause an allocation.
   cardinality `|S|-1` over the upward-closed atom lattice. Permitted only when
   `C(n, |S|-1) <= 200000` (normative limit, not a measurement); above that the emitter must not
   claim `EXACT`. Cost `O(C(n,|S|-1) · Σ|body|)`, and it is reported separately in the transcript.
+  OVERRIDES Part I section 25.9: `|A| <= 64` as the only precondition for exact
+  cardinality-minimality is replaced by the combinatorial cap stated in this bullet, plus §68.7's
+  requirement that the exhaustive obligation was actually run and recorded in `budgets`. An
+  emitter that trusts `|A| <= 64` — or a `doctor` line that prints "exact minimality available"
+  from `|A|` alone — claims `EXACT` on runs whose honest value is `PSI_RELATIVE`, and O15 refuses
+  them (`E-MIN-UNEARNED` when no exhaustive budget was recorded).
 * `minimality: PSI_RELATIVE` — the checker verifies only that no cut of size `< |S|` hits all of
   Ψ. This establishes nothing about cuts outside Ψ. The checker's own output must print
   `minimality: PSI_RELATIVE (no claim that a smaller sufficient cut does not exist)`.
@@ -484,6 +539,15 @@ ACCEPT  ROBUST(rules@3f9a1c, catalog@a11c40, licenses@7d20be, er@c4b8f1, non-ada
 ```
 (all figures in this transcript are illustrative, not a target)
 
+OVERRIDES Part I sections 37.1 and 25.8: the `verify cert | bundle | liveness` subcommand tree and
+the four-input invocation `spectra verify cert.json --bundle --rules --controls` are replaced by
+one flat form, `spectra verify <cert>.spcert --rules --controls --goal --bundle --liveness --er`,
+because O4 recomputes every hash in §68.2.3 over the files named on argv. An implementer following
+Part I omits `--goal`, `--liveness` and `--er`, so O4 cannot run at all, and keeps a `cert`
+subcommand that is a usage error here. Part I §37.1's Python `spectra verify` shelling out to
+`spectra-verify` is withdrawn with it: `spectra verify` is the Go binary itself (§68.0 rule 1), and
+§68.12 #4 forbids a subprocess dependency reachable from it.
+
 ```
 $ spectra verify fixtures/certs/adversarial/11_truncated_psi.spcert …
 O13 psi: 4 corridors, cut misses corridor #3 {credential_rotation>=1, iam_audit>=1}
@@ -496,6 +560,14 @@ Exit codes: `0` ACCEPT, `1` REJECT (reason code on stderr and in `--json`), `2` 
 error. `--json` emits a canonical JSON report; the report is not a certificate and carries no
 `cert_hash`. There is no `--force`, no `--skip`, no `--ignore-hash-mismatch` flag; adding one is
 a review-blocking change.
+
+OVERRIDES Part I sections 25.8 and 37.3: the checker exit codes `2` invariant violated, `3`
+license unlicensed, `4` witness invalid, `5` smaller cut exists, `6` input hash mismatch, together
+with the CLI-wide codes `7` verification failed and `8` result is flagged, are replaced by exactly
+three codes — `0` ACCEPT, `1` REJECT with the reason code on stderr and in `--json`, `2` usage or
+I/O error. An implementer following Part I classifies rejections by a code the checker never
+emits, and reads code `2` as "invariant violated" when it now means an operator typo, so a
+tampered certificate is silently filed as a usage error.
 
 ============================================================
 
@@ -524,6 +596,13 @@ The build fails if any of the following is present.
 2. Any `HashMap`/`map[...]` iteration that reaches certificate bytes, in either language.
 3. Any wall-clock timestamp, hostname, username, absolute path, process id, or duration inside
    `body`. Timings belong in the run manifest, which is not hashed into the certificate.
+   OVERRIDES Part I sections 25.7 and 25.12: the certificate's `measured` object (`instances`,
+   `facts`, `corridors`, `ground_ms`, `solve_ms`) and the `golden_certificates` rule that
+   regenerated output is byte-identical "including `measured` fields' presence", with `*_ms`
+   values free to vary because they are excluded from the hash, are replaced by a `body` that has
+   no `measured` member and a `cert_hash` that covers the whole canonical `body` with no excluded
+   fields (§68.1). An implementer who keeps `measured` is rejected at O2 with `E-SCHEMA-UNKNOWN`,
+   and one who carves `*_ms` out of the hash fails O0 and O1 as well.
 4. Any network, database, Redis, or subprocess dependency reachable from `spectra verify`.
 5. Any decompression performed by the checker.
 6. Any checker flag that weakens an obligation.
