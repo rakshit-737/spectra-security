@@ -151,7 +151,8 @@ endef
   bench-degrade gate-false-robust m7-verify \
   wasm m8-verify \
   lab lab-down polyglot polyglot-audit polyglot-report benchmark m9-verify \
-  docs demo reproduce verify-no-llm release-check m10-verify
+  docs demo reproduce verify-no-llm release-check m10-verify \
+  check-autocrlf secret-scan
 
 ##@ Works today (session one)
 
@@ -336,6 +337,12 @@ builder: ## SUPERSEDED single builder image -- see toolchain-refresh
 
 toolchain-refresh: ## THE ONLY NETWORK-PERMITTED TARGET -- rebuild toolchains.lock and images.lock
 	$(call todo,74.1,resolve and lock every ecosystem; fetch the vendor bundles; build the four tier images from digest-pinned bases; export OCI tarballs to cas/oci/ and record digests in images.lock,M0)
+
+check-autocrlf: ## Assert no committed text file carries CRLF -- gate G-WIN-003
+	$(call todo,74.10.5,fail if any path matched as text by .gitattributes is staged or committed with CRLF line endings -- the Windows author's most likely way to break byte-identical replay,M0)
+
+secret-scan: ## Assert no credential-shaped string is staged -- gate G-SECRET-001
+	$(call todo,74.11.1,fail if a staged hunk contains a credential-shaped string using a vendored ruleset -- no remote fetch is permitted in the commit path,M0)
 
 lint-images: ## Assert every image reference resolves to a digest in images.lock
 	$(call todo,74.0,fail any FROM / docker run / devcontainer / CI container reference that is pinned by tag rather than by sha256 digest -- gates G-IMG-001 and G-IMG-002,M0)
