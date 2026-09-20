@@ -1,0 +1,473 @@
+# T2 - the nightly tier, main only.
+#
+# Authority: ci/gates.toml. This file runs gates; it does not declare them
+# (74.4). A check here without a gate id in the registry is not a gate.
+#
+# STATUS: not started. Every job below is declared and explicitly skipped with
+# `if: false`, a stated reason and the milestone that enables it. A skipped job
+# renders grey; it is not a pass. No job in this file has ever run.
+#
+# There is no enabled job in this workflow. The skeleton gate that the T1
+# workflow runs is a T1 gate and runs there, once, per push. Repeating it here
+# would give T2 a green check that says nothing about any T2 gate.
+#
+# MEANING OF A FAILURE (74.4): an issue is auto-filed, the milestone loses its
+# green, and main is marked degraded in the README status table. A T2 failure
+# does not block a merge, and it is never silenced.
+#
+# 74.0 OVERRIDES 43.1: Tier C and Tier D language jobs, the polyglot mutation
+# audit and the Tier B oracle gates run here, not per-PR. A Tier C or D failure
+# never blocks a Tier A milestone. Demotion to this tier is not silencing: the
+# job runs, the result is recorded, and section 73 forbids hiding it.
+#
+# 74.0 OVERRIDES 52.1: "green twice in a row on a clean clone" is a T2
+# obligation, not a per-push one.
+#
+# TIER CEILING: 90 min (74.4, illustrative, not a target). Per-job
+# `timeout-minutes` are derived from budget_s in ci/gates.toml and are likewise
+# illustrative. Nothing here has been measured.
+#
+# TODO(budget): ci/gates.toml declares more T2 seconds than this ceiling allows
+# and says so in its budget summary. Reconcile before enabling any job here.
+# 74.9 permits three remedies and no others: sample it, demote it, or delete the
+# requirement. Raising the ceiling is not one of them.
+#
+# TODO(runner): T2 gates run in spectra/toolchain-b, -c or -d
+# @sha256:<digest from images.lock> (74.1). No image has been built, so no job
+# below carries a `container:` line. Add it as each gate lands, under G-IMG-001.
+#
+# 74.8.1: no retry, no continue-on-error, no rerun-failed. G-FLAKE-001 greps
+# this directory for them.
+
+name: t2-nightly
+
+on:
+  schedule:
+    # 02:00 UTC daily. The repository runs at TZ=UTC everywhere (58, 74.3);
+    # a local-time schedule would drift twice a year.
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+# 74.7: a run whose artifacts back a published number is never cancelled.
+concurrency:
+  group: t2-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  LC_ALL: C
+  SPECTRA_OFFLINE: "1"
+  SOURCE_DATE_EPOCH: "0"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: byte-identity across two distinct runners and CPU models (74.4).
+  # Non-quarantinable (74.8.6).
+  determinism-cross-runner:
+    name: T2 determinism / byte-identity across two runners (NOT IMPLEMENTED)
+    if: false # enabled at M6, when a second runner label is available
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-DET-REPLAY-T2"
+          echo "not implemented: G-DET-TICK"
+          echo "not implemented: G-DET-THREAD"
+          echo "not implemented: G-GUARD-CROSS-RUNNER"
+          echo "not implemented: G-ABI-GOLDEN"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: entity resolution across the matrix (74.4)
+  er-full:
+    name: T2 ER / confluence, quality, red team, matrix, mutation (NOT IMPLEMENTED)
+    if: false # enabled at M2 (ingest, entity resolution, event store)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ER-1"
+          echo "not implemented: G-ER-4"
+          echo "not implemented: G-ER-5"
+          echo "not implemented: G-ER-6"
+          echo "not implemented: G-ER-7"
+          echo "not implemented: G-ER-8"
+          echo "not implemented: G-ER-9"
+          echo "not implemented: G-ER-10"
+          echo "not implemented: G-ER-11"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the full degradation matrix (74.4, 74.5). The T1 spine subset is
+  # G-KERNEL-FALSE-ROBUST. Non-quarantinable (74.8.6).
+  degradation-matrix:
+    name: T2 degradation / full matrix, zero false ROBUST (NOT IMPLEMENTED)
+    if: false # enabled at M7 (degradation, tampering, redundancy, frontier)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-KERNEL-FALSE-ROBUST-FULL"
+          echo "not implemented: G-FALSE-UNSAFE"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: non-vacuity ceilings (62.9). A gate that can be satisfied by
+  # abstaining is not a gate.
+  oracle-nonvacuity:
+    name: T2 non-vacuity / yield, licensing, flags, indeterminacy (NOT IMPLEMENTED)
+    if: false # enabled at M7, when the matrix produces runs to count
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-NONVACUITY-YIELD"
+          echo "not implemented: G-ORACLE-NONVACUITY-LICENSING"
+          echo "not implemented: G-ORACLE-NONVACUITY-FLAGS"
+          echo "not implemented: G-ORACLE-NONVACUITY-INDETERMINACY"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: differential oracles (74.4 Tier B oracle gates). Second toolchain
+  # image. Non-quarantinable where marked in ci/gates.toml.
+  oracle-differential:
+    name: T2 oracles / SMT, grounding, guard, minimality, antitonicity (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-SMT-DIFFERENTIAL"
+          echo "not implemented: G-ORACLE-GROUNDING-DIFFFUZZ"
+          echo "not implemented: G-ORACLE-GUARD-DIFFFUZZ"
+          echo "not implemented: G-ORACLE-CHECKER-MINIMALITY"
+          echo "not implemented: G-ORACLE-ANTITONICITY"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: enforcement and out-of-band observation oracles (62)
+  oracle-enforcement:
+    name: T2 oracles / enforcement effectiveness and totality (NOT IMPLEMENTED)
+    if: false # enabled at M7 (degradation, tampering, redundancy, frontier)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-ENFORCEMENT-EFFECTIVE"
+          echo "not implemented: G-ORACLE-ENFORCEMENT-TOTAL"
+          echo "not implemented: G-ORACLE-ER-QUALITY"
+          echo "not implemented: G-ORACLE-OUTOFBAND"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: ledger completeness and freeze discipline (62, 70)
+  ledger-full:
+    name: T2 ledger / completeness, triage order, freeze, backfill (NOT IMPLEMENTED)
+    if: false # enabled at M1, with the first ledger entries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-LEDGER-COMPLETE"
+          echo "not implemented: G-ORACLE-TRIAGE-INTEGRITY"
+          echo "not implemented: G-PREREG-FREEZE"
+          echo "not implemented: G-PREREG-BACKFILL"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: guard compilation, fuzz and lattice properties (63)
+  guard-property:
+    name: T2 guards / compile, fuzz, lattice monotonicity (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice), with the guard table
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-GUARD-COMPILE"
+          echo "not implemented: G-GUARD-FUZZ"
+          echo "not implemented: G-GUARD-LATTICE"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: well-definedness properties of the cut and the certificate (64)
+  welldef-property:
+    name: T2 well-definedness / cut, stability, premium, suppression (NOT IMPLEMENTED)
+    if: false # enabled at M5 (two-sided minimal cut and certificate)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-WD-CUT-DET"
+          echo "not implemented: G-WD-STABILITY"
+          echo "not implemented: G-WD-PREMIUM"
+          echo "not implemented: G-WD-CERT-ALGEBRA"
+          echo "not implemented: G-WD-REALIZABILITY"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: liveness and licence admissibility (65)
+  liveness:
+    name: T2 liveness / invariance, monotonicity, tamper, differential (NOT IMPLEMENTED)
+    if: false # enabled at M4 (liveness, licences, silent envelope, fixpoint)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 42
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G65.2"
+          echo "not implemented: G65.3"
+          echo "not implemented: G65.4"
+          echo "not implemented: G65.6"
+          echo "not implemented: G65.7"
+          echo "not implemented: G65.8"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the certificate and its independent checker (68). The full
+  # must-reject corpus lives here; the cheap spine subset is in T1.
+  # Non-quarantinable where marked in ci/gates.toml.
+  certificate:
+    name: T2 certificates / corpus, canonicity, CAE, compat, fuzz (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-CERT-CORPUS"
+          echo "not implemented: G-CERT-CANON"
+          echo "not implemented: G-CERT-CAE"
+          echo "not implemented: G-CERT-COMPAT"
+          echo "not implemented: G-CERT-OFFLINE"
+          echo "not implemented: G-CERT-FUZZ"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the process boundary and the store (69)
+  boundary:
+    name: T2 boundary / exit codes, seccomp audit, projections, GC (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ABI-EXITCODES"
+          echo "not implemented: G-KERNEL-OFFLINE-AUDIT"
+          echo "not implemented: G-REBUILD-PROJECTIONS"
+          echo "not implemented: G-REDIS-CHAOS"
+          echo "not implemented: G-GC-SAFETY"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the hypothesis layer (76)
+  hypothesis:
+    name: T2 hypotheses / determinism, ghosts, rank, suppression (NOT IMPLEMENTED)
+    if: false # enabled at M7 (degradation, tampering, redundancy, frontier)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-HYP-DETERMINISM"
+          echo "not implemented: G-HYP-GHOST"
+          echo "not implemented: G-HYP-RANK-COSMETIC"
+          echo "not implemented: G-HYP-REALIZABILITY"
+          echo "not implemented: G-HYP-DEGRADED-MONOTONE"
+          echo "not implemented: G-HYP-VERDICT-ALGEBRA"
+          echo "not implemented: G-HYP-SUPPRESSION"
+          echo "not implemented: G-HYP-UI-DEGRADED"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: Tier B languages (74.0 OVERRIDES 43.1). toolchain-b.
+  lang-tier-b:
+    name: T2 languages / Tier B oracle toolchains (NOT IMPLEMENTED)
+    if: false # enabled at M6, when the Haskell admissibility oracle exists
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-LANG-TIER-B"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: Tier C languages (74.0 OVERRIDES 43.1). toolchain-c. A Tier C
+  # failure never blocks a Tier A milestone and is never silenced: it is
+  # reported in the README status table within one day (73).
+  lang-tier-c:
+    name: T2 languages / Tier C range emitters (NOT IMPLEMENTED)
+    if: false # enabled at M9 (polyglot surface and performance)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-LANG-TIER-C"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: Tier D languages (74.0 OVERRIDES 43.1). toolchain-d. MATLAB has no
+  # toolchain image and no job; the matrix carries GNU Octave (74.0).
+  lang-tier-d:
+    name: T2 languages / Tier D analysis toolchains (NOT IMPLEMENTED)
+    if: false # enabled at M9 (polyglot surface and performance)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-LANG-TIER-D"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: polyglot mutation audit (74.0 OVERRIDES 43.1)
+  polyglot-audit:
+    name: T2 polyglot / mutation audit and language manifest (NOT IMPLEMENTED)
+    if: false # enabled at M9 (polyglot surface and performance)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-POLY-AUDIT"
+          echo "not implemented: G-POLY-LANG-AUDIT"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the offline claim, cold and negative (74.2.4, 74.3.5).
+  # G-VEND-002 deletes a vendor path and asserts the build FAILS: a vendoring
+  # claim nobody can break is a vendoring claim nobody has tested.
+  # Non-quarantinable (74.8.6).
+  offline-cold:
+    name: T2 offline / cold build on all four images, vendor negative (NOT IMPLEMENTED)
+    if: false # enabled at M0, once all four tier images exist in images.lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-OFF-002"
+          echo "not implemented: G-VEND-002"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: caches accelerate, they never determine outcomes (74.6.1); sampler
+  # coverage debt (74.5). Non-quarantinable where marked in ci/gates.toml.
+  cache-independence:
+    name: T2 caches / cache-disabled artifact hashes, coverage debt (NOT IMPLEMENTED)
+    if: false # enabled at M0 for G-CACHE-001; G-SAMP-002 follows at M7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-CACHE-001"
+          echo "not implemented: G-SAMP-002"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the self-attack suite and static analysis (45, 46)
+  security:
+    name: T2 security / self-attack suite, static analysis, audit (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice), when there is an API to attack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ADVERSARIAL-SUITE"
+          echo "not implemented: G-SECURITY-SCAN"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: end-to-end UI and CLI surface (46, 71, 76)
+  e2e-ui:
+    name: T2 end-to-end / UI, CLI strings, degraded demo (NOT IMPLEMENTED)
+    if: false # enabled at M8 (full UI and PROVE flow)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-E2E"
+          echo "not implemented: G-UI-BANNED"
+          echo "not implemented: G-CLI-BANNED"
+          echo "not implemented: G-FRAMING-CLI"
+          echo "not implemented: G-DEMO-DEGRADED"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: documentation and paper drift (46, 71)
+  docs-paper:
+    name: T2 docs / strict build, link check, framing drift (NOT IMPLEMENTED)
+    if: false # enabled at M10 (documentation, demo, release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-DOCS-CHECK"
+          echo "not implemented: G-FRAMING-PAPER"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: range egress isolation (74.4). Requires the compose set up.
+  # Non-quarantinable (ci/gates.toml marks it soundness = true).
+  range-isolation:
+    name: T2 range / egress isolation probe (NOT IMPLEMENTED)
+    if: false # enabled at M9, when the range compose set exists
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-RANGE-ISOLATION"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: observability schema and test inventory (43, 47)
+  observability:
+    name: T2 observability / log schema, test inventory (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-OBS-LOG-SCHEMA"
+          echo "not implemented: G-TEST-INVENTORY"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: randomized-configuration agreement over the full space (74.4, 74.5).
+  # The T1 sampled run is G-SIM-AGREE-T1 and its artifact may not be described
+  # as covering this space.
+  sim-agreement-full:
+    name: T2 agreement / simulator vs kernel, full space (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-SIM-AGREE-FULL"
+          exit 1
