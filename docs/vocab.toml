@@ -1,0 +1,276 @@
+# docs/vocab.toml
+#
+# The machine-readable source of the canonical vocabulary. Part II section 57 is normative over
+# every other section in Part I and Part II; this file is the source of truth and the markdown in
+# section 57 is the rendered view. `make lint-vocab` check V11 regenerates Tables A-D from this file
+# and fails on any byte difference.
+#
+# SAME-COMMIT RULE (section 57.1 rule 5). Any commit that introduces a new concept — a new declared
+# type, a new SQL domain, a new certificate field, a new enum variant of a closed set — MUST add its
+# row here in that same commit. Check V8 enforces it. There is no follow-up-PR exception.
+#
+# COMPLETENESS. This file currently carries the four fields of Table A: name, id_type, owner and
+# definition. Section 57.10 check V2 additionally requires, per concept, the fields `py`, `rs`,
+# `go`, `ts`, `sql`, and either a non-empty `forbidden` list or `forbidden_none = true` with a
+# written reason; section 57.9 also shows `prefix`, `width`, `certifiable` and `payload`.
+# THOSE FIELDS ARE ABSENT. `make lint-vocab` will fail check V2 against this file, and that is the
+# correct behaviour: the language bindings do not exist yet, so declaring them would be a claim that
+# five source trees define symbols that no source tree defines.
+# TODO(M3, decision: populate the remaining V2 fields): the data is fully specified — Table B gives
+# every language binding and Table D gives every forbidden list. Transcribe both into this file in
+# the commit that creates the first `vocab` module, so that check V4 ("the declared symbol is
+# DEFINED exactly once") can pass rather than fail on an empty tree.
+#
+# NAMES. Concept names are snake_case, following the examples in section 57.9 (`record`,
+# `threshold_literal`). Table A renders `GHOST` in capitals because that is its rendering in the UI
+# and in prose; its vocabulary name is `ghost`.
+#
+# OWNERS. An owner is either a Part I section number written as a bare string, or a symbolic
+# `PART-II/<slug>` token resolved through docs/section-index.toml. Check V3 fails on an unresolved
+# owner. docs/section-index.toml does not exist yet, so check V3 will also fail.
+# TODO(M0, blocking): write docs/section-index.toml mapping every PART-II slug used below to its
+# section number. The slugs used here are: ingest, liveness, certificate, verdict-algebra,
+# degradation, determinism.
+
+schema_version = 1
+
+# ---------------------------------------------------------------------------
+# Table A, row 1
+# ---------------------------------------------------------------------------
+[[concept]]
+name       = "event"
+id_type    = "EventId"
+owner      = "62"
+definition = "An occurrence in the modeled system as the generator emitted it; ground-truth identity, never visible to the kernel."
+
+[[concept]]
+name       = "record"
+id_type    = "RecordId"
+owner      = "PART-II/ingest"
+definition = "One serialized telemetry line as ingested, digested over its exact pre-parse bytes."
+
+[[concept]]
+name       = "bundle"
+id_type    = "BundleId"
+owner      = "PART-II/ingest"
+definition = "The immutable, ordered, content-addressed set of records constituting one run's input."
+
+[[concept]]
+name       = "source"
+id_type    = "SourceId"
+owner      = "PART-II/ingest"
+definition = "A declared telemetry origin with a class, a format and a liveness contract."
+
+[[concept]]
+name       = "collector"
+id_type    = "CollectorId"
+owner      = "PART-II/ingest"
+definition = "The code that reads one source's native format and emits canonical records."
+
+[[concept]]
+name       = "tick"
+id_type    = "Tick"
+owner      = "17"
+definition = "Integer nanoseconds since the scenario epoch; the only time quantity in the system."
+
+[[concept]]
+name       = "entity"
+id_type    = "EntityId"
+owner      = "9"
+definition = "A resolved actor or object of a closed kind, produced by entity resolution."
+
+[[concept]]
+name       = "dimension"
+id_type    = "DimensionId"
+owner      = "13"
+definition = "One of the ten security dimensions, each owning one finite-state machine."
+
+[[concept]]
+name       = "state"
+id_type    = "StateId"
+owner      = "13"
+definition = "A declared value of one dimension's FSM."
+
+[[concept]]
+name       = "transition"
+id_type    = "TransitionId"
+owner      = "13"
+definition = "An evidence-bound change of one entity's state within one dimension at one tick."
+
+[[concept]]
+name       = "state_graph"
+id_type    = "-"
+owner      = "20"
+definition = "The materialized view over transitions; a derived view, never a separate store of truth."
+
+[[concept]]
+name       = "fact"
+id_type    = "FactHash"
+owner      = "17"
+definition = "A ground, time-indexed predicate instance; the OR-nodes of the hypergraph."
+
+[[concept]]
+name       = "goal_fact"
+id_type    = "FactHash"
+owner      = "5"
+definition = "A fact declared in the goal library as an attacker objective; goals are a set, verdicts are per-goal."
+
+[[concept]]
+name       = "threshold_literal"
+id_type    = "LiteralId"
+owner      = "22"
+definition = "The proposition `control k is set to at least level l`; the unit of every cut and every blocker mask."
+
+[[concept]]
+name       = "control"
+id_type    = "ControlId"
+owner      = "22"
+definition = "A declared, levelled security control in the catalog."
+
+[[concept]]
+name       = "level"
+id_type    = "Level"
+owner      = "22"
+definition = "An ordered strictness setting of one control; higher is never weaker."
+
+[[concept]]
+name       = "control_assignment"
+id_type    = "AssignmentId"
+owner      = "22"
+definition = "A total map from every `ControlId` to one `Level`; what the range is re-executed under."
+
+[[concept]]
+name       = "cut"
+id_type    = "CutId"
+owner      = "25"
+definition = "A set of threshold literals asserted true; the object a certificate is about."
+
+[[concept]]
+name       = "corridor"
+id_type    = "CorridorId"
+owner      = "25"
+definition = "An irreducible clause over threshold literals that every sufficient cut must satisfy."
+
+[[concept]]
+name       = "rule"
+id_type    = "RuleId"
+owner      = "22"
+definition = "One authored implication in `rules.toml`, with head, body, guard, producing sources and provenance note."
+
+[[concept]]
+name       = "rule_instance"
+id_type    = "InstanceId"
+owner      = "25"
+definition = "One grounding of one rule to specific facts; the AND-nodes of the hypergraph."
+
+[[concept]]
+name       = "silent_instance"
+id_type    = "InstanceId"
+owner      = "25"
+definition = "A rule instance carrying a `LicenseId` and citing no record; admitted only inside a blind window."
+
+[[concept]]
+name       = "ghost"
+id_type    = "-"
+owner      = "39"
+definition = "The rendering predicate `every derivation of this node passes through a silent instance`."
+
+[[concept]]
+name       = "license"
+id_type    = "LicenseId"
+owner      = "25"
+definition = "The permission to instantiate silent instances of a rule over an interval, justified by a blind window."
+
+[[concept]]
+name       = "blind_window"
+id_type    = "WindowId"
+owner      = "PART-II/liveness"
+definition = "A maximal half-open interval over which a source's liveness verdict is BLIND or SUPPRESSED."
+
+[[concept]]
+name       = "liveness"
+id_type    = "LivenessVerdict"
+owner      = "PART-II/liveness"
+definition = "The per-(source, interval) verdict `LIVE / BLIND / SUPPRESSED`; the fail-closed value is `BLIND`."
+
+[[concept]]
+name       = "hypergraph"
+id_type    = "HypergraphId"
+owner      = "20"
+definition = "The provenance structure of one grounding: OR-nodes are facts, AND-nodes are rule instances."
+
+[[concept]]
+name       = "hypothesis"
+id_type    = "HypothesisId"
+owner      = "25"
+definition = "One derivation of one goal fact: its instance set, its license set, and its realizability status."
+
+[[concept]]
+name       = "certificate"
+id_type    = "CertId"
+owner      = "PART-II/certificate"
+definition = "The content-addressed proof artifact the kernel emits and `spectra verify` checks."
+
+[[concept]]
+name       = "verdict"
+id_type    = "-"
+owner      = "PART-II/verdict-algebra"
+definition = "The pair `safety` x `minimality` plus its mandatory scope binding; never a single word."
+
+[[concept]]
+name       = "flag"
+id_type    = "FlagId"
+owner      = "PART-II/verdict-algebra"
+definition = "A named boolean recording a degraded condition of a run; a closed set."
+
+[[concept]]
+name       = "scenario"
+id_type    = "ScenarioId"
+owner      = "5"
+definition = "A named, seeded, versioned attack narrative the generator realizes deterministically."
+
+[[concept]]
+name       = "degradation_operator"
+id_type    = "OperatorId"
+owner      = "PART-II/degradation"
+definition = "One of the six pure, seeded transforms on a bundle: delete, delay, duplicate, reorder, corrupt, suppress."
+
+[[concept]]
+name       = "degradation_spec"
+id_type    = "DegradationId"
+owner      = "PART-II/degradation"
+definition = "An ordered list of (operator, parameters, seed) defining one matrix cell."
+
+[[concept]]
+name       = "run_manifest"
+id_type    = "RunId"
+owner      = "PART-II/determinism"
+definition = "The hashed core of one execution: all input digests, git SHA, toolchain versions, seeds."
+
+[[concept]]
+name       = "oracle"
+id_type    = "OracleId"
+owner      = "62"
+definition = "An independently implemented judge of a property; a closed set of five."
+
+# ---------------------------------------------------------------------------
+# Retired terms. Section 57.9: a retired term cannot be justified, only replaced. No allowlist
+# applies. Check V6 rejects any occurrence as an identifier segment, a JSON key, a TOML key, a SQL
+# column or an OpenAPI field.
+#
+# Table A row 14 records `atom` as RETIRED with owner section 57; it is represented here as a
+# [[retired]] entry rather than a [[concept]] entry, following the example in section 57.9.
+# ---------------------------------------------------------------------------
+[[retired]]
+name   = "atom"
+reason = "Meant both 'fact' and 'threshold literal' in Part I; ambiguous across five languages."
+use    = ["fact", "threshold_literal"]
+
+# TODO(M7, conflict recorded, not resolved here): the definition of `degradation_operator` above is
+# transcribed verbatim from Table A and names six operators including "suppress". Part II section
+# 61.0 retires "suppress" as ambiguous and replaces it with DELETE, SOURCE-SILENCE and
+# STRIP-IDENTITY; section 61.4 catalogs nine operators in total. Section 57 claims normativity over
+# every section; section 61 claims sole ownership of perturbation operators. This file records
+# section 57's text unchanged so that check V11 (render-and-diff against section 57's markdown) has
+# something consistent to compare against. Resolve by editing section 57's Table A and Table C and
+# this row in one commit. Do not resolve it by accepting both sets in code.
