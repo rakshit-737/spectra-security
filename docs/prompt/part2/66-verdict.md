@@ -57,7 +57,7 @@ axis implies any value on another.
                               every API response, every UI node.
 ```
 
-OVERRIDES Part I sections 40.4, 40.6 and 42.4: the verdict vocabulary "ROBUST / OPTIMISTIC-ONLY /
+OVERRIDES Part I sections 40.4, 40.8 and 42.4: the verdict vocabulary "ROBUST / OPTIMISTIC-ONLY /
 UNSAFE / FLAGGED", the FLAGGED palette row with its cross-hatch overlay and flag icon, and the rule
 that any non-exact value renders with the FLAGGED treatment are replaced by the three independent
 axes above; the safety alphabet is exactly {ROBUST, OPTIMISTIC_ONLY, UNSAFE, INDETERMINATE} and
