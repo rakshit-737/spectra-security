@@ -133,6 +133,11 @@ scenario author who also picks the goal can tune the cut to a hand-picked target
 62.2.5 Multi-goal scenarios carry a goal set; verdicts are emitted per goal atom. Aggregating goals
 into a single verdict, a count, a ratio or a score is forbidden.
 
+OVERRIDES Part I section 23.2: the loader constraint of exactly one `goal: true` step per scenario is
+replaced by a loader that admits a goal set and a kernel that emits one verdict per goal atom. An
+implementer following Part I rejects every multi-goal scenario at load time, so the per-goal verdict
+path is never built and no test reaches it.
+
 ------------------------------------------------------------
 62.3 THE FOUR ORACLES
 ------------------------------------------------------------
@@ -224,6 +229,14 @@ probe   = "probes/iam_audit_emits.sh"
 kind    = "NONE_MODELED"
 reason  = "no range component implements attestation; excluded from Oracle R scope"
 ```
+
+OVERRIDES Part I section 22.6: the fifteen-control catalog, in which observability is the telemetry
+SourceId `iam_audit` emitted by identity-service (section 26.3) and not a control, is replaced by a
+catalog that also carries observability as a threshold atom of kind `OBSERVING`, which changes
+telemetry and never blocks a step; each such atom consumes the section 22.2 atom budget
+`Sigma_k m_k <= 64`. An implementer following Part I emits no `iam_audit>=1` atom from the control
+compiler, so the OBSERVING entries required here have no atom to bind and `gate:enforcement-total`
+cannot be satisfied.
 
 62.4.3 `gate:enforcement-total` fails if any atom lacks an entry. `gate:enforcement-effective` runs
 every `probe` twice, once with the atom off and once on, and fails if the probe output is identical —
@@ -367,6 +380,14 @@ real fixpoints for all cuts of cardinality < |S|. Printing `no smaller cut exist
 `PSI_RELATIVE` certificate is forbidden in every surface; the permitted string there is
 `no smaller cut satisfies the enumerated corridor set`.
 
+OVERRIDES Part I section 25.9: the rule that a run carrying `subset_minimal_only` MUST NOT be
+presented as ROBUST — restated as a build assertion in section 44.9 and as a forbidden claim in
+section 25.13 — is replaced by reporting minimality in this separate `minimality` field, which does
+not bear on safety; a subset-minimal run is ROBUST with `minimality: PSI_RELATIVE`. An implementer
+following Part I downgrades every such run to OPTIMISTIC_ONLY with a grey badge, which suppresses the
+robust yield measured by `gate:nonvacuity-yield` (62.9.2) and inflates `flagged_share` against the
+ceiling in 62.9.4.
+
 ------------------------------------------------------------
 62.6 ORACLE S -- SMT DIFFERENTIAL (TEST ONLY)
 ------------------------------------------------------------
@@ -389,6 +410,13 @@ absent from the image.
 minimality claim. Divergence fails `gate:smt-differential`. Bounds are declared, small, and enforced
 by a harness assertion, not by hope. Illustrative bounds: instances <= 400, |A| <= 12, cuts enumerated
 exhaustively (illustrative, not a target).
+
+OVERRIDES Part I section 44.10: the requirement that the Z3 minimality test cross-check the
+branch-and-bound result on every fixture with `|A| <= 64` is replaced by a declared small-instance
+bound enforced by a harness assertion. An implementer following Part I attempts exhaustive cut
+enumeration over 2^64 masks and claims SMT corroboration of minimality across the whole fixture set,
+which Oracle S does not supply; `minimality: EXHAUSTIVE` (62.5.5) therefore cannot rest on Oracle S
+at production size.
 
 62.6.4 Oracle S certifies only that the Rust solver's answer on small instances matches an
 encoding-independent solver. It certifies nothing about the rule semantics, nothing at production
@@ -459,6 +487,13 @@ false-ROBUST figure is forbidden.
 62.8.5 A run whose certificate carries any soundness-affecting flag (`grounding_capped`,
 `er_ambiguous`, `subset_minimal_only` is NOT soundness-affecting, see 62.5.5) cannot be ROBUST and is
 therefore outside this predicate. That escape route is closed by 62.9.4, not here.
+
+OVERRIDES Part I section 25.9: the three-flag rule that `grounding_capped`, `subset_minimal_only` or
+`greedy_cover` each bar a ROBUST verdict — asserted in the build by section 44.9 — is replaced by a
+soundness-affecting set that excludes `subset_minimal_only` and adds `er_ambiguous`, which is not one
+of the three flags in section 25.7's certificate schema. An implementer following Part I treats
+`subset_minimal_only` as a downgrade trigger and emits no `er_ambiguous` field, so this predicate's
+exclusion set and `flagged_share` (62.9.4) are both computed over the wrong flags.
 
 ------------------------------------------------------------
 62.9 THE MISSING COUNTERPART: FALSE UNSAFE AND NON-VACUITY
