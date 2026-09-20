@@ -356,3 +356,115 @@ INC-0005. All five share a shape: an action that appeared to do exactly what was
 nothing checking that it had.
 
 ---
+
+## INC-0007  the slice runs end to end, and the experiment fails
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### Goal
+
+Wire the eleven stages into a runnable pipeline and run the two-cell demonstration: the blindness
+premium at full telemetry, where it should be EMPTY, against the premium at a degraded cell, where
+it should name a control required only because a sensor could not see.
+
+### What was built
+
+`pipeline.py` threading S1 to S11, a CLI at `python -m spectra_vs`, `demo.py`, and a make-free
+entry point at `scripts/demo.py`. Two seams found by running the pipeline rather than by reading
+it, one in grounding and one in the checker.
+
+### Commands run
+
+```
+$ python scripts/demo.py
+[exited with code 0]
+
+$ for t in <17 suites>; do python "$t"; done
+17 suites passing, 0 failing        (860 tests)
+```
+
+The pipeline executes end to end. The checker returns ACCEPT on both certificates, with every
+obligation O0 to O15 satisfied.
+
+### THE RESULT: the experiment does not demonstrate what it was designed to demonstrate
+
+```
+full telemetry   |Psi_min|=0 |Psi_max|=1  licences=5   premium=ctl:priv_approval
+degraded cell    |Psi_min|=0 |Psi_max|=0  licences=94  premium=EMPTY
+```
+
+The control arm is not clean. The premium at FULL telemetry is already non-empty, so it is not
+evidence about degradation, and the degraded cell has nothing to be contrasted against. Worse, the
+premium LOST its member under degradation, which is the opposite of the predicted direction.
+
+Nothing was adjusted afterwards. The scenario, the seeds, the thresholds and the two completeness
+levels are as they were when the run was launched.
+
+### Why, read off the artifacts
+
+1. **No source is LIVE in either cell, so blindness is total at every completeness level.** With
+   `m_min = 3` and a breakpoint at every record instant, an elementary interval brackets exactly
+   two records, so the rule `n_records_in_span < m_min -> BLIND` fires on every interval and the
+   only construction site of LIVE is unreachable. `config/vs/liveness.toml` states this
+   contradiction in its own comment and ships the value anyway. A full-telemetry cell in which
+   every source is blind cannot be a control arm for blindness.
+
+2. **Psi_min is empty in both cells**, so the premium degenerates to the whole of NEC(Psi_max) and
+   cannot distinguish a control needed because of blindness from a control needed at all. The
+   observed route never fires: rule r0003 requires three distinct resources read inside ten
+   minutes and the scenario emits exactly one `res_read`.
+
+3. **At the degraded cell the goal library is empty.** The delete-only degrader removes whole
+   twenty-minute outage blocks, and the block holding the escalation route's observed leaf went
+   with it. Degradation removed the route rather than licensing it, so the empty premium there has
+   nothing to do with what a sensor could see.
+
+4. **The one premium member rests 7198/7199 on calibration-deficiency licences.** The sentence the
+   artifact supports is "needed because this run was not calibrated for this source", not "needed
+   because a sensor could not see".
+
+### What this is worth
+
+The instrument is broken, not the idea. Three of the four causes are configuration contradictions
+in files authored against each other in parallel - a threshold whose own comment says it is wrong,
+a rule needing three events from a scenario that emits one, a degrader whose block size is larger
+than the route it is meant to perforate.
+
+The part that worked is the part that matters: the system reported its own failure precisely,
+attributed the premium to calibration deficiency rather than to blindness, and refused to describe
+a bundle whose sources were all undersampled as anything other than blind. The fail-closed
+direction held under a case where failing open would have produced a much prettier result.
+
+A premium that appeared only after tuning the scenario would have been worthless. This one did not
+appear, and that is a more useful thing to have in the log.
+
+### Follow-up
+
+Repair the instrument, then re-run ONCE and report whatever it says. The repairs are to the
+experimental setup and not to the engine: `m_min` against its own documented contradiction, the
+scenario's resource count so the observed route can fire at all, and the degradation block
+granularity. Fixing a broken instrument is legitimate; iterating on it until the answer is pretty
+is not, and the difference is that the repairs are justified by the artifacts above rather than by
+the result they produce.
+
+### ERROR MADE IN THIS INCREMENT, recorded because the history is wrong again
+
+Commit f20746c is titled `fix: normalise the runner modules to LF`. It also contains the two
+substantive seam fixes - nine changed lines in `ground.py` and twenty-nine in `checker.py`.
+
+Cause: the commit staged with `git add -- $(git diff --name-only)`. That is a glob over every
+modified file, which is `git add -A` wearing a different shape, one commit after INC-0006 adopted
+the rule against it.
+
+`git log --diff-filter=M` on `ground.py` now attributes its only post-creation change to a
+line-endings fix. It is pushed and will not be rewritten.
+
+Rule restated, since the first statement of it was too narrow to bind: **stage only paths written
+out literally in the command.** Not `-A`, not `.`, not a glob, not a command substitution, not a
+variable. If the path is not visible in the commit invocation, it is not staged.
+
+This is the sixth verification-shaped failure in this log, and the second of exactly this kind.
+
+---
