@@ -296,3 +296,63 @@ test. The skeleton gate must assert a clean working tree and verify by `git cat-
 rather than by filesystem existence.
 
 ---
+
+## INC-0006  the reference slice: foundation layer
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### Goal
+
+Build the layer every pipeline stage imports: identifiers, canonical byte encoding, the record
+types the stages exchange, the error taxonomy, and the workspace path bootstrap.
+
+### Context that changed the plan
+
+This machine has Python 3.14, Node 24 and Java 25, and no Rust, Go, Docker, make or WSL
+distribution. ADR-0013 records the consequence: the slice is a Python reference implementation and
+nothing may claim the Rust kernel or Go checker exists.
+
+### Commands run
+
+```
+$ python python/spectra_core/tests/test_core.py
+Ran 113 tests in 0.840s
+OK
+```
+
+### Measured
+
+113 tests pass. No other number is measured; nothing has been benchmarked.
+
+### The hash substitution
+
+The specification names BLAKE3. The standard library does not provide it and there is no pip here.
+The implementation computes blake2b-256 and labels it `b2b256:` rather than `blake3:`, carries the
+algorithm into every certificate, and rejects any other algorithm label when parsing. A digest that
+claimed to be BLAKE3 and was not would verify against nothing while appearing to verify.
+
+### ERROR MADE IN THIS INCREMENT, recorded because the history is now wrong
+
+Commit b14d36f is titled `fix: normalise CLAIMS.md to LF`. It also added
+`python/spectra_core/src/spectra_core/canon.py`, `ids.py` and `errors.py` - roughly 58 KB of
+foundation code that a subagent had just written to disk.
+
+Cause: that commit staged with `git add -A` while a subagent was mid-write in another directory.
+The message describes one concern; the commit contains two, and the second is not mentioned.
+
+It cannot be repaired. Both that commit and the one after it are pushed, and rewriting published
+history to fix a commit message is a worse trade than carrying the error. The three files show
+`git log --diff-filter=A` attribution to a line-endings fix, and anyone bisecting for the origin of
+the canonical encoder will land on the wrong commit.
+
+Rule adopted: **never `git add -A` or `git add .` in this repository.** Stage explicit paths. The
+one-concern-per-commit rule in section 0 of the specification is not enforceable by intention while
+background agents are writing files; it is only enforceable by naming the paths.
+
+This is the fifth verification-shaped failure recorded in this log. The others are in INC-0003 and
+INC-0005. All five share a shape: an action that appeared to do exactly what was intended, with
+nothing checking that it had.
+
+---
