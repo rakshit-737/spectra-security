@@ -54,12 +54,10 @@ committed, per section 73.11.
 If this directory is deleted, the committed scenario that includes the admin host loses that source.
 What breaks:
 
-1. The scenario's bundle no longer contains the admin host's records, so the bundle manifest hash
-   gate for that scenario fails against its committed expectation.
-2. The privilege and local-account transitions that the rule table grounds over lose their observed
+1. The privilege and local-account transitions that the rule table grounds over lose their observed
    anchor in that scenario. Steps that were derived from observed records become candidates for
    licensed unobserved steps, which changes the reconstructed state and changes the cut.
-3. The estate loses its only subject whose record shape is event-identifier-keyed rather than
+2. The estate loses its only subject whose record shape is event-identifier-keyed rather than
    message-text-keyed, which is the case that makes format-keyed adaptation testable against a shape
    unlike the others.
 
