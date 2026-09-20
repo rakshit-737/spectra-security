@@ -47,6 +47,14 @@ Crossing from the right column to the left mid-build is a build failure, not a f
 Build exactly four images. Do not build one image per language and do not build one image for
 everything.
 
+OVERRIDES Part I sections 32.2 and 33.7: `docker/builder.Dockerfile`, the one image containing
+every toolchain, is replaced by the four tier images below, and §33.7's "publish nothing" plus its
+completeness definition (`make doctor` and `make polyglot` printing zero mismatches and zero
+SKIPPED inside that one image) no longer hold — completeness is per tier and the images are
+published (rule 4). An implementer following Part I builds a single image that no `images.lock`
+entry, tier assignment or section 74 gate can bind to, and waits on a `make polyglot` run that can
+never report zero SKIPPED in an image which by design carries only its own tier's languages.
+
 | Image | Contents (derived from `languages.toml`) | Consumed by | Size ceiling |
 |---|---|---|---|
 | `spectra/toolchain-a` | Rust, Go, Python, Node/TypeScript, SQL client, Bash, make, git, jq, blake3 | T1 per-PR, every Tier A gate, devcontainer | 2.5 GB (illustrative, not a target) |
@@ -64,10 +72,25 @@ Rules:
    or a user-level cache in `$HOME`.
 3. Images are built for `linux/amd64` only. `linux/arm64` is explicitly unsupported and README
    must say so; do not emit a multi-arch manifest that implies otherwise.
+
+   OVERRIDES Part I sections 44.1 and 46.1: the arm64-container arm of the §44.1 trace-hash
+   determinism suite and `release.yml`'s multi-arch image build are removed. An implementer
+   following Part I writes a required test that cannot pass, because no arm64 toolchain image
+   exists to run it in, and publishes a manifest asserting a platform this section forbids.
+
 4. Images are published to a registry AND exported as OCI tarballs into `cas/oci/<digest>.tar`
    with a `.blake3` sidecar, so a reviewer with no registry access can `docker load` and reproduce.
 5. `make toolchain-refresh` is the ONLY target permitted to touch the network. It regenerates
    `toolchains.lock` and `images.lock`, and its diff is reviewed as a change like any other.
+
+   OVERRIDES Part I sections 33.5 and 46.2: the three network-permitted targets `setup`, `builder`
+   and `dev` are replaced by exactly one, `toolchain-refresh`; every other target, `setup`
+   included, runs under `--network=none`, and no CI step may install anything from the network
+   (74.11.1). An implementer following Part I copies the §46.2 `ci.yml` skeleton, whose
+   `setup-python`, `rust-toolchain`, `setup-go`, `pip install` and `make contract-deps` steps are
+   network installs that the egress sentinel fails; under this section every job instead declares
+   a `container:` field resolving to an `images.lock` digest, and all resolution happens at image
+   build time rather than in `make setup`.
 
 `images.lock` (canonical, sorted by key, no floats, LF endings):
 
@@ -116,6 +139,14 @@ integrity mechanism. An ecosystem with no row here may not be introduced.
 | Conda/mamba | **forbidden** unless a `conda-lock` file with explicit URLs and sha256 exists, and then Tier D only | `--offline` | `conda-lock.yml` |
 | System packages | apt with a pinned snapshot suite and `Packages` index sha256 | image build only | recorded in `toolchains.lock` |
 
+OVERRIDES Part I section 32.9: "do not vendor third-party source; pin versions in lockfiles
+instead" is replaced by mandatory per-ecosystem vendoring as tabulated above, and the §32.2 tree
+gains the top-level paths this section requires — `vendor/`, `ci/`, `cas/`, `languages.toml`,
+`images.lock` and `toolchains.lock` — notwithstanding §32.2's instruction to produce that tree
+exactly and invent no extra top-level directories. An implementer following §32.9 refuses to
+create `vendor/`, leaving `G-VEND-001`, `G-VEND-002` and `make build-offline` with no vendor path
+to verify.
+
 Rules:
 
 1. **Nothing over ~50 MB (illustrative, not a target) is vendored into git.** Large vendor trees
@@ -127,6 +158,15 @@ Rules:
 3. `toolchains.lock` records, per ecosystem: the resolver version, the lockfile path, the lockfile
    blake3, the vendor bundle blake3, and the in-image path. Gate `G-VEND-001` (T1): recompute all
    lockfile hashes and fail on mismatch.
+
+   OVERRIDES Part I sections 32.2 and 33.6: `.tool-versions` is no longer the source of truth for
+   pinned toolchain versions, and §33.6's requirement to mirror those pins into
+   `docker/builder.Dockerfile` and `.devcontainer/devcontainer.json` is dropped. The authoritative
+   registries are `languages.toml` (which languages exist), `toolchains.lock` (resolver versions
+   and lockfile hashes) and `images.lock` (image digests), all regenerated only by
+   `make toolchain-refresh`. An implementer editing `.tool-versions` per §33.6 changes nothing any
+   gate reads, and has no place to mirror a pin into a devcontainer that is a digest reference.
+
 4. Gate `G-VEND-002` (T2): for each ecosystem, delete the vendor path inside a `--network=none`
    container and assert the corresponding build FAILS. A vendoring claim nobody can break is a
    vendoring claim nobody has tested.
@@ -232,6 +272,12 @@ Tier assignment, normative:
 | `make reproduce` (every docs number regenerated) | T3 | full pipeline |
 | Range egress-isolation probe | T2 | requires the compose set up |
 
+OVERRIDES Part I section 44.1: the §44.1 determinism protocol — in-process repeats plus fresh
+containers per fixture, run once on x86-64 and once on an arm64 container — is replaced by the two
+determinism rows above: same-runner byte-identical replay at T1, byte-identity across two distinct
+runners at T2, on `linux/amd64` only. An implementer following §44.1 runs a repeat protocol this
+tier table does not declare and an arm64 arm that 74.1.3 forbids building an image for.
+
 Gate `G-REG-001` (T1): every `make` target referenced by a gate exists; every gate has exactly one
 tier; the sum of `budget_s` per tier is ≤ that tier's declared ceiling; any requirement sentence in
 `docs/prompt/` containing "build fails" without a resolvable gate id fails the lint.
@@ -309,6 +355,12 @@ seed(c) = blake3("spectra/sample/v1" || gate_id || c.key || epoch)[0..8]
 | docker layer cache | none (images are prebuilt and digest-pinned) | — | — |
 | fixture/bundle CAS | `cas-${blake3(generator_inputs)}` | exact only | main only, read-only from PRs |
 
+OVERRIDES Part I section 46.8: "do NOT cache the fixture bundles; they are generated from seeds
+in-job so the generator stays exercised" is replaced by the fixture/bundle CAS row above, keyed on
+`blake3(generator_inputs)`, written on `main` only and read-only from PRs. On a cache hit the
+seeded generator does not run, so the property §46.8 protected no longer holds; an implementer
+following §46.8 omits a row this cache table declares normative.
+
 4. PRs may read `main`'s caches and may not write them. This prevents a PR from poisoning the
    cache that a release build reads.
 5. Total cache footprint ceiling: 8 GB (illustrative, not a target), enforced by an eviction job;
@@ -327,6 +379,14 @@ concurrency:
   cancel-in-progress: false      # never cancel a run whose artifacts back a published number
 ```
 
+OVERRIDES Part I section 46.4: "every workflow declares `concurrency: { group: <name>-${{
+github.ref }}, cancel-in-progress: true }` except `release.yml` and `benchmark.yml`" is replaced
+by these two groups — per-ref cancellation for the T1 per-PR group only, and a single shared,
+non-cancelling `t2-main` group for every T2/T3 workflow and anything that publishes an artifact or
+mutates `ci/epoch.txt`. An implementer following §46.4 leaves the nightly `e2e.yml`,
+`security.yml`, `docs.yml` and `polyglot.yml` runs cancellable, and cancelling an epoch-advancing
+run corrupts the 74.5 stride rotation and the `coverage_debt` accounting.
+
 | Artifact class | Example | Retention | Survives expiry as |
 |---|---|---|---|
 | Certificates from gate runs | `cert-*.json` | 14 days (illustrative, not a target) | blake3 + verdict row appended to `ci/ledger/certs.tsv`, committed |
@@ -336,6 +396,14 @@ concurrency:
 | Quarantine evidence | failing logs of a quarantined test | until quarantine expiry + 30 days | referenced by ledger row |
 | Toolchain OCI tarballs | `cas/oci/*.tar` | not a CI artifact | committed by hash reference; blobs mirrored out-of-band |
 | Raw CI logs | — | platform default | not citable; never a source for a number |
+
+OVERRIDES Part I sections 32.2 and 32.9: "do not commit anything under `data/generated/`,
+`data/runs/`, `bench/results/`" and the git-ignored status of `bench/results/` and `data/runs/`
+are replaced by the "survives expiry as" column above — degradation matrix results that back a
+docs claim are committed under `docs/research/results/`, T3 benchmark results are committed, and
+certificate verdicts are appended to the committed `ci/ledger/certs.tsv`. An implementer following
+§32.9 keeps a `.gitignore` and linter that reject exactly the files `G-CLAIM-001` requires, so
+every docs number loses its backing file the moment the CI artifact expires.
 
 Rule: **an artifact that has expired can never be cited.** The committed ledger, not the CI
 artifact store, is the durable record. Free-tier artifact storage is finite and will silently
@@ -366,6 +434,13 @@ evidence       = "ci/ledger/flake/G-UI-TREE-RENDER-2026-09-18.log"
 hypothesis     = "animation frame race in the expand handler; not a kernel defect"
 owner          = "rakshit"
 ```
+
+OVERRIDES Part I section 43.7: quarantining a flaky test by moving it into `tests/quarantine/`
+with an issue link is replaced by a row in `ci/quarantine.toml` carrying an enforced `expires`, a
+measured `observed_rate`, an evidence path, a hypothesis and an owner, under the `max_open` cap,
+with the test still executing in T2/T3. An implementer following §43.7 removes the test from
+execution entirely and creates a quarantine that `G-FLAKE-003` cannot see or expire — the
+indefinite quarantine this subsection exists to prevent.
 
 4. Expiry is enforced, not advisory. Gate `G-FLAKE-003` (T0 + T1): if `today > expires` for any
    open entry, **the build fails on every tier** until the entry is fixed and removed or the test
@@ -438,6 +513,16 @@ endif
 guard-sandbox: ; @true
 ```
 
+   OVERRIDES Part I sections 33.1 and 33.2: targets no longer transparently re-execute themselves
+   inside the builder image, and the `SPECTRA_IN_CONTAINER` / `SPECTRA_NATIVE` protocol is
+   replaced by this guard's `IS_WSL` / `SPECTRA_DEVCONTAINER` / `CI` check, which errors out
+   instead of re-invoking Docker on the contributor's behalf. The persistent `$HOME` toolchain
+   cache volumes in the §33.2 `RUN :=` skeleton (`spectra-cargo`, `spectra-gomod`, `spectra-uv`,
+   `spectra-pnpm`) are forbidden: 74.1.2 and 74.3.3 make `$HOME` a tmpfs precisely so a user-level
+   cache cannot mask a missing vendored dependency. An implementer keeping the §33.2 skeleton gets
+   a green `build-offline` over broken vendoring, and two incompatible re-entrancy protocols in
+   one root Makefile.
+
 4. **Docker Desktop resource minimums**, declared in `docs/dev/windows.md` and asserted by
    `make doctor`. All figures illustrative, not targets:
 
@@ -466,6 +551,14 @@ sparseVhd=true
 silently proceeds on an under-provisioned host, because a starved run produces timeouts that look
 like defects.
 
+OVERRIDES Part I sections 33.3 and 33.7: `make doctor` is no longer "probes every toolchain,
+prints found vs pinned, exits 1 on mismatch" against the `.tool-versions` line, and §33.7's "zero
+mismatches from `make doctor` inside the builder image" is no longer the definition of image
+completeness. Toolchain drift is detected by `G-IMG-002` against `images.lock` and `G-VEND-001`
+against `toolchains.lock`; `doctor` asserts the host against the `PROFILE` row above. An
+implementer building the §33.3 target ships no host-resource check, so an under-provisioned run
+produces the timeouts that read as defects.
+
 5. **Line endings.** Committed `.gitattributes` (Gate `G-WIN-002`, T1: this file must exist and
    match the committed golden copy byte for byte):
 
@@ -493,6 +586,15 @@ vendor/**              linguist-vendored
 **/generated/**        linguist-generated
 ```
 
+   OVERRIDES Part I section 32.2: the `.gitattributes` described there as "text=auto eol=lf;
+   binary fixtures marked -diff" is replaced by this golden file, which `G-WIN-002` compares byte
+   for byte, so no path may be added to it locally. Its protective patterns are `tests/golden/**`,
+   `**/*.cert.json`, `**/*.expected` and `cas/**`; `data/fixtures/` and `data/golden/` are not
+   among them, so under `* text=auto eol=lf` a committed bundle at a §32.2 path is EOL-normalized
+   on the declared Windows/WSL2 host. An implementer following §32.2 either adds a rule for those
+   paths and fails `G-WIN-002`, or leaves byte-stable committed artifacts exposed to the single
+   CRLF that changes every downstream hash and silently invalidates certificates.
+
    Additional rules: `core.autocrlf` must be `false` (or `input`) in the WSL2 clone — Gate
    `G-WIN-003` (T0) reads `git config core.autocrlf` and refuses to build otherwise. Gate
    `G-WIN-004` (T1): `git ls-files --eol` reports `w/lf` for every text-classified file; a single
@@ -515,6 +617,15 @@ vendor/**              linguist-vendored
   "customizations": { "vscode": { "extensions": [] } }   // no marketplace fetch at create time
 }
 ```
+
+   OVERRIDES Part I section 33.8: the devcontainer's `"build": {"dockerfile":
+   "../docker/builder.Dockerfile"}` stanza, the repo mount at `/work`, the forwarded ports 8000,
+   5173, 5432 and 6379, and `postCreate.sh` running `make setup doctor` are all replaced by this
+   file: a digest reference to `spectra/toolchain-a` from `images.lock`, the workspace at `/w`,
+   `--network=none`, and `make doctor PROFILE=core` as the only create-time command. An
+   implementer following §33.8 fails `G-IMG-001`, which requires the devcontainer reference to
+   resolve to a digest in `images.lock`, and wires forwarded ports and a network-resolving
+   `make setup` into a container that has no network.
 
    Note `--network=none` is the default posture even in the devcontainer; a developer who needs
    `make toolchain-refresh` runs it deliberately outside the container.
