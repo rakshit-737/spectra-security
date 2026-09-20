@@ -1,0 +1,2415 @@
+# ci/gates.toml - the SPECTRA gate registry.
+#
+# Section 74.4 (Part II): every gate is a row in this file and there is no other
+# place a gate may be declared. Section 74.0 is why this file exists at all:
+# "a requirement with no gate id is not a requirement". A workflow job, a
+# Makefile target or a sentence in docs/ that claims to gate something without a
+# row here is a defect, not a gate. The tier model is documented once, in
+# .github/workflows/README.md; it is not repeated here.
+#
+# STATUS: not started. Every gate below is DECLARED and none is IMPLEMENTED,
+# except G-SKELETON-001, which gates this skeleton and nothing else. Declaring a
+# gate does not make it run; the tier workflows carry the enablement state, and
+# every job except the skeleton job is explicitly skipped with its reason and its
+# enabling milestone stated there. No gate in this file has ever passed, because
+# no gate in this file has ever run.
+#
+# FIELDS (74.4)
+#   id             stable identifier, referenced by docs, workflows and the ledger
+#   title          what the gate proves, in the spec's words where it has them
+#   tier           exactly one of T0 | T1 | T2 | T3; G-REG-001 enforces exactly one
+#   owner_section  the spec section that owns the obligation
+#   make_target    the target the tier workflow invokes; it must exist (G-REG-001)
+#   sampled        true requires a [gate.sampling] block (74.5)
+#   soundness      true means non-quarantinable (74.8.6)
+#   artifact       the file the gate produces; retention governed by 74.7
+#   budget_s       a DECLARED CEILING enforced by a per-job timeout, never a measurement
+#
+# ON budget_s: every value is illustrative and not a target. Nothing here has
+#   been measured. A budget is raised only through a reviewed diff of this file,
+#   never silently, and never to make a slow gate fit (74.9: demote it instead).
+#
+# ON TIERS: 74.4's tier table is normative and OVERRIDES the "per-PR" wording of
+#   sections 43, 60, 64, 68 and 70. Where 74.4 lists a class in two tiers ("T1
+#   spine subset / T2 full corpus") that is two gates with two ids, because a
+#   gate has exactly one tier. Where a T2 row below carries no note, the reason
+#   it is not in T1 is that 74.4 does not place its class there.
+#
+# ON T0: 74.4 defines T0 as a local pre-commit tier that is never authoritative.
+#   Only checks makeable solely on a developer's own clone are registered at T0.
+#   The "T0 + T1" lint class is registered at T1, the authoritative tier, and
+#   mirrored without authority by .pre-commit-config.yaml.
+#
+# UNRECONCILED: THIS REGISTRY EXCEEDS ITS OWN TIER CEILINGS
+#   The budget summary at the foot of this file is arithmetic, not opinion: the
+#   sum of budget_s in T1, T2 and T3 exceeds the ceiling 74.4 declares for each.
+#   It is recorded rather than hidden because it is the finding this registry
+#   exists to produce - Part I and Part II between them name every gate below,
+#   and 74.4 declares a CI budget sized for a fraction of them. Both cannot hold.
+#
+#   TODO(budget): reconcile before G-BUDGET-001 is enabled, which is a
+#   precondition of closing M0. 74.9 permits three remedies and no others, and
+#   they are applied until each tier's sum fits:
+#     1. SAMPLE - set sampled = true and add a [gate.sampling] block so the tier
+#                 runs a declared deterministic subset (74.5). The artifact then
+#                 carries claim_scope = "SAMPLED" and may not back a docs
+#                 sentence (G-SAMP-001).
+#     2. DEMOTE - move the gate to a slower tier, in this file, in the diff.
+#     3. DELETE - delete the requirement the gate enforces, from the section that
+#                 states it, in the same commit (74.0).
+#   Raising a budget_s, widening a ceiling, or quietly dropping a row is none of
+#   the three and is a defect.
+#
+# TODO(ids): section 62 names its gates `gate:<name>` with no ids except
+#   G-KERNEL-FALSE-ROBUST; section 65 names its gates G65.1 to G65.9; sections
+#   63, 64, 68, 69, 70 and 76 name gates only by make target. Every id the spec
+#   states is preserved verbatim; the rest are derived as G-<AREA>-<NAME> from
+#   the target, following the one worked example in 74.4 (gate:false-robust ->
+#   make target gate-false-robust). To change the convention: rename here, then
+#   re-run the docs and ledger link check, because ids are referenced from
+#   docs/claims.md and ci/ledger/.
+
+schema_version = 1
+
+# Tier ceilings, restated from 74.4 so G-BUDGET-001 reads one source of truth.
+# All four are illustrative, not targets.
+[tier_ceiling]
+T0 = 60  # illustrative, not a target
+T1 = 1200  # illustrative, not a target
+T2 = 5400  # illustrative, not a target
+T3 = 21600  # illustrative, not a target
+
+
+# ---- TIER T0 - 3 gates declared, 0 implemented. --------------------------
+# Local pre-commit tier. Runs inside WSL2 or the devcontainer. Never
+# authoritative: a green T0 proves nothing to anyone but the author.
+
+[[gate]]
+id = "G-WIN-001"
+title = "the Makefile guard refuses to run from a Windows drive mount or outside WSL2, the devcontainer or CI"
+tier = "T0"
+owner_section = 74
+make_target = "guard-sandbox"
+sampled = false
+soundness = false
+artifact = "guard-sandbox.txt"
+budget_s = 2  # illustrative, not a target
+
+[[gate]]
+id = "G-WIN-003"
+title = "git config core.autocrlf is false or input in this clone"
+tier = "T0"
+owner_section = 74
+make_target = "check-autocrlf"
+sampled = false
+soundness = false
+artifact = "autocrlf.txt"
+budget_s = 2  # illustrative, not a target
+
+[[gate]]
+id = "G-SECRET-001"
+title = "no credential-shaped literal is committed, including synthetic ones outside the reserved prefix"
+tier = "T0"
+owner_section = 2
+make_target = "secret-scan"
+sampled = false
+soundness = true
+artifact = "secret-scan.json"
+budget_s = 14  # illustrative, not a target
+
+
+# ---- TIER T1 - 96 gates declared, 1 implemented. -------------------------
+# Per-push and per-pull-request tier. A failure here makes the pull
+# request red and blocks the merge.
+
+# NOTE: Section 57 binds lint-vocab as a required check with no waiver path;
+# waivers exist only as reviewed vocab-allow.toml entries.
+[[gate]]
+id = "G-VOCAB-001"
+title = "controlled vocabulary lint over prose, code and UI strings"
+tier = "T1"
+owner_section = 57
+make_target = "lint-vocab"
+sampled = false
+soundness = false
+artifact = "vocab-report.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-DET-REPLAY-T1"
+title = "byte-identical replay, same runner, two repeats"
+tier = "T1"
+owner_section = 58
+make_target = "repro-check"
+sampled = false
+soundness = true
+artifact = "repro-report.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-DET-LINT"
+title = "determinism lint: no clock, hostname, user, PRNG or env value reaches an artifact"
+tier = "T1"
+owner_section = 58
+make_target = "lint-determinism"
+sampled = false
+soundness = true
+artifact = "determinism-lint.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-DET-GOLDEN"
+title = "committed golden bytes reproduce exactly"
+tier = "T1"
+owner_section = 58
+make_target = "test-golden"
+sampled = false
+soundness = true
+artifact = "golden-diff.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-2"
+title = "purity: no clock, RNG, env, net or fs-order syscall in spectra-er"
+tier = "T1"
+owner_section = 60
+make_target = "er-purity"
+sampled = false
+soundness = true
+artifact = "er-purity.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-3"
+title = "no edit-distance, phonetic or ML symbol is reachable from ER"
+tier = "T1"
+owner_section = 60
+make_target = "er-no-fuzzy"
+sampled = false
+soundness = false
+artifact = "er-no-fuzzy.json"
+budget_s = 10  # illustrative, not a target
+
+# NOTE: 74.4: degradation-matrix spine cells run in T1 as a sampled gate.
+# The full matrix is G-KERNEL-FALSE-ROBUST-FULL and all seeds are
+# G-KERNEL-FALSE-ROBUST-SEEDS. 74.5: no artifact from this gate may describe
+# the whole space.
+[[gate]]
+id = "G-KERNEL-FALSE-ROBUST"
+title = "zero false ROBUST on declared suppression classes, spine cells plus a declared sample"
+tier = "T1"
+owner_section = 62
+make_target = "gate-false-robust"
+sampled = true
+soundness = true
+artifact = "false-robust-matrix.json"
+budget_s = 90  # illustrative, not a target
+
+  # 74.5 requires a sampling block on every sampled gate. The stride must
+  # be coprime with the cardinality of the cell space, and that cardinality
+  # is unknown until the space is enumerated.
+  # TODO(sampling): recompute stride from the measured cardinality when the
+  # space is enumerated, assert coprimality, and record both in sample-plan.json.
+  [gate.sampling]
+  algorithm   = "stride-rotation/v1"
+  epoch_file  = "ci/epoch.txt"
+  k           = 24     # illustrative, not a target
+  stride      = 271    # illustrative, not a target
+  spine       = "completeness 100 and 30 at both ends, each degradation operator at least once, each declared suppression class at least once"
+  claim_scope = "SAMPLED"
+
+[[gate]]
+id = "G-ORACLE-BANNED-PHRASES"
+title = "banned-phrase scan over rendered prose and emitted strings"
+tier = "T1"
+owner_section = 62
+make_target = "gate-banned-phrases"
+sampled = false
+soundness = true
+artifact = "banned-phrases.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-CHECKER-BUILDGRAPH"
+title = "the checker build graph shares no edge with the kernel workspace"
+tier = "T1"
+owner_section = 62
+make_target = "gate-checker-buildgraph"
+sampled = false
+soundness = false
+artifact = "checker-buildgraph.json"
+budget_s = 12  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-CODEGEN-REGRESSION"
+title = "generated backends are not stale against the rule table"
+tier = "T1"
+owner_section = 62
+make_target = "gate-codegen-regression"
+sampled = false
+soundness = false
+artifact = "codegen-regression.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-FLAG-RATCHET"
+title = "flagged_share may not increase between two commits without a ledger entry"
+tier = "T1"
+owner_section = 62
+make_target = "gate-flag-ratchet"
+sampled = false
+soundness = false
+artifact = "flag-ratchet.json"
+budget_s = 10  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-GOAL-DERIVED"
+title = "the goal predicate is derived, never hand-set per scenario"
+tier = "T1"
+owner_section = 62
+make_target = "gate-goal-derived"
+sampled = false
+soundness = false
+artifact = "goal-derived.json"
+budget_s = 10  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-GT-ISOLATION"
+title = "ground truth is unreachable from ingest, reconstruction and the kernel"
+tier = "T1"
+owner_section = 62
+make_target = "gate-gt-isolation"
+sampled = false
+soundness = true
+artifact = "gt-isolation.json"
+budget_s = 15  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-GT-NO-IMPORT"
+title = "no module outside the evaluation harness imports ground truth"
+tier = "T1"
+owner_section = 62
+make_target = "gate-gt-no-import"
+sampled = false
+soundness = true
+artifact = "gt-no-import.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-GT-SCHEMA"
+title = "ground-truth files validate against their committed schema"
+tier = "T1"
+owner_section = 62
+make_target = "gate-gt-schema"
+sampled = false
+soundness = false
+artifact = "gt-schema.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-LEAKAGE"
+title = "no rules-hash / fixture-commit inversion and no held-out leakage"
+tier = "T1"
+owner_section = 62
+make_target = "gate-leakage"
+sampled = false
+soundness = true
+artifact = "leakage.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-LEDGER-APPEND-ONLY"
+title = "the results ledger is append-only"
+tier = "T1"
+owner_section = 62
+make_target = "gate-ledger-append-only"
+sampled = false
+soundness = false
+artifact = "ledger-append-only.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-NO-SMT-RUNTIME"
+title = "no SMT solver is reachable from any runtime dependency"
+tier = "T1"
+owner_section = 62
+make_target = "gate-no-smt-runtime"
+sampled = false
+soundness = false
+artifact = "no-smt-runtime.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-PHI-INJECTIVE"
+title = "the scenario-to-fixture map is injective"
+tier = "T1"
+owner_section = 62
+make_target = "gate-phi-injective"
+sampled = false
+soundness = false
+artifact = "phi-injective.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-PHI-TOTAL"
+title = "the scenario-to-fixture map is total"
+tier = "T1"
+owner_section = 62
+make_target = "gate-phi-total"
+sampled = false
+soundness = false
+artifact = "phi-total.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-PREREG-IMMUTABLE"
+title = "the preregistration is an ancestor of the rule table and is unmodified"
+tier = "T1"
+owner_section = 62
+make_target = "gate-prereg-immutable"
+sampled = false
+soundness = true
+artifact = "prereg-immutable.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-SPLIT-INTEGRITY"
+title = "DEV and HELD-OUT split integrity: no scenario in two pools"
+tier = "T1"
+owner_section = 62
+make_target = "gate-split-integrity"
+sampled = false
+soundness = true
+artifact = "split-integrity.json"
+budget_s = 10  # illustrative, not a target
+
+# NOTE: 74.4 splits the must-reject corpus into a cheap T1 spine subset here
+# and the full corpus in G-CERT-CORPUS.
+[[gate]]
+id = "G-ORACLE-ADVERSARIAL-CERTS"
+title = "section 62 adversarial-certificate obligation, spine subset"
+tier = "T1"
+owner_section = 62
+make_target = "gate-adversarial-certs"
+sampled = true
+soundness = true
+artifact = "adversarial-certs.json"
+budget_s = 45  # illustrative, not a target
+
+  # 74.5 requires a sampling block on every sampled gate. The stride must
+  # be coprime with the cardinality of the cell space, and that cardinality
+  # is unknown until the space is enumerated.
+  # TODO(sampling): recompute stride from the measured cardinality when the
+  # space is enumerated, assert coprimality, and record both in sample-plan.json.
+  [gate.sampling]
+  algorithm   = "stride-rotation/v1"
+  epoch_file  = "ci/epoch.txt"
+  k           = 24     # illustrative, not a target
+  stride      = 271    # illustrative, not a target
+  spine       = "at least one must-reject file per rejection code"
+  claim_scope = "SAMPLED"
+
+[[gate]]
+id = "G-GUARD-LINT"
+title = "guard evaluator totality: no panic, no throw, no partial match"
+tier = "T1"
+owner_section = 63
+make_target = "guard-lint"
+sampled = false
+soundness = false
+artifact = "guard-lint.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-CHECK"
+title = "generated guard code is not stale"
+tier = "T1"
+owner_section = 63
+make_target = "guards-check"
+sampled = false
+soundness = false
+artifact = "guards-check.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-HASH"
+title = "guard-AST hash equality across every backend"
+tier = "T1"
+owner_section = 63
+make_target = "guard-hash-gate"
+sampled = false
+soundness = true
+artifact = "guard-hash.json"
+budget_s = 25  # illustrative, not a target
+
+[[gate]]
+id = "G-SIM-INDEP"
+title = "build-graph gate: the simulator shares no evaluation code with the kernel"
+tier = "T1"
+owner_section = 63
+make_target = "sim-independence"
+sampled = false
+soundness = false
+artifact = "sim-independence.json"
+budget_s = 10  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-TIEBREAK"
+title = "tie-break lint: no mask value is compared in an output-path comparator"
+tier = "T1"
+owner_section = 64
+make_target = "lint-tiebreak"
+sampled = false
+soundness = false
+artifact = "lint-tiebreak.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-BITSLOCK"
+title = "bit-lock integrity: no deletion, no renumber, no position at or past 64"
+tier = "T1"
+owner_section = 64
+make_target = "bits-lock-check"
+sampled = false
+soundness = false
+artifact = "bits-lock.json"
+budget_s = 5  # illustrative, not a target
+
+# NOTE: Sections 64, 71 and 76 all name this obligation; 71 spells the
+# target lint-schemas and 64 and 76 spell it lint-no-scores. TODO(target):
+# reconcile to one target name when the linter lands. Changing it means
+# editing this row and the three sections' prose together.
+[[gate]]
+id = "G-NO-SCORES"
+title = "no scalar score, confidence, severity or probability field in any schema, type, column or API property"
+tier = "T1"
+owner_section = 64
+make_target = "lint-no-scores"
+sampled = false
+soundness = true
+artifact = "no-scores.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-NO-COSTS"
+title = "no cost word appears while costs.toml is absent"
+tier = "T1"
+owner_section = 64
+make_target = "lint-no-costs"
+sampled = false
+soundness = false
+artifact = "no-costs.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G65.1"
+title = "no self-calibration, static: no run-derived threshold provenance variant exists"
+tier = "T1"
+owner_section = 65
+make_target = "lint-liveness-deps"
+sampled = false
+soundness = true
+artifact = "liveness-deps.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G65.5"
+title = "float ban in the liveness crate and the profile parser"
+tier = "T1"
+owner_section = 65
+make_target = "lint-float-ban"
+sampled = false
+soundness = true
+artifact = "float-ban.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-SCHEMA-SYNC"
+title = "generated Rust and Go field tables match cert-schema.toml"
+tier = "T1"
+owner_section = 68
+make_target = "cert-schema-sync"
+sampled = false
+soundness = false
+artifact = "cert-schema-sync.json"
+budget_s = 10  # illustrative, not a target
+
+[[gate]]
+id = "G-ABI-CONTRACT"
+title = "Rust structs, Go structs and the published ABI schemas agree field for field"
+tier = "T1"
+owner_section = 69
+make_target = "abi-contract"
+sampled = false
+soundness = true
+artifact = "abi-contract.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-NO-SERVICE-DEPS"
+title = "no database, HTTP, DNS, queue or telemetry client in the kernel or checker build graph"
+tier = "T1"
+owner_section = 69
+make_target = "no-service-deps"
+sampled = false
+soundness = true
+artifact = "no-service-deps.json"
+budget_s = 15  # illustrative, not a target
+
+[[gate]]
+id = "G-ONE-SPAWNER"
+title = "subprocess and exec appear in Python only inside the single declared spawner module"
+tier = "T1"
+owner_section = 69
+make_target = "one-spawner-lint"
+sampled = false
+soundness = false
+artifact = "one-spawner.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-SCHEMA-LINT"
+title = "banned table and column identifiers absent; projection read/write discipline holds"
+tier = "T1"
+owner_section = 69
+make_target = "schema-lint"
+sampled = false
+soundness = false
+artifact = "schema-lint.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-ROLES"
+title = "no commit spans two authoring roles"
+tier = "T1"
+owner_section = 70
+make_target = "check-roles"
+sampled = false
+soundness = false
+artifact = "check-roles.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-CHECK"
+title = "the preregistration is present, parseable and an ancestor of the rule table"
+tier = "T1"
+owner_section = 70
+make_target = "prereg-check"
+sampled = false
+soundness = true
+artifact = "prereg-check.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-LEDGER"
+title = "every frozen-artifact change has a matching, append-only ledger entry"
+tier = "T1"
+owner_section = 70
+make_target = "check-ledger"
+sampled = false
+soundness = true
+artifact = "check-ledger.json"
+budget_s = 15  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-METRICS"
+title = "no undeclared metric id, no banned scalar noun, no residual reachability collapsed to a number"
+tier = "T1"
+owner_section = 70
+make_target = "lint-metrics"
+sampled = false
+soundness = false
+artifact = "lint-metrics.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-ARMS"
+title = "no arm scored on a metric it cannot produce and none reading outside its fairness row"
+tier = "T1"
+owner_section = 70
+make_target = "lint-arms"
+sampled = false
+soundness = false
+artifact = "lint-arms.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-TABLES"
+title = "no mean without dispersion, no missing sample size, no undeclared single-pool table"
+tier = "T1"
+owner_section = 70
+make_target = "lint-tables"
+sampled = false
+soundness = false
+artifact = "lint-tables.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-README-POOL"
+title = "every README numeral resolves to a published, non-superseded pool"
+tier = "T1"
+owner_section = 70
+make_target = "check-readme-pool"
+sampled = false
+soundness = true
+artifact = "check-readme-pool.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-POOLS-DISJOINT"
+title = "no scenario id appears in two pools and no tuned flag was cleared"
+tier = "T1"
+owner_section = 70
+make_target = "check-pools-disjoint"
+sampled = false
+soundness = true
+artifact = "pools-disjoint.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-PARSE"
+title = "docs/claims.md conforms to the claim grammar"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-ANCHOR"
+title = "every claim candidate carries a CLM- anchor"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-REGISTERED"
+title = "every anchored claim is in the registry with no text drift"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-SUPPORT"
+title = "support hash, run manifest and gate ledger are fresh and unflagged"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-NUMSRC"
+title = "every numeral in a quantitative claim is present in its cited artifact"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-BANNED"
+title = "no banned pattern outside its exempt path; unwaivable"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-ALLOWCAP"
+title = "the non-claim allowlist is under cap and every entry carries a reason"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = false
+artifact = "claims-check.json"
+budget_s = 4  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-NOERASE"
+title = "no claim id disappears from history without a RETIRED record"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-PLACEHOLDER"
+title = "no illustrative-placeholder or MEASURED token escapes docs/prompt/"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-SELFTEST"
+title = "every finding kind has a negative test"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-CLAIM-001"
+title = "no number in docs without its committed backing artifact and source id"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "claims-check.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-FRAMING-VERBATIM"
+title = "every generated framing string matches docs/framing.toml verbatim"
+tier = "T1"
+owner_section = 71
+make_target = "claims-gen"
+sampled = false
+soundness = true
+artifact = "framing-verbatim.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-FRAMING-README"
+title = "the README first screen carries the one-line description, the disclaimer and the LIMITATIONS link"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "framing-readme.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-UI-STRINGS"
+title = "no user-visible literal outside the string catalog"
+tier = "T1"
+owner_section = 71
+make_target = "lint-frontend"
+sampled = false
+soundness = false
+artifact = "ui-strings.json"
+budget_s = 25  # illustrative, not a target
+
+[[gate]]
+id = "G-LIMITS-FRESH"
+title = "regenerating LIMITATIONS.md produces no diff"
+tier = "T1"
+owner_section = 71
+make_target = "limitations"
+sampled = false
+soundness = true
+artifact = "limits-fresh.json"
+budget_s = 15  # illustrative, not a target
+
+[[gate]]
+id = "G-LIMITS-NOHAND"
+title = "no numeral outside a generated block in LIMITATIONS.md; unwaivable"
+tier = "T1"
+owner_section = 71
+make_target = "claims-check"
+sampled = false
+soundness = true
+artifact = "limits-nohand.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-DEMO-CLAIMS"
+title = "every demo transcript line carries its claim tag and matches the live run"
+tier = "T1"
+owner_section = 71
+make_target = "demo-verify"
+sampled = false
+soundness = true
+artifact = "demo-claims.json"
+budget_s = 30  # illustrative, not a target
+
+# NOTE: 73.10 bans the string in every identifier and path. It remains an
+# internal acronym in prose only.
+[[gate]]
+id = "G-NAME-ECLIPSE"
+title = "the banned project name appears in no crate, module, directory or file name"
+tier = "T1"
+owner_section = 73
+make_target = "lint-names"
+sampled = false
+soundness = false
+artifact = "lint-names.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-POLY-NOBRANCH"
+title = "the ingest path contains no language-specific branch"
+tier = "T1"
+owner_section = 73
+make_target = "lint-ingest-no-lang-branch"
+sampled = false
+soundness = false
+artifact = "ingest-no-lang-branch.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-LANG-PYTHON"
+title = "Python unit and property tiers"
+tier = "T1"
+owner_section = 73
+make_target = "test-python"
+sampled = false
+soundness = false
+artifact = "junit-python.xml"
+budget_s = 80  # illustrative, not a target
+
+[[gate]]
+id = "G-LANG-RUST"
+title = "Rust unit and property tiers"
+tier = "T1"
+owner_section = 73
+make_target = "test-rust"
+sampled = false
+soundness = false
+artifact = "junit-rust.xml"
+budget_s = 80  # illustrative, not a target
+
+[[gate]]
+id = "G-LANG-GO"
+title = "Go unit and contract tiers with the race detector"
+tier = "T1"
+owner_section = 73
+make_target = "test-go"
+sampled = false
+soundness = false
+artifact = "junit-go.xml"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-LANG-TS"
+title = "TypeScript unit and component tiers"
+tier = "T1"
+owner_section = 73
+make_target = "test-ts"
+sampled = false
+soundness = false
+artifact = "junit-ts.xml"
+budget_s = 60  # illustrative, not a target
+
+# NOTE: The only gate enabled in session one. It gates the skeleton itself
+# and nothing else. It does not run, exercise or verify any part of the
+# platform, because no part of the platform exists yet.
+[[gate]]
+id = "G-SKELETON-001"
+title = "the committed skeleton is self-consistent: the registry parses, every declared target is declared, and no file claims a result"
+tier = "T1"
+owner_section = 74
+make_target = "skeleton-verify"
+sampled = false
+soundness = false
+artifact = "skeleton-verify.json"
+budget_s = 30  # illustrative, not a target
+
+[[gate]]
+id = "G-REG-001"
+title = "registry lint: exactly one tier per gate, every make target exists, every per-tier sum within its ceiling"
+tier = "T1"
+owner_section = 74
+make_target = "gates-lint"
+sampled = false
+soundness = true
+artifact = "gates-lint.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-BUDGET-001"
+title = "per-tier budget_s sums stay under their ceilings and the monthly estimate under the declared budget"
+tier = "T1"
+owner_section = 74
+make_target = "ci-budget"
+sampled = false
+soundness = false
+artifact = "ci-budget.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-IMG-001"
+title = "every image reference in the repository resolves to a digest present in images.lock"
+tier = "T1"
+owner_section = 74
+make_target = "lint-images"
+sampled = false
+soundness = true
+artifact = "lint-images.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-IMG-002"
+title = "images.lock digests match the locally loaded images"
+tier = "T1"
+owner_section = 74
+make_target = "images-verify"
+sampled = false
+soundness = true
+artifact = "images-verify.json"
+budget_s = 12  # illustrative, not a target
+
+[[gate]]
+id = "G-VEND-001"
+title = "every recorded lockfile hash recomputes to its value in toolchains.lock"
+tier = "T1"
+owner_section = 74
+make_target = "vendor-verify"
+sampled = false
+soundness = true
+artifact = "vendor-verify.json"
+budget_s = 15  # illustrative, not a target
+
+[[gate]]
+id = "G-NET-001"
+title = "the egress sentinel observes zero packets for the duration of the offline build"
+tier = "T1"
+owner_section = 74
+make_target = "egress-sentinel"
+sampled = false
+soundness = true
+artifact = "egress-sentinel.json"
+budget_s = 15  # illustrative, not a target
+
+[[gate]]
+id = "G-OFF-001"
+title = "make build-offline on toolchain-a from a clean file:// clone with no network"
+tier = "T1"
+owner_section = 74
+make_target = "build-offline"
+sampled = false
+soundness = true
+artifact = "build-offline.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-SAMP-001"
+title = "no docs sentence binds to an artifact whose claim_scope is SAMPLED"
+tier = "T1"
+owner_section = 74
+make_target = "lint-sample-scope"
+sampled = false
+soundness = true
+artifact = "sample-scope.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-FLAKE-001"
+title = "workflow linter: no retry, continue-on-error, rerun-failed or || true construct anywhere under .github/ or ci/"
+tier = "T1"
+owner_section = 74
+make_target = "lint-workflows"
+sampled = false
+soundness = true
+artifact = "lint-workflows.json"
+budget_s = 6  # illustrative, not a target
+
+# NOTE: 74.8.4 states this gate as T0 + T1. It is registered at T1, the
+# authoritative tier, and mirrored non-authoritatively by the pre-commit
+# config.
+[[gate]]
+id = "G-FLAKE-003"
+title = "no quarantine entry is past its expiry and no test id is renewed twice"
+tier = "T1"
+owner_section = 74
+make_target = "quarantine-check"
+sampled = false
+soundness = true
+artifact = "quarantine-check.json"
+budget_s = 4  # illustrative, not a target
+
+[[gate]]
+id = "G-WIN-002"
+title = ".gitattributes exists and matches the committed golden copy byte for byte"
+tier = "T1"
+owner_section = 74
+make_target = "check-gitattributes"
+sampled = false
+soundness = true
+artifact = "gitattributes-diff.txt"
+budget_s = 3  # illustrative, not a target
+
+[[gate]]
+id = "G-WIN-004"
+title = "git ls-files --eol reports w/lf for every text-classified file"
+tier = "T1"
+owner_section = 74
+make_target = "check-eol"
+sampled = false
+soundness = true
+artifact = "eol-report.txt"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-WIN-005"
+title = "no two tracked paths differ only in case"
+tier = "T1"
+owner_section = 74
+make_target = "check-case-collisions"
+sampled = false
+soundness = true
+artifact = "case-collisions.txt"
+budget_s = 3  # illustrative, not a target
+
+[[gate]]
+id = "G-WIN-006"
+title = "scripts are mode 100755 in the index and everything else is 100644"
+tier = "T1"
+owner_section = 74
+make_target = "check-file-modes"
+sampled = false
+soundness = true
+artifact = "file-modes.txt"
+budget_s = 3  # illustrative, not a target
+
+[[gate]]
+id = "G-RATCHET-001"
+title = "no recorded count decreases and no gate name disappears without a valid waiver"
+tier = "T1"
+owner_section = 75
+make_target = "ratchet-check"
+sampled = false
+soundness = true
+artifact = "ratchet-check.json"
+budget_s = 12  # illustrative, not a target
+
+[[gate]]
+id = "G-MPC-001"
+title = "no work outside the minimum publishable core is started while an MPC component is red"
+tier = "T1"
+owner_section = 75
+make_target = "mpc-status"
+sampled = false
+soundness = false
+artifact = "mpc-status.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-STUB-001"
+title = "no stub exists outside the one documented worked stub"
+tier = "T1"
+owner_section = 75
+make_target = "stub-scan"
+sampled = false
+soundness = true
+artifact = "stub-scan.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-ASSERT-TRIV-001"
+title = "no assertion whose two sides are literals and none that calls nothing under test"
+tier = "T1"
+owner_section = 75
+make_target = "assert-triviality-lint"
+sampled = false
+soundness = false
+artifact = "assert-triviality.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-REVIEW-ORDER-001"
+title = "the adversarial review commit precedes the milestone status flip"
+tier = "T1"
+owner_section = 75
+make_target = "review-order-check"
+sampled = false
+soundness = false
+artifact = "review-order.json"
+budget_s = 5  # illustrative, not a target
+
+[[gate]]
+id = "G-TEST-NOTHEATER"
+title = "no assertion-free test, no coverage-only exerciser, no unreasoned coverage exclusion"
+tier = "T1"
+owner_section = 43
+make_target = "lint-no-theater"
+sampled = false
+soundness = true
+artifact = "no-theater.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-TEST-REQUIRE-TESTS"
+title = "every source directory named in the language manifest has a test target"
+tier = "T1"
+owner_section = 43
+make_target = "lint-require-tests"
+sampled = false
+soundness = false
+artifact = "require-tests.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-TEST-FIXTURE-GUARD"
+title = "no fixture is committed without its manifest hash and no manifest mismatch is tolerated"
+tier = "T1"
+owner_section = 43
+make_target = "lint-fixture-guard"
+sampled = false
+soundness = true
+artifact = "fixture-guard.json"
+budget_s = 6  # illustrative, not a target
+
+[[gate]]
+id = "G-CONTRACT-A"
+title = "cross-language contract, determinism and metamorphic suites over the Tier A set"
+tier = "T1"
+owner_section = 44
+make_target = "test-contract"
+sampled = false
+soundness = true
+artifact = "junit-contract.xml"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-SIM-AGREE-T1"
+title = "randomized-configuration simulator-versus-kernel agreement, spine plus a declared sample"
+tier = "T1"
+owner_section = 44
+make_target = "gate-sim-agreement"
+sampled = true
+soundness = true
+artifact = "sim-agreement.json"
+budget_s = 60  # illustrative, not a target
+
+  # 74.5 requires a sampling block on every sampled gate. The stride must
+  # be coprime with the cardinality of the cell space, and that cardinality
+  # is unknown until the space is enumerated.
+  # TODO(sampling): recompute stride from the measured cardinality when the
+  # space is enumerated, assert coprimality, and record both in sample-plan.json.
+  [gate.sampling]
+  algorithm   = "stride-rotation/v1"
+  epoch_file  = "ci/epoch.txt"
+  k           = 24     # illustrative, not a target
+  stride      = 271    # illustrative, not a target
+  spine       = "all controls off, all controls at maximum, and each control alone at its top level"
+  claim_scope = "SAMPLED"
+
+[[gate]]
+id = "G-DEMO-HASH"
+title = "make demo reproduces its committed transcript and certificate hash"
+tier = "T1"
+owner_section = 46
+make_target = "demo"
+sampled = false
+soundness = true
+artifact = "demo-hash.json"
+budget_s = 40  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-LAYERING"
+title = "the cut solver does not depend on the hypothesis crate"
+tier = "T1"
+owner_section = 76
+make_target = "lint-layering"
+sampled = false
+soundness = false
+artifact = "layering.json"
+budget_s = 5  # illustrative, not a target
+
+
+# ---- TIER T2 - 88 gates declared, 0 implemented. -------------------------
+# Nightly tier, main only. A failure files an issue, costs the milestone
+# its green, and marks main degraded in the README status table.
+
+# NOTE: 74.4 assigns cross-runner byte-identity to T2 because it needs a
+# second runner.
+[[gate]]
+id = "G-DET-REPLAY-T2"
+title = "byte-identity across two runners with differing CPU models"
+tier = "T2"
+owner_section = 58
+make_target = "repro-check-cross-runner"
+sampled = false
+soundness = true
+artifact = "repro-cross-runner.json"
+budget_s = 420  # illustrative, not a target
+
+[[gate]]
+id = "G-DET-TICK"
+title = "granularity invariance: tick scaling changes no emitted byte"
+tier = "T2"
+owner_section = 58
+make_target = "test-tick-invariance"
+sampled = false
+soundness = false
+artifact = "tick-invariance.json"
+budget_s = 120  # illustrative, not a target
+
+[[gate]]
+id = "G-DET-THREAD"
+title = "thread invariance at SPECTRA_THREADS in {1, 2, 8}"
+tier = "T2"
+owner_section = 58
+make_target = "test-thread-invariance"
+sampled = false
+soundness = true
+artifact = "thread-invariance.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-1"
+title = "confluence: N permutations produce a byte-identical er.jsonl"
+tier = "T2"
+owner_section = 60
+make_target = "er-confluence"
+sampled = false
+soundness = true
+artifact = "er-confluence.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-4"
+title = "zero false_merge_components on HELD-OUT at completeness 1.00"
+tier = "T2"
+owner_section = 60
+make_target = "er-quality"
+sampled = false
+soundness = true
+artifact = "er-quality.json"
+budget_s = 90  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-5"
+title = "red-team ER corpus: no forced merge and no ROBUST"
+tier = "T2"
+owner_section = 60
+make_target = "er-redteam"
+sampled = false
+soundness = true
+artifact = "er-redteam.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-6"
+title = "verdict algebra: ROBUST is unconstructible under corridor ambiguity"
+tier = "T2"
+owner_section = 60
+make_target = "verdict-algebra"
+sampled = false
+soundness = true
+artifact = "verdict-algebra.json"
+budget_s = 20  # illustrative, not a target
+
+# NOTE: Section 60 marks this per-PR. 74.0 and 74.4 demote the full O(n^2)
+# comparison to T2; the T1 confluence gate G-ER-1 stays.
+[[gate]]
+id = "G-ER-7"
+title = "blocking is non-semantic: a blocking-off run equals a blocking-on run"
+tier = "T2"
+owner_section = 60
+make_target = "er-block-equiv"
+sampled = false
+soundness = false
+artifact = "er-block-equiv.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-8"
+title = "full degradation-matrix ER metrics published with seeds and dispersion"
+tier = "T2"
+owner_section = 60
+make_target = "er-matrix"
+sampled = false
+soundness = false
+artifact = "er-matrix.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-9"
+title = "ER sensitivity: the injection experiment is executed and published"
+tier = "T2"
+owner_section = 60
+make_target = "er-sensitivity"
+sampled = false
+soundness = false
+artifact = "er-sensitivity.json"
+budget_s = 420  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-10"
+title = "ER anomaly and monotonicity rules hold or are ledgered"
+tier = "T2"
+owner_section = 60
+make_target = "er-monotonicity"
+sampled = false
+soundness = false
+artifact = "er-monotonicity.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-ER-11"
+title = "gate liveness: an over-merge mutation turns G-ER-4 and G-ER-5 red"
+tier = "T2"
+owner_section = 60
+make_target = "er-mutation"
+sampled = false
+soundness = false
+artifact = "er-mutation.json"
+budget_s = 600  # illustrative, not a target
+
+[[gate]]
+id = "G-KERNEL-FALSE-ROBUST-FULL"
+title = "zero false ROBUST over the full degradation matrix"
+tier = "T2"
+owner_section = 62
+make_target = "gate-false-robust-full"
+sampled = false
+soundness = true
+artifact = "false-robust-matrix.json"
+budget_s = 1500  # illustrative, not a target
+
+[[gate]]
+id = "G-FALSE-UNSAFE"
+title = "false-UNSAFE rate reported per cell and per integrity class"
+tier = "T2"
+owner_section = 62
+make_target = "gate-false-unsafe"
+sampled = false
+soundness = true
+artifact = "false-unsafe-matrix.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-ANTITONICITY"
+title = "antitonicity: raising any control level never re-enables the goal"
+tier = "T2"
+owner_section = 62
+make_target = "gate-antitonicity"
+sampled = false
+soundness = true
+artifact = "antitonicity.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-CHECKER-MINIMALITY"
+title = "the checker independently confirms cut minimality on every fixture"
+tier = "T2"
+owner_section = 62
+make_target = "gate-checker-minimality"
+sampled = false
+soundness = true
+artifact = "checker-minimality.json"
+budget_s = 600  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-ENFORCEMENT-EFFECTIVE"
+title = "enforcement oracle: a declared control actually severs the path it claims to sever"
+tier = "T2"
+owner_section = 62
+make_target = "gate-enforcement-effective"
+sampled = false
+soundness = false
+artifact = "enforcement-effective.json"
+budget_s = 420  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-ENFORCEMENT-TOTAL"
+title = "the enforcement oracle is total over the declared control catalog"
+tier = "T2"
+owner_section = 62
+make_target = "gate-enforcement-total"
+sampled = false
+soundness = false
+artifact = "enforcement-total.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-ER-QUALITY"
+title = "ER quality oracle over the evaluation harness"
+tier = "T2"
+owner_section = 62
+make_target = "gate-er-quality"
+sampled = false
+soundness = false
+artifact = "oracle-er-quality.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-GROUNDING-DIFFFUZZ"
+title = "differential fuzz of grounding against the reference oracle"
+tier = "T2"
+owner_section = 62
+make_target = "gate-grounding-difffuzz"
+sampled = false
+soundness = false
+artifact = "grounding-difffuzz.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-GUARD-DIFFFUZZ"
+title = "differential fuzz of guard evaluation across backends"
+tier = "T2"
+owner_section = 62
+make_target = "gate-guard-difffuzz"
+sampled = false
+soundness = true
+artifact = "guard-difffuzz.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-LEDGER-COMPLETE"
+title = "every frozen-artifact change has a matching ledger entry"
+tier = "T2"
+owner_section = 62
+make_target = "gate-ledger-complete"
+sampled = false
+soundness = false
+artifact = "ledger-complete.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-NONVACUITY-FLAGS"
+title = "flagged-run share stays under its declared ceiling"
+tier = "T2"
+owner_section = 62
+make_target = "gate-nonvacuity-flags"
+sampled = false
+soundness = false
+artifact = "nonvacuity-flags.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-NONVACUITY-INDETERMINACY"
+title = "Oracle R indeterminate share stays under its declared ceiling"
+tier = "T2"
+owner_section = 62
+make_target = "gate-nonvacuity-indeterminacy"
+sampled = false
+soundness = false
+artifact = "nonvacuity-indeterminacy.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-NONVACUITY-LICENSING"
+title = "licence ratio stays under its declared clean and per-cell ceilings"
+tier = "T2"
+owner_section = 62
+make_target = "gate-nonvacuity-licensing"
+sampled = false
+soundness = false
+artifact = "nonvacuity-licensing.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-NONVACUITY-YIELD"
+title = "ROBUST yield is non-vacuous at completeness 100%"
+tier = "T2"
+owner_section = 62
+make_target = "gate-nonvacuity-yield"
+sampled = false
+soundness = false
+artifact = "nonvacuity-yield.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-OUTOFBAND"
+title = "Oracle R observes the range out of band, never through the ingest path"
+tier = "T2"
+owner_section = 62
+make_target = "gate-oracle-r-outofband"
+sampled = false
+soundness = false
+artifact = "oracle-r-outofband.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-SMT-DIFFERENTIAL"
+title = "the SMT oracle agrees with the branch-and-bound result on every fixture"
+tier = "T2"
+owner_section = 62
+make_target = "gate-smt-differential"
+sampled = false
+soundness = true
+artifact = "smt-differential.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-TRIAGE-INTEGRITY"
+title = "triage decisions are recorded before the unseal, never after"
+tier = "T2"
+owner_section = 62
+make_target = "gate-triage-integrity"
+sampled = false
+soundness = false
+artifact = "triage-integrity.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-COMPILE"
+title = "the shipped guard table compiles with zero errors and every error code has a negative fixture"
+tier = "T2"
+owner_section = 63
+make_target = "guards"
+sampled = false
+soundness = false
+artifact = "guards-compile.json"
+budget_s = 25  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-CROSS-RUNNER"
+title = "guard bytecode is byte-stable across two differing CI runners"
+tier = "T2"
+owner_section = 63
+make_target = "guards-cross-runner"
+sampled = false
+soundness = true
+artifact = "guards-cross-runner.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-FUZZ"
+title = "seeded guard fuzz reaches zero panics over the declared budget"
+tier = "T2"
+owner_section = 63
+make_target = "guard-fuzz"
+sampled = false
+soundness = false
+artifact = "guard-fuzz.json"
+budget_s = 600  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-LATTICE"
+title = "guard monotonicity over the control lattice"
+tier = "T2"
+owner_section = 63
+make_target = "guard-lattice-test"
+sampled = false
+soundness = false
+artifact = "guard-lattice.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-CUT-DET"
+title = "canonical cut determinism under seeded permutation"
+tier = "T2"
+owner_section = 64
+make_target = "prop-cut"
+sampled = false
+soundness = true
+artifact = "prop-cut.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-STABILITY"
+title = "cut stability: an unrelated catalog edit moves no reported cut"
+tier = "T2"
+owner_section = 64
+make_target = "stability-cut"
+sampled = false
+soundness = false
+artifact = "stability-cut.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-PREMIUM"
+title = "premium invariance: permuted clause order changes no blindness premium"
+tier = "T2"
+owner_section = 64
+make_target = "prop-premium"
+sampled = false
+soundness = false
+artifact = "prop-premium.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-CERT-ALGEBRA"
+title = "suppression algebra: a suppressed field is absent, never null and never zeroed"
+tier = "T2"
+owner_section = 64
+make_target = "cert-algebra"
+sampled = false
+soundness = true
+artifact = "cert-algebra.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-WD-REALIZABILITY"
+title = "no counterexample is emitted without a realizability status object"
+tier = "T2"
+owner_section = 64
+make_target = "prop-realizability"
+sampled = false
+soundness = false
+artifact = "prop-realizability.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G65.2"
+title = "no self-calibration, dynamic: out-of-window deletions change no verdict byte"
+tier = "T2"
+owner_section = 65
+make_target = "test-liveness-invariance"
+sampled = false
+soundness = true
+artifact = "liveness-invariance.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G65.3"
+title = "blind-volume monotonicity as completeness drops from 100% to 30%"
+tier = "T2"
+owner_section = 65
+make_target = "gate-monotonicity"
+sampled = false
+soundness = true
+artifact = "liveness-monotonicity.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G65.4"
+title = "fail-closed: every reason code has a fixture and none of them can produce LIVE"
+tier = "T2"
+owner_section = 65
+make_target = "test-liveness-reasons"
+sampled = false
+soundness = true
+artifact = "liveness-reasons.json"
+budget_s = 40  # illustrative, not a target
+
+[[gate]]
+id = "G65.6"
+title = "profile binding: every declared rejection fires at both emit and verify"
+tier = "T2"
+owner_section = 65
+make_target = "test-profile-binding"
+sampled = false
+soundness = false
+artifact = "profile-binding.json"
+budget_s = 40  # illustrative, not a target
+
+[[gate]]
+id = "G65.7"
+title = "tamper blocks ROBUST: a backdating fixture never yields ROBUST"
+tier = "T2"
+owner_section = 65
+make_target = "gate-redteam"
+sampled = false
+soundness = true
+artifact = "liveness-redteam.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G65.8"
+title = "checker agreement: differential fuzz of the Go and Rust liveness derivations"
+tier = "T2"
+owner_section = 65
+make_target = "fuzz-liveness-diff"
+sampled = false
+soundness = true
+artifact = "liveness-diff.json"
+budget_s = 900  # illustrative, not a target
+
+# NOTE: Section 64 names the same obligation as cert-adversarial and section
+# 76 as test-adversarial-certs. TODO(target): reconcile to one target when
+# the corpus lands; the cheap spine subset is G-ORACLE-ADVERSARIAL-CERTS at
+# T1.
+[[gate]]
+id = "G-CERT-CORPUS"
+title = "adversarial certificate corpus: every must-reject file is rejected with its exact code"
+tier = "T2"
+owner_section = 68
+make_target = "cert-corpus"
+sampled = false
+soundness = true
+artifact = "cert-corpus.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-CANON"
+title = "certificate canonicity: round-trip, byte-equality and a Rust/Go differential"
+tier = "T2"
+owner_section = 68
+make_target = "cert-canon"
+sampled = false
+soundness = true
+artifact = "cert-canon.json"
+budget_s = 45  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-CAE"
+title = "CAE round-trip, mutation sensitivity and formatting insensitivity"
+tier = "T2"
+owner_section = 68
+make_target = "cert-cae"
+sampled = false
+soundness = true
+artifact = "cert-cae.json"
+budget_s = 30  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-COMPAT"
+title = "archived certificates still verify as recorded"
+tier = "T2"
+owner_section = 68
+make_target = "cert-compat"
+sampled = false
+soundness = false
+artifact = "cert-compat.json"
+budget_s = 120  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-OFFLINE"
+title = "the checker links no net, sql, exec or plugin package and passes the corpus in an empty network namespace"
+tier = "T2"
+owner_section = 68
+make_target = "verify-offline"
+sampled = false
+soundness = true
+artifact = "verify-offline.json"
+budget_s = 40  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-FUZZ"
+title = "the committed checker fuzz corpus produces no crash, hang or non-canonical ACCEPT"
+tier = "T2"
+owner_section = 68
+make_target = "fuzz-cert"
+sampled = false
+soundness = true
+artifact = "fuzz-cert.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ABI-GOLDEN"
+title = "stdout, stderr NDJSON and every output object id are byte-identical to goldens on both runners"
+tier = "T2"
+owner_section = 69
+make_target = "abi-golden"
+sampled = false
+soundness = true
+artifact = "abi-golden.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-ABI-EXITCODES"
+title = "every exit code is produced by a fixture, none outside the taxonomy, and no fixture returns 1"
+tier = "T2"
+owner_section = 69
+make_target = "abi-exitcodes"
+sampled = false
+soundness = false
+artifact = "abi-exitcodes.json"
+budget_s = 40  # illustrative, not a target
+
+[[gate]]
+id = "G-KERNEL-OFFLINE-AUDIT"
+title = "kernel and checker complete under --network none with a zero seccomp deny counter"
+tier = "T2"
+owner_section = 69
+make_target = "kernel-offline-audit"
+sampled = false
+soundness = true
+artifact = "kernel-offline-audit.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-REBUILD-PROJECTIONS"
+title = "a projection rebuild from the CAS reproduces a byte-identical dump"
+tier = "T2"
+owner_section = 69
+make_target = "rebuild-projections"
+sampled = false
+soundness = true
+artifact = "rebuild-projections.json"
+budget_s = 600  # illustrative, not a target
+
+[[gate]]
+id = "G-REDIS-CHAOS"
+title = "a mid-run cache flush loses no result and changes no certificate hash"
+tier = "T2"
+owner_section = 69
+make_target = "redis-chaos"
+sampled = false
+soundness = false
+artifact = "redis-chaos.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-GC-SAFETY"
+title = "GC mark set exact, GC idempotent, dry-run plan touches no protected class"
+tier = "T2"
+owner_section = 69
+make_target = "gc-safety"
+sampled = false
+soundness = false
+artifact = "gc-safety.json"
+budget_s = 240  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-FREEZE"
+title = "the run manifest agrees with rules.lock on every results run"
+tier = "T2"
+owner_section = 70
+make_target = "check-freeze"
+sampled = false
+soundness = true
+artifact = "check-freeze.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-PREREG-BACKFILL"
+title = "post-unseal deltas are filled in"
+tier = "T2"
+owner_section = 70
+make_target = "check-ledger-backfill"
+sampled = false
+soundness = false
+artifact = "ledger-backfill.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-FRAMING-CLI"
+title = "the CLI banner matches its golden bytes and no flag suppresses the disclaimer"
+tier = "T2"
+owner_section = 71
+make_target = "test-cli"
+sampled = false
+soundness = true
+artifact = "framing-cli.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-FRAMING-PAPER"
+title = "the paper abstract includes the generated framing files"
+tier = "T2"
+owner_section = 71
+make_target = "paper"
+sampled = false
+soundness = false
+artifact = "framing-paper.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-UI-BANNED"
+title = "no catalog string matches a banned pattern"
+tier = "T2"
+owner_section = 71
+make_target = "test-frontend"
+sampled = false
+soundness = true
+artifact = "ui-banned.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-CLI-BANNED"
+title = "no CLI string matches a banned pattern"
+tier = "T2"
+owner_section = 71
+make_target = "test-cli"
+sampled = false
+soundness = true
+artifact = "cli-banned.json"
+budget_s = 8  # illustrative, not a target
+
+[[gate]]
+id = "G-POLY-LANG-AUDIT"
+title = "every language directory matches languages.toml and carries a real test"
+tier = "T2"
+owner_section = 73
+make_target = "lang-audit"
+sampled = false
+soundness = false
+artifact = "lang-audit.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-POLY-AUDIT"
+title = "polyglot mutation audit: every language component fails when its source is mutated"
+tier = "T2"
+owner_section = 73
+make_target = "polyglot-audit"
+sampled = false
+soundness = false
+artifact = "polyglot-audit.json"
+budget_s = 900  # illustrative, not a target
+
+# NOTE: 74.0 OVERRIDES 43.1: Tier B oracle gates need the second toolchain
+# image and run in T2, not per-PR.
+[[gate]]
+id = "G-LANG-TIER-B"
+title = "Tier B oracle toolchain jobs"
+tier = "T2"
+owner_section = 73
+make_target = "test-tier-b"
+sampled = false
+soundness = false
+artifact = "junit-tier-b.xml"
+budget_s = 900  # illustrative, not a target
+
+# NOTE: 74.0 OVERRIDES 43.1: a Tier C failure runs in T2 and never blocks a
+# Tier A milestone. 73 forbids silencing a red Tier C job; demotion to T2 is
+# not silencing, and the result is reported in the status table either way.
+[[gate]]
+id = "G-LANG-TIER-C"
+title = "Tier C range-emitter language jobs"
+tier = "T2"
+owner_section = 73
+make_target = "test-tier-c"
+sampled = false
+soundness = false
+artifact = "junit-tier-c.xml"
+budget_s = 900  # illustrative, not a target
+
+# NOTE: 74.0 OVERRIDES 43.1. MATLAB has no toolchain image and no job; the
+# matrix carries GNU Octave.
+[[gate]]
+id = "G-LANG-TIER-D"
+title = "Tier D analysis language jobs"
+tier = "T2"
+owner_section = 73
+make_target = "test-tier-d"
+sampled = false
+soundness = false
+artifact = "junit-tier-d.xml"
+budget_s = 600  # illustrative, not a target
+
+[[gate]]
+id = "G-VEND-002"
+title = "deleting a vendor path inside a network-none container makes that ecosystem's build fail"
+tier = "T2"
+owner_section = 74
+make_target = "vendor-negative"
+sampled = false
+soundness = true
+artifact = "vendor-negative.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-OFF-002"
+title = "make build-offline cold, every cache disabled, on all four tier images"
+tier = "T2"
+owner_section = 74
+make_target = "build-offline-cold"
+sampled = false
+soundness = true
+artifact = "build-offline-cold.json"
+budget_s = 1800  # illustrative, not a target
+
+[[gate]]
+id = "G-SAMP-002"
+title = "coverage_debt is empty across the declared rotation window"
+tier = "T2"
+owner_section = 74
+make_target = "coverage-debt"
+sampled = false
+soundness = false
+artifact = "coverage-debt.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-CACHE-001"
+title = "the T1 tier with all caches disabled produces identical artifact hashes"
+tier = "T2"
+owner_section = 74
+make_target = "cache-independence"
+sampled = false
+soundness = true
+artifact = "cache-independence.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-TEST-INVENTORY"
+title = "the published test inventory is regenerated and matches"
+tier = "T2"
+owner_section = 43
+make_target = "test-inventory"
+sampled = false
+soundness = false
+artifact = "test-inventory.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-SIM-AGREE-FULL"
+title = "randomized-configuration simulator-versus-kernel agreement over the full configuration space"
+tier = "T2"
+owner_section = 44
+make_target = "gate-sim-agreement-full"
+sampled = false
+soundness = true
+artifact = "sim-agreement.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-ADVERSARIAL-SUITE"
+title = "the self-attack suite: every attack is refused with its named defensive behaviour"
+tier = "T2"
+owner_section = 45
+make_target = "test-adversarial"
+sampled = false
+soundness = true
+artifact = "junit-adversarial.xml"
+budget_s = 420  # illustrative, not a target
+
+[[gate]]
+id = "G-SECURITY-SCAN"
+title = "static analysis, dependency audit and secret scan over the tree and the built images"
+tier = "T2"
+owner_section = 46
+make_target = "security-test"
+sampled = false
+soundness = false
+artifact = "security.sarif"
+budget_s = 600  # illustrative, not a target
+
+[[gate]]
+id = "G-E2E"
+title = "compose up, seed, browser specs and the full demo path through the UI"
+tier = "T2"
+owner_section = 46
+make_target = "test-e2e"
+sampled = false
+soundness = false
+artifact = "junit-e2e.xml"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-DEMO-DEGRADED"
+title = "a degraded demo run renders the banner and strict mode refuses to render at all"
+tier = "T2"
+owner_section = 76
+make_target = "demo-degraded"
+sampled = false
+soundness = false
+artifact = "demo-degraded.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-RANGE-ISOLATION"
+title = "the range egress-isolation probe observes no packet leaving the lab network"
+tier = "T2"
+owner_section = 46
+make_target = "range-verify-isolation"
+sampled = false
+soundness = true
+artifact = "range-isolation.json"
+budget_s = 300  # illustrative, not a target
+
+[[gate]]
+id = "G-DOCS-CHECK"
+title = "strict docs build, link check, diagram drift and generated-artifact drift"
+tier = "T2"
+owner_section = 46
+make_target = "docs-check"
+sampled = false
+soundness = false
+artifact = "docs-check.json"
+budget_s = 60  # illustrative, not a target
+
+[[gate]]
+id = "G-OBS-LOG-SCHEMA"
+title = "every log line from a full demo run validates against the log schema"
+tier = "T2"
+owner_section = 47
+make_target = "test-observability"
+sampled = false
+soundness = false
+artifact = "observability.json"
+budget_s = 120  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-DETERMINISM"
+title = "hypothesis ids and stage order are invariant to rule-firing order, seed and capacity hints"
+tier = "T2"
+owner_section = 76
+make_target = "test-hypothesis-determinism"
+sampled = false
+soundness = true
+artifact = "hypothesis-determinism.json"
+budget_s = 45  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-GHOST"
+title = "no ghost contributes to an observed-event count and no obligation trigger sits in an evidence position"
+tier = "T2"
+owner_section = 76
+make_target = "test-ghost-accounting"
+sampled = false
+soundness = true
+artifact = "ghost-accounting.json"
+budget_s = 30  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-RANK-COSMETIC"
+title = "permuting rank components changes no certificate byte"
+tier = "T2"
+owner_section = 76
+make_target = "test-rank-is-cosmetic"
+sampled = false
+soundness = true
+artifact = "rank-cosmetic.json"
+budget_s = 25  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-REALIZABILITY"
+title = "no non-realizable or unchecked hypothesis reaches display, export or narration"
+tier = "T2"
+owner_section = 76
+make_target = "test-realizability"
+sampled = false
+soundness = true
+artifact = "hyp-realizability.json"
+budget_s = 30  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-DEGRADED-MONOTONE"
+title = "no derived artifact carries fewer degradation codes than its inputs"
+tier = "T2"
+owner_section = 76
+make_target = "test-degraded-monotone"
+sampled = false
+soundness = true
+artifact = "degraded-monotone.json"
+budget_s = 180  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-VERDICT-ALGEBRA"
+title = "ROBUST is unconstructible with a soundness flag set and no verdict string is concatenated"
+tier = "T2"
+owner_section = 76
+make_target = "test-verdict-algebra"
+sampled = false
+soundness = true
+artifact = "hyp-verdict-algebra.json"
+budget_s = 25  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-SUPPRESSION"
+title = "no suppressed key is present, nulled, zeroed or defaulted"
+tier = "T2"
+owner_section = 76
+make_target = "test-suppression"
+sampled = false
+soundness = true
+artifact = "hyp-suppression.json"
+budget_s = 20  # illustrative, not a target
+
+[[gate]]
+id = "G-HYP-UI-DEGRADED"
+title = "the degradation banner is present, non-dismissible, not colour-only and survives export"
+tier = "T2"
+owner_section = 76
+make_target = "test-ui-degraded"
+sampled = false
+soundness = false
+artifact = "ui-degraded.json"
+budget_s = 120  # illustrative, not a target
+
+
+# ---- TIER T3 - 14 gates declared, 0 implemented. -------------------------
+# Weekly tier, main only. A failure blocks the release and invalidates
+# every headline number in docs until it is green again.
+
+[[gate]]
+id = "G-KERNEL-FALSE-ROBUST-SEEDS"
+title = "zero false ROBUST over the full matrix at every declared seed"
+tier = "T3"
+owner_section = 62
+make_target = "gate-false-robust-seeds"
+sampled = false
+soundness = true
+artifact = "false-robust-matrix.json"
+budget_s = 5400  # illustrative, not a target
+
+[[gate]]
+id = "G-ORACLE-BASELINES"
+title = "the declared baselines are executed and published beside the system arm"
+tier = "T3"
+owner_section = 62
+make_target = "gate-baselines"
+sampled = false
+soundness = false
+artifact = "baselines.json"
+budget_s = 3600  # illustrative, not a target
+
+[[gate]]
+id = "G-GUARD-MUTATION"
+title = "each injected guard defect turns its named gate red"
+tier = "T3"
+owner_section = 63
+make_target = "guard-mutation"
+sampled = false
+soundness = false
+artifact = "guard-mutation.json"
+budget_s = 2400  # illustrative, not a target
+
+[[gate]]
+id = "G65.9"
+title = "gate liveness: an injected self-calibrating threshold turns G65.2 and G65.3 red"
+tier = "T3"
+owner_section = 65
+make_target = "mutate-liveness"
+sampled = false
+soundness = false
+artifact = "liveness-mutation.json"
+budget_s = 1800  # illustrative, not a target
+
+# NOTE: 74.4 scales parser fuzzing by time budget: a short run in T2
+# (G-CERT-FUZZ) and a long run in T3.
+[[gate]]
+id = "G-CERT-FUZZ-LONG"
+title = "long-horizon checker parser fuzz"
+tier = "T3"
+owner_section = 68
+make_target = "fuzz-cert-long"
+sampled = false
+soundness = false
+artifact = "fuzz-cert-long.json"
+budget_s = 5400  # illustrative, not a target
+
+[[gate]]
+id = "G-CERT-MUTATION"
+title = "each injected checker bug turns a named gate red"
+tier = "T3"
+owner_section = 68
+make_target = "cert-mutation"
+sampled = false
+soundness = false
+artifact = "cert-mutation.json"
+budget_s = 1800  # illustrative, not a target
+
+[[gate]]
+id = "G-SIZING-REPORT"
+title = "store sizes are measured into a bench artifact and every docs numeral traces to it"
+tier = "T3"
+owner_section = 69
+make_target = "sizing-report"
+sampled = false
+soundness = false
+artifact = "sizing-report.json"
+budget_s = 1800  # illustrative, not a target
+
+[[gate]]
+id = "G-VERIFY-AIRGAP"
+title = "the published verifier image verifies a published certificate on a machine that never built this repository"
+tier = "T3"
+owner_section = 69
+make_target = "verify-airgap"
+sampled = false
+soundness = true
+artifact = "verify-airgap.json"
+budget_s = 900  # illustrative, not a target
+
+[[gate]]
+id = "G-LIMITS-COMPLETE"
+title = "no required LIMITATIONS block is left NOT MEASURED at release"
+tier = "T3"
+owner_section = 71
+make_target = "release"
+sampled = false
+soundness = true
+artifact = "limits-complete.json"
+budget_s = 120  # illustrative, not a target
+
+[[gate]]
+id = "G-FLAKE-002"
+title = "the whole T1 tier run R times across two runner CPU models with identical artifact hashes"
+tier = "T3"
+owner_section = 74
+make_target = "flake-sweep"
+sampled = false
+soundness = true
+artifact = "flake-sweep.json"
+budget_s = 5400  # illustrative, not a target
+
+[[gate]]
+id = "G-MUTATION-PY"
+title = "Python kernel mutation score within the declared surviving-mutant ratio"
+tier = "T3"
+owner_section = 43
+make_target = "mutate-python"
+sampled = false
+soundness = false
+artifact = "mutation-python.json"
+budget_s = 3600  # illustrative, not a target
+
+[[gate]]
+id = "G-MUTATION-RS"
+title = "Rust kernel mutation score within the declared surviving-mutant ratio"
+tier = "T3"
+owner_section = 43
+make_target = "mutate-rust"
+sampled = false
+soundness = false
+artifact = "mutation-rust.json"
+budget_s = 3600  # illustrative, not a target
+
+[[gate]]
+id = "G-REPRODUCE"
+title = "every number in docs is regenerated from scratch"
+tier = "T3"
+owner_section = 46
+make_target = "reproduce"
+sampled = false
+soundness = true
+artifact = "reproduce.json"
+budget_s = 5400  # illustrative, not a target
+
+[[gate]]
+id = "G-BENCH"
+title = "the benchmark harness publishes raw samples, hardware and toolchain versions with every summary"
+tier = "T3"
+owner_section = 48
+make_target = "bench"
+sampled = false
+soundness = false
+artifact = "bench.json"
+budget_s = 3600  # illustrative, not a target
+
+
+# ==========================================================================
+# BUDGET SUMMARY
+# ==========================================================================
+# Reproduced here for readers. `make ci-budget` is the authority and
+# G-BUDGET-001 is the gate. Every sum below is a sum of DECLARED CEILINGS.
+# No gate in this registry has run, so no runtime has been measured.
+#
+#   TIER  GATES  CEILING(s)  SUM(budget_s)  STATUS                MEASURED RUNTIME
+#   ----  -----  ----------  -------------  --------------------  ----------------
+#   T0        3          60             18  within ceiling        not measured
+#   T1       96        1200           1645  OVER by 445 s         not measured
+#   T2       88        5400          30613  OVER by 25213 s       not measured
+#   T3       14       21600          44820  OVER by 23220 s       not measured
+#   ALL     201           -              -  -                     not measured
+#
+# STATUS: NOT RECONCILED. Tiers over ceiling: T1, T2, T3.
+# G-BUDGET-001, once implemented, fails on this registry as written. That
+# is the gate working, not the gate misconfigured. See TODO(budget) at the
+# head of this file for the three permitted remedies. Until it is
+# reconciled, no tier workflow beyond the skeleton job may be enabled.
+#
+# Estimated monthly CI minutes: not measured. No estimate is recorded here
+# because no gate has run; ci/budget.toml carries the declared monthly
+# ceiling that G-BUDGET-001 compares against once there is something to
+# compare. Do not fill this in from the declared ceilings: a ceiling is not
+# a measurement (74.11.9).
