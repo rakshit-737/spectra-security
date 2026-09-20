@@ -98,18 +98,19 @@ records exist yet; see `CLAIMS.md`, which currently has zero rows.
 18. **SPECTRA does not claim novelty it has not tested.** The README's claim table, once it exists,
     will cite only green milestones and held-out results under a frozen rules hash. No claim table
     exists and the registry has zero records. An unbacked quantitative claim in `README.md` or
-    `docs/` fails the docs gate.
+    `docs/` will fail the docs gate; the gate is not implemented and nothing enforces this today.
 
 19. **SPECTRA is not the Eclipse Foundation, the Eclipse IDE, Eclipse Temurin, or Eclipse
     Adoptium.** The kernel name ECLIPSE is an internal acronym (Evidence-Licensed Cut Proofs over
-    Silent Envelopes). The collision is stated in `README.md` and in `docs/naming.md`; no Eclipse
-    Foundation mark is used; user-facing prose prefers "the SPECTRA kernel" wherever confusion is
-    possible. The string is banned outright in every crate, module, directory and file name.
+    Silent Envelopes). The collision is stated in `README.md` and will be stated in
+    `docs/naming.md` (not yet written); no Eclipse Foundation mark is used; user-facing prose
+    prefers "the SPECTRA kernel" wherever confusion is possible. The string is banned outright in
+    every crate, module, directory and file name.
 
 20. **SPECTRA does not promise the polyglot surface will be complete.** The language surface is
     tiered and completed in tier order. An unfinished tier is stated as unfinished in the README's
-    language table, which is hand-written until `make status` exists, never scaffolded to look
-    finished.
+    language table, which is hand-written until `make status` is implemented, never scaffolded
+    to look finished.
 
 ## Negative requirement
 
