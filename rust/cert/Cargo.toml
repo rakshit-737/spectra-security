@@ -1,0 +1,20 @@
+# spectra-cert - certificate serialization and content addressing.
+# Spec: Part I 32.4; Part II 68 (certificate), 69.5 (canonical JSON).
+# Status: not started.
+
+[package]
+name = "spectra-cert"
+description = "SPECTRA certificate serialization and canonical JSON. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet. Floating point is forbidden in every ABI payload
+# (Part II 69.5.2), which constrains what may be depended on here.
