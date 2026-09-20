@@ -245,19 +245,32 @@ builds from a clean clone with networking disabled.
 
 ---
 
-## 9. Decisions needed — these block the skeleton
+## 9. Decisions
 
-Each has a recommendation. None has been assumed.
+### Settled, 2026-09-20
 
-1. **Licence.** Not chosen in the spec. → Apache-2.0 (patent grant, standard for security tooling).
-2. **Repository and module name.** `spectra-security` was the working name. It must be fixed before
-   Go module paths and crate names exist — changing it later rewrites `go.work`, every `go.mod` and
-   every import path.
-3. **GitHub account and remote.** Needed for CI to exist at all. Not yet known.
-4. **Tier B/C/D directory layout.** Part II superseded roles without restating paths. One naming
-   scheme must be chosen now or the long tail is laid out inconsistently.
+1. **Licence — Apache-2.0.** Chosen for the patent grant, which matters for security tooling.
+   Recorded in `docs/adr/0002`. Requires a `NOTICE` file.
+2. **Repository and module name — `spectra-security`.** Published at
+   `github.com/rakshit-737/spectra-security`. Go module prefix
+   `github.com/rakshit-737/spectra-security`; Rust crates named `spectra-*`. Recorded in
+   `docs/adr/0003`. Renaming later rewrites every import path, so this is now fixed.
+3. **Remote — public from the first commit.** The consequence is that every status marker and every
+   claim must be honest from day one; the README claims nothing and every milestone reads
+   "not started". Enforced going forward by the claims registry. Recorded in `docs/adr/0009`.
+
+### Still open
+
+4. **Tier B/C/D directory layout.** Part II superseded most Part I language roles without restating
+   their paths, and §73.10's ban on `eclipse` in names invalidates several Part I directories
+   outright. Proposed scheme: Tier B keeps its own top-level directory per language; Tier C lives
+   under `estate/<lang>-<role>/`; Tier D under its research directory. This is proposed, not
+   settled — each language's directory record says so.
 5. **Scope commitment.** How far down the descope ladder is acceptable *up front*? Committing now to
    "MPC + Tier A and B" yields a far better repository than discovering it at M9.
+6. **The 140 specification conflicts.** See `DECISIONS.md`. 66 block M0-M3 and 42 of those are HIGH
+   severity. Each carries a conservative default, so building proceeds without answers — on record,
+   not on a guess. Recorded in `docs/adr/0008`.
 
 ---
 
