@@ -1,0 +1,19 @@
+# spectra-graph - temporal and causal graph store plus query primitives.
+# Spec: Part I 20, 32.4. OPTIONAL per Part II 75.3.
+# Status: not started.
+
+[package]
+name = "spectra-graph"
+description = "SPECTRA temporal and causal graph store. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet.
