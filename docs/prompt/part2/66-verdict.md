@@ -57,6 +57,15 @@ axis implies any value on another.
                               every API response, every UI node.
 ```
 
+OVERRIDES Part I sections 40.4, 40.6 and 42.4: the verdict vocabulary "ROBUST / OPTIMISTIC-ONLY /
+UNSAFE / FLAGGED", the FLAGGED palette row with its cross-hatch overlay and flag icon, and the rule
+that any non-exact value renders with the FLAGGED treatment are replaced by the three independent
+axes above; the safety alphabet is exactly {ROBUST, OPTIMISTIC_ONLY, UNSAFE, INDETERMINATE} and
+flags are a separate u16 that is never a verdict value. An implementer who keeps FLAGGED keeps a
+palette entry and a vocabulary term the Part II type cannot produce, and paints `greedy_cover` and
+`sampled_matrix` runs as "flagged — not a ROBUST result", which is a false statement about a
+legitimately constructible ROBUST verdict.
+
 Rationale, stated once so no implementer re-litigates it: `EXACT_*` is a statement about the search
 over cut cardinalities. `ROBUST` is a statement about a fixpoint over the licensed program. A cut can
 be exactly minimal and unsafe; a cut can be robust and of unknown minimality. Cross-contamination
@@ -74,6 +83,15 @@ between the axes was a Part I contradiction and is now a type error.
 | `OPTIMISTIC_ONLY` | The goal is not derivable in **P_min** but is derivable in **P_max**. | Always, provided the P_min fixpoint terminated. |
 | `UNSAFE` | The goal is derivable in **P_min**, with a witness derivation tree. | A witness tree is present and every leaf is a real `EventId` present in the hashed bundle. |
 | `INDETERMINATE` | Neither a safety claim nor a witness can be defended under this run's flags. | Whenever the other three are not constructible. This is the fail-closed sink. |
+
+OVERRIDES Part I section 25.9: the automatic downgrade, under which a run carrying a flag is
+relabelled `mode: "OPTIMISTIC_ONLY"` with a `downgraded_by` list regardless of the fixpoint results,
+is replaced by the constructibility conditions in this table — `OPTIMISTIC_ONLY` requires that the
+goal is not derivable in P_min and is derivable in P_max, and a flagged run that cannot defend that
+claim falls to `INDETERMINATE` (66.4 A10). An implementer following section 25.9 emits
+OPTIMISTIC_ONLY for a run whose goal is unreachable in P_max, which is a factually false safety
+claim under this section's own definition, and attaches a `downgraded_by` field that does not exist
+in the canonical object of 66.2.3.
 
 `UNSAFE` carries a mandatory `witness_class`:
 
@@ -124,9 +142,25 @@ whose minimality is not `EXACT_EXHAUSTIVE`. `make lint-claims` (§72) greps for 
 }
 ```
 
+OVERRIDES Part I sections 25.7 and 38.2: the five-hash scope `{rules, bundle, controls, liveness,
+goal}` with no entity-resolution hash and no attacker field is replaced by a six-hash scope that
+adds `er` and by the mandatory literal `attacker: "non-adaptive"`; the `proof_cert` DDL needs an
+`er_hash` column and the content-key unique index must include it, and the checker invocation takes
+`--er` (66.8). An implementer building the section 25.7 certificate emits a scope the Go checker
+rejects with `VRD-005`, and a content key over the five old hashes collides for two runs that differ
+only in entity resolution.
+
 Canonicalization rules (binding on emitter and checker alike):
 1. `flags` is a JSON array of flag names sorted by **bit position** (66.3), never alphabetically,
    never a bitmask in the wire format. The checker recomputes the mask and rejects duplicates.
+
+   OVERRIDES Part I sections 25.7, 36.4 and 38.2: the wire representation of flags as a three-key
+   object of booleans `{grounding_capped, subset_minimal_only, greedy_cover}`, and its storage as
+   the three boolean columns `flag_capped, flag_subset_only, flag_greedy`, are replaced by a
+   bit-ordered array of flag names drawn from the closed nine-flag set of 66.3. An implementer
+   emitting the Part I flags object, or serializing those three columns, produces a certificate the
+   checker cannot parse or rejects with `VRD-008` for out-of-bit-order names, and has no storage at
+   all for six of the nine flags.
 2. `witness_class` is `null` unless `safety == "UNSAFE"`. Present-and-null, never absent.
 3. Hashes are lowercase hex, exactly 64 nybbles, prefixed `b3:`. No truncation on the wire.
    Truncation to 8 nybbles happens only in the short rendering (66.5.2).
@@ -153,6 +187,32 @@ Adding a flag is a schema-version bump (`spectra/verdict/v2`), never an in-place
 | 6 | `greedy_cover` | The decisive observation set used the greedy cover beyond the exact search bound. | **D** | Does not block ROBUST. Forces the approximation factor to render inline with the set, never in a tooltip. |
 | 7 | `sampled_matrix` | The degradation matrix cells backing this run's aggregate context were sampled, not executed exhaustively. | **R** | Does not block a per-run ROBUST. Blocks every aggregate claim built from the run; any docs table derived from it must carry the sampling clause. |
 | 8 | `profile_missing` | The hashed clean-baseline arrival profile was absent for at least one source. Without it the liveness threshold would have to be self-calibrated from the run's own (possibly deleted) data — the known false-ROBUST path. Sources with no profile are forced BLIND. | **S** | Blocks ROBUST. |
+
+OVERRIDES Part I sections 25.6 A, 25.8 and 38.2 (bit 5): the treatment of a license voided by the
+difference-constraint pass as routine hygiene, recorded as `voided_by_dcg` in `liveness.json` and in
+the `license.voided` column with no verdict consequence, is replaced by
+`license_voided_by_suspected_tampering`, a soundness-class flag that makes ROBUST unconstructible.
+An implementer following Part I emits ROBUST on a run with voided licenses, which the Go checker
+rejects with `VRD-001`, and the Part I liveness output exposes no field the verdict builder can read
+to set bit 5.
+
+OVERRIDES Part I sections 25.9, 36.5, 37.3, 38.2 and 40.4 (bits 6 and 7): the rule that a run with
+ANY flag set must never be presented as ROBUST — enforced by the serializer guard, the
+`robust_never_flagged` CHECK constraint, the exit-8 gate and the chip rule — is replaced by the
+class system in this table, under which only **S**-class flags block ROBUST, so `greedy_cover` and
+`sampled_matrix` are compatible with a constructible ROBUST verdict. An implementer who writes the
+Part I constraint, serializer guard or visual-regression test makes those two combinations
+unstorable, unserializable and unpaintable, and fails the exhaustive flag sweep of 66.9, which
+requires exactly the subsets disjoint from `SOUNDNESS_MASK` to accept.
+
+OVERRIDES Part I sections 25.6 A and 38 query Q4 (bit 8): the liveness inter-arrival threshold
+computed as `q99(s)` from the run's own data — mandated there as "never a constant, never a tuned
+hyperparameter" — is replaced by a hashed clean-baseline arrival profile per source, because
+self-calibration is the known false-ROBUST path; sources with no profile are forced BLIND and
+`profile_missing` blocks ROBUST. An implementer who builds liveness to section 25.6 A produces no
+profile artifact at all, so bit 8 is set on every run and no run in the system can ever reach a
+constructible ROBUST verdict; the profile is also a hashed input that appears in neither section
+25.3's input table nor the scope of 66.2.3.
 
 Classes: **S** soundness-affecting, **M** minimality-affecting, **D** derived-output-suppressing,
 **R** reporting-affecting. A flag may carry several classes.
@@ -196,6 +256,20 @@ A8  derived_suppressed ⊇ {pareto_frontier}         if no costs.toml was suppli
 A9  scope is total: all six hashes present, non-empty, well-formed; attacker = "non-adaptive"
 A10 if A1 fails and OPTIMISTIC_ONLY / UNSAFE are also not constructible, safety = INDETERMINATE
 ```
+
+OVERRIDES Part I sections 25.6 F, 25.11 and 36.3 (A7): the unconditional redundancy index — computed
+from Ψ on every run and exposed through `GET /api/v1/eclipse/redundancy`, the per-certificate
+redundancy route, the `spectra eclipse redundancy` command and the /prove heatmap, with a cap
+requiring only that `grounding_capped` be set and the measured sizes published — is replaced by
+mandatory suppression: under `corridor_cap` or `grounding_capped` the index must be listed in
+`derived_suppressed` and withheld. An implementer following Part I serves the matrix on a capped run
+and emits an empty `derived_suppressed`, which the checker rejects with `VRD-014`.
+
+OVERRIDES Part I section 25.6 H (A8): the rule that an absent `costs.toml` causes the frontier to be
+computed over cardinality and labeled `cost_basis: "cardinality"` is replaced by mandatory
+suppression — with no `costs.toml` supplied, `pareto_frontier` must appear in `derived_suppressed`
+and no frontier is published on any basis. An implementer of section 25.6 H publishes a
+cardinality-basis frontier and takes `VRD-014` on every costs-free run.
 
 A1 is the headline rule the critics demanded: **ROBUST is unconstructible while any
 soundness-affecting flag is set.** A5 is the Part I contradiction fix: `atoms_over_budget` now
@@ -273,6 +347,14 @@ Long rendering (docs, exports, API `verdict_prose`, LLM narration input):
 
 The trailing sentence "This is a statement about the model, not about the system." is part of the
 long rendering and is not optional. Removing it fails `make lint-verdict-scope`.
+
+OVERRIDES Part I section 42.8.6: the verbatim Proof-screen footer beginning "Soundness is relative
+to the rule table..." and containing "ROBUST means:" is deleted and replaced by the long rendering
+above, whose scope body and trailing sentence carry the same limitation; the Proof screen is not an
+allowlisted file under 66.5.1, so the footer's standalone `ROBUST` token is a lint violation rather
+than a release blocker to preserve. An implementer who ships the section 42.8.6 footer, believing it
+non-negotiable, fails `make lint-verdict-scope` and leaves the build with two competing mandatory
+closing sentences.
 
 ### 66.5.3 One renderer per language, no concatenation
 
@@ -498,6 +580,15 @@ Exit codes: `0` accept, `1` certificate internally consistent but a proof obliga
 (closure, witness, Ψ), `2` verdict-algebra violation, `3` malformed input. The checker prints the
 code, never a bare word.
 
+OVERRIDES Part I sections 25.8 and 37.3: the exit tables `0` OK, `2` invariant violated, `3`
+unlicensed, `4` witness invalid, `5` smaller cut exists, `6` input hash mismatch, and the CLI-wide
+table in which `4` is validation failure, `5` integrity violation and `7` a checker rejection, are
+replaced by the four codes above for `spectra verify`; a failed proof obligation, including a
+smaller cut existing, is exit `1`, and every algebra rejection is exit `2`. An implementer who keeps
+either Part I table wires CI gates and the /eclipse/verify endpoint to classify every
+verdict-algebra rejection as "invariant violated" or to miss checker rejections entirely, since
+exit `7` is never produced.
+
 ```
 $ spectra verify out/cert-4f1c.json --rules rules.toml --controls controls.toml \
       --bundle bundle.jsonl --liveness out/liveness.json --er out/er.json
@@ -589,6 +680,14 @@ banned_substrings = [
 ]
 ```
 
+OVERRIDES Part I section 25.13: the licensed phrasing "no smaller cut exists over the declared
+control catalog" is withdrawn — "no smaller cut exists" and "minimum cut" are banned substrings with
+no allowlist and no qualifying suffix that rescues them, and the permitted rendering for
+`EXACT_PSI_RELATIVE` is "no smaller cut satisfies the enumerated corridor set" (66.2.2). An
+implementer who writes the section 25.13 sentence into docs or the UI, or who builds the Part I
+section 41.11 Proof header that renders the "minimum cut" as atoms, fails `make lint-verdict-scope`
+on a rule that admits no exemption.
+
 Additional gates in the same target:
 - **Concatenation gate.** An AST pass per language flags any expression in which a safety token
   literal is an operand of string concatenation/interpolation outside the sanctioned renderer files
@@ -624,6 +723,14 @@ _p50 _p95  normalized_  index_  strength
 Exempt by explicit allowlist, because they are not judgements: `redundancy_index` (a Jaccard ratio
 over corridors, suppressed under A7), `bit`, `cardinality`, `count`, `bytes`, `millis` in benchmark
 artifacts only. Every exemption carries a one-line rationale in `spec/verdict/score-ban.toml`.
+
+OVERRIDES Part I section 41.2: the investigations route
+`GET /api/v1/investigations?q&status&severity&sort&page` is replaced by the same route with the
+`severity` query parameter removed — the ban here covers field and parameter names across the API,
+not only returned values as in Part I section 36.5, and `severity` is not on the exemption
+allowlist. An implementer who ships the section 41.2 route as written puts a banned name into the
+OpenAPI document and the TypeScript query types, fails `make lint-no-scores`, and has to rework the
+frontend filter control built on that parameter.
 
 FORBIDDEN CLAIMS. No implementation, document, UI string, API field, commit message, README line,
 paper abstract or CV bullet generated from this repository may say, of any verdict:
