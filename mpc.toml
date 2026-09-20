@@ -24,8 +24,13 @@
 # TODO(M0, blocking `make mpc-status`): fill in `blocks` and `descope_rung` for all ten components.
 # The blocking graph is a real dependency claim and must be authored deliberately, not inferred.
 #
-# ARTIFACT PATHS. The `artifacts` list on each component is a declaration of intent. No path below
-# exists. Treat the whole column as a TODO.
+# ARTIFACT PATHS. The `artifacts` list on each component is a declaration of intent. Eight of the
+# paths below do exist, as empty package roots or declaration-only config: python/spectra_gen/,
+# python/spectra_ingest/, config/schema/, config/rules/detection/, config/controls/controls.toml,
+# config/bench/degradation.toml, rust/kernel/ and go/verify/. None of the eight contains an
+# implementation, and no executing gate reads any of them, so by the definition in
+# docs/descope-ladder.md all eight are stubs. Every other path named below does not exist. Treat
+# the whole column as a TODO.
 #
 # GATE NAMES. None of the ten `gate` values below has a row in ci/gates.toml. Part II section 74.4
 # and ci/gates.toml itself state that every gate is a row in that registry and that there is no
