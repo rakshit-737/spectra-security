@@ -1,0 +1,22 @@
+# spectra_core - config loader, typed models, identifiers, hashing, errors.
+# Spec: Part I 32.3, 34; Part II 57 (vocabulary), 58 (determinism).
+# Status: not started.
+
+[project]
+name = "spectra-core"
+version = "0.0.0"
+description = "SPECTRA core types, config loading and hashing. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them, against vendored
+# wheels only (Part II 74.2).
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): Part I 33.6 pins no Python build backend. Pin hatchling==<version>
+# to the wheel vendored into the Tier A image and record it in toolchains.lock.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_core"]
