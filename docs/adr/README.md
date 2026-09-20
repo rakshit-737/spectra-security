@@ -131,13 +131,16 @@ visible numeral.
 | [0000](0000-template.md) | Template | — | The shape of a record. Not a decision. |
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | That this directory exists, in Nygard format, immutable once merged. |
 | [0002](0002-apache-2-licence.md) | Apache-2.0 as the single licence | Accepted | Apache-2.0 over MIT; the patent grant; the NOTICE obligation. |
-| [0003](0003-repository-and-module-naming.md) | Repository, account and module naming | Accepted | `rakshit-737/spectra-security`; the Go module prefix; `spectra-*` crates. |
+| [0003](0003-repository-and-module-naming.md) | Repository, account and module naming | Superseded by ADR-0011 | `rakshit-737/spectra-security`; the Go module prefix; `spectra-*` crates. |
 | [0004](0004-the-kernel-acronym-is-prose-only.md) | The proof-kernel acronym stays in prose | Accepted | The acronym is bound on first use and banned from every name. |
 | [0005](0005-kernel-boundary-is-a-subprocess.md) | The kernel boundary is a subprocess over content-addressed files | Accepted | No in-process bindings; file-in / file-out binaries; the ABI's shape. |
-| [0006](0006-part-two-overrides-part-one.md) | Part II of the specification overrides Part I | Accepted | The override rule, and that silent contradictions go back into Part II. |
-| [0007](0007-polyglot-tiers-and-the-mutation-audit.md) | The language surface is kept and made falsifiable | Accepted | `make polyglot-audit`; the load-bearing test; deletion over rationale. |
+| [0006](0006-part-two-overrides-part-one.md) | Part II of the specification overrides Part I | Superseded by ADR-0010 | The override rule, and that silent contradictions go back into Part II. |
+| [0007](0007-polyglot-tiers-and-the-mutation-audit.md) | The language surface is kept and made falsifiable | Superseded by ADR-0012 | `make polyglot-audit`; the load-bearing test; deletion over rationale. |
 | [0008](0008-proceed-on-recorded-defaults.md) | Build proceeds on recorded conservative defaults | Accepted | How unresolved specification conflicts are carried without stalling. |
 | [0009](0009-public-repository-from-day-one.md) | The repository is public from the first commit | Accepted | Public while pre-alpha, and the honesty obligations that creates. |
+| [0010](0010-correct-the-conflict-count-in-adr-0006.md) | Correct the conflict count recorded in ADR-0006 | Accepted | `docs/plan/CONFLICTS.md` totals 453 rows, not the 353 ADR-0006 cites; its decision restated in force. |
+| [0011](0011-correct-the-stale-artifact-named-in-adr-0003.md) | Correct the stale artifact named in ADR-0003 | Accepted | `spectra.toml` agrees; `go/verify/go.mod`'s header comment is stale. Naming restated in force. |
+| [0012](0012-correct-the-tier-cadence-in-adr-0007.md) | Correct the tier cadence in ADR-0007 | Accepted | Tiers B, C and D run nightly in T2, not per change; the mutation audit restated in force. |
 
 Add the index row in the same change that adds the record. An ADR file with no index row, or an
 index row with no file, is an error.
