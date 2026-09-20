@@ -53,7 +53,7 @@ ifneq ($(UNAME_S),Linux)
 endif
 
 ifeq ($(or $(IS_WSL),$(SPECTRA_DEVCONTAINER),$(CI)),)
-  $(error not running in WSL2, the devcontainer or CI. Set SPECTRA_DEVCONTAINER=1 only from inside the container image. See docs/dev/wsl.md.)
+  $(error not running in WSL2, the devcontainer or CI. Set SPECTRA_DEVCONTAINER=1 only from inside the container image. docs/dev/wsl.md is not written yet; until it is see docs/prompt/part2/74-build.md section 74.10.)
 endif
 
 ifneq ($(filter /mnt/%,$(CURDIR)),)
@@ -217,7 +217,7 @@ doctor: ## Report which toolchains are present; non-zero if a Tier A toolchain i
 	  printf 'NOT CHECKED by this target yet:\n'; \
 	  printf '  * version pins        .tool-versions is committed but not compared (section 33.6)\n'; \
 	  printf '  * image digests       images.lock does not exist (section 74.1)\n'; \
-	  printf '  * host sizing         profile minimums are undeclared (section 74.10.4)\n'; \
+	  printf '  * host sizing         profile minimums are illustrative only and not asserted (section 74.10.4)\n'; \
 	  printf 'Presence is all this target asserts. It does not assert a version matches\n'; \
 	  printf 'a pin, because the found-vs-pinned comparison is not implemented.\n'; \
 	  spectra_rule; \
@@ -338,11 +338,11 @@ builder: ## SUPERSEDED single builder image -- see toolchain-refresh
 toolchain-refresh: ## THE ONLY NETWORK-PERMITTED TARGET -- rebuild toolchains.lock and images.lock
 	$(call todo,74.1,resolve and lock every ecosystem; fetch the vendor bundles; build the four tier images from digest-pinned bases; export OCI tarballs to cas/oci/ and record digests in images.lock,M0)
 
-check-autocrlf: ## Assert no committed text file carries CRLF -- gate G-WIN-003
-	$(call todo,74.10.5,fail if any path matched as text by .gitattributes is staged or committed with CRLF line endings -- the Windows author's most likely way to break byte-identical replay,M0)
+check-autocrlf: ## Assert git config core.autocrlf is false or input in this clone -- gate G-WIN-003 (T0)
+	$(call todo,74.10.5,fail if git config core.autocrlf in this clone is neither false nor input -- the Windows author's most likely way to break byte-identical replay,M0)
 
-secret-scan: ## Assert no credential-shaped string is staged -- gate G-SECRET-001
-	$(call todo,74.11.1,fail if a staged hunk contains a credential-shaped string using a vendored ruleset -- no remote fetch is permitted in the commit path,M0)
+secret-scan: ## Assert no credential-shaped string is staged -- gate G-SECRET-001 (T0)
+	$(call todo,2,fail if a staged hunk contains a credential-shaped string using a vendored ruleset,M0)
 
 lint-images: ## Assert every image reference resolves to a digest in images.lock
 	$(call todo,74.0,fail any FROM / docker run / devcontainer / CI container reference that is pinned by tag rather than by sha256 digest -- gates G-IMG-001 and G-IMG-002,M0)
