@@ -1,0 +1,412 @@
+# T1 - the per-push and per-pull-request tier.
+#
+# Authority: ci/gates.toml. This file runs gates; it does not declare them.
+# Section 74.4 (Part II): "Every gate is a row in ci/gates.toml. There is no
+# other place a gate may be declared." If a job here names a gate id that is not
+# in the registry, or a registry row assigned to T1 has no job here, G-REG-001
+# fails. A check that appears in this file without a gate id is not a gate.
+#
+# STATUS: not started.
+#
+# Exactly one job below runs: `skeleton`. Every other job is declared and
+# explicitly skipped with `if: false`, a stated reason and the milestone that
+# enables it. A skipped job renders grey in the GitHub UI. It is not a pass, it
+# must never be added to the branch-protection required-check list, and it must
+# never be described as green. None of these gates has ever run, so none of them
+# has ever passed.
+#
+# ON `if: false`
+#   Section 73 forbids silencing a red Tier C or D job with `continue-on-error`
+#   or an `if: false` guard. That prohibition is about hiding a job that HAS run
+#   and HAS failed. The guards below sit on jobs whose gate is not written yet:
+#   there is no result to hide. Each one states its enabling milestone, and each
+#   one is deleted by the commit that implements the gate. Using `if: false` on a
+#   job that has ever produced a result is the defect section 73 names.
+#
+# ON RETRIES
+#   Section 74.8.1: automatic retry is forbidden. `continue-on-error`,
+#   `retries:`, `--rerun-failed` and every equivalent are banned, and G-FLAKE-001
+#   is the linter that greps this directory for them. Do not add one here.
+#
+# TIER CEILING: 20 min end-to-end for all jobs (74.4, illustrative, not a
+#   target). Per-job `timeout-minutes` below are derived from each class's
+#   budget_s in ci/gates.toml, rounded up. Every one of those numbers is
+#   illustrative and not a target; none has been measured.
+#
+# TODO(budget): ci/gates.toml currently declares more T1 seconds than the T1
+#   ceiling allows, and says so in its budget summary. That must be reconciled
+#   before any job below is enabled. See TODO(budget) in ci/gates.toml.
+#
+# TODO(runner): every enabled job must eventually run in
+#   spectra/toolchain-a@sha256:<digest from images.lock> (74.1, G-IMG-001). The
+#   skeleton job runs on a bare runner because no toolchain image has been built
+#   and images.lock does not exist. Add `container:` to each job as its gate
+#   lands; until then a `container:` line here would reference a digest nobody
+#   can resolve.
+
+name: t1
+
+on:
+  push:
+  pull_request:
+
+# 74.7
+concurrency:
+  group: t1-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  LC_ALL: C
+  SPECTRA_OFFLINE: "1"
+  SOURCE_DATE_EPOCH: "0"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  # ENABLED.
+  # The only implemented gate in this repository.
+  # It gates the skeleton and nothing else: it does not build, exercise or
+  # verify any part of the platform, because no part of the platform exists.
+  skeleton:
+    name: T1 skeleton / G-SKELETON-001
+    runs-on: ubuntu-24.04
+    # G-SKELETON-001 declares budget_s = 30 (illustrative, not a target). The
+    # job timeout is larger because it also covers checkout.
+    timeout-minutes: 5
+    steps:
+      # TODO(pin): 74.11.2 requires every action pinned to a full commit SHA.
+      # The SHA below is actions/checkout v4.2.2. Verify it against the upstream
+      # tag on the first real run and record the check in ci/ledger/.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: make skeleton-verify
+        run: make skeleton-verify
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: gate registry, CI budget, flake policy, sampling scope (74.4-74.9)
+  registry:
+    name: T1 registry / gates, budget, flake, sampling (NOT IMPLEMENTED)
+    if: false # enabled at M0 (skeleton and toolchain), with the registry linter
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-REG-001"
+          echo "not implemented: G-BUDGET-001"
+          echo "not implemented: G-FLAKE-001"
+          echo "not implemented: G-FLAKE-003"
+          echo "not implemented: G-SAMP-001"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: repository hygiene on a Windows/WSL2 host (74.10)
+  repo-hygiene:
+    name: T1 hygiene / line endings, case, file modes (NOT IMPLEMENTED)
+    if: false # enabled at M0 (skeleton and toolchain)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-WIN-002"
+          echo "not implemented: G-WIN-004"
+          echo "not implemented: G-WIN-005"
+          echo "not implemented: G-WIN-006"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: digest pins and vendored-dependency integrity (74.1, 74.2)
+  toolchain-pins:
+    name: T1 pins / images.lock and toolchains.lock (NOT IMPLEMENTED)
+    if: false # enabled at M0, together with the first toolchain-a image build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-IMG-001"
+          echo "not implemented: G-IMG-002"
+          echo "not implemented: G-VEND-001"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the offline claim (74.3). --network=none, file:// clone, egress
+  # sentinel. Non-quarantinable (74.8.6).
+  build-offline:
+    name: T1 offline / make build-offline (NOT IMPLEMENTED)
+    if: false # enabled at M0 (skeleton and toolchain); it is the headline claim
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-OFF-001"
+          echo "not implemented: G-NET-001"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: format, lint, naming lint, glossary lint, banned-phrase lint (74.4)
+  lint-format:
+    name: T1 lint / format, naming, vocabulary, banned phrases (NOT IMPLEMENTED)
+    if: false # enabled at M0 (skeleton and toolchain)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-VOCAB-001"
+          echo "not implemented: G-NAME-ECLIPSE"
+          echo "not implemented: G-ORACLE-BANNED-PHRASES"
+          echo "not implemented: G-NO-SCORES"
+          echo "not implemented: G-WD-NO-COSTS"
+          echo "not implemented: G-WD-TIEBREAK"
+          echo "not implemented: G-WD-BITSLOCK"
+          echo "not implemented: G65.5"
+          echo "not implemented: G-DET-LINT"
+          echo "not implemented: G-POLY-NOBRANCH"
+          echo "not implemented: G-UI-STRINGS"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the claims linter (71). Non-quarantinable (74.8.6).
+  lint-claims:
+    name: T1 claims / claim registry, framing, limitations (NOT IMPLEMENTED)
+    if: false # enabled at M1 (generator and ground truth), with docs/claims.md
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-CLAIM-PARSE"
+          echo "not implemented: G-CLAIM-ANCHOR"
+          echo "not implemented: G-CLAIM-REGISTERED"
+          echo "not implemented: G-CLAIM-SUPPORT"
+          echo "not implemented: G-CLAIM-NUMSRC"
+          echo "not implemented: G-CLAIM-BANNED"
+          echo "not implemented: G-CLAIM-ALLOWCAP"
+          echo "not implemented: G-CLAIM-NOERASE"
+          echo "not implemented: G-CLAIM-PLACEHOLDER"
+          echo "not implemented: G-CLAIM-SELFTEST"
+          echo "not implemented: G-CLAIM-001"
+          echo "not implemented: G-FRAMING-VERBATIM"
+          echo "not implemented: G-FRAMING-README"
+          echo "not implemented: G-LIMITS-FRESH"
+          echo "not implemented: G-LIMITS-NOHAND"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: build-graph and layering lints (63, 65, 68, 69, 76)
+  lint-structure:
+    name: T1 structure / build graph, layering, ABI contract (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice), when the layers first exist
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-CHECKER-BUILDGRAPH"
+          echo "not implemented: G-ORACLE-NO-SMT-RUNTIME"
+          echo "not implemented: G-NO-SERVICE-DEPS"
+          echo "not implemented: G-ONE-SPAWNER"
+          echo "not implemented: G-SCHEMA-LINT"
+          echo "not implemented: G-ABI-CONTRACT"
+          echo "not implemented: G-SIM-INDEP"
+          echo "not implemented: G-HYP-LAYERING"
+          echo "not implemented: G-CERT-SCHEMA-SYNC"
+          echo "not implemented: G65.1"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: research-integrity lints (62, 70). Ground-truth isolation, leakage,
+  # pool disjointness, preregistration immutability, ledger append-only.
+  lint-research-integrity:
+    name: T1 integrity / ground truth, leakage, prereg, ledger (NOT IMPLEMENTED)
+    if: false # enabled at M1 (generator and ground truth), when truth.json exists
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-GT-ISOLATION"
+          echo "not implemented: G-ORACLE-GT-NO-IMPORT"
+          echo "not implemented: G-ORACLE-GT-SCHEMA"
+          echo "not implemented: G-ORACLE-LEAKAGE"
+          echo "not implemented: G-ORACLE-SPLIT-INTEGRITY"
+          echo "not implemented: G-ORACLE-PREREG-IMMUTABLE"
+          echo "not implemented: G-ORACLE-LEDGER-APPEND-ONLY"
+          echo "not implemented: G-ORACLE-FLAG-RATCHET"
+          echo "not implemented: G-ORACLE-GOAL-DERIVED"
+          echo "not implemented: G-ORACLE-PHI-TOTAL"
+          echo "not implemented: G-ORACLE-PHI-INJECTIVE"
+          echo "not implemented: G-PREREG-ROLES"
+          echo "not implemented: G-PREREG-CHECK"
+          echo "not implemented: G-PREREG-LEDGER"
+          echo "not implemented: G-PREREG-METRICS"
+          echo "not implemented: G-PREREG-ARMS"
+          echo "not implemented: G-PREREG-TABLES"
+          echo "not implemented: G-PREREG-README-POOL"
+          echo "not implemented: G-PREREG-POOLS-DISJOINT"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: anti-regression and anti-theater lints (43.5, 75.6, 75.7)
+  lint-ratchet:
+    name: T1 ratchet / counts, stubs, trivial assertions (NOT IMPLEMENTED)
+    if: false # enabled at M1, with the first recorded ratchet.json milestone
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-RATCHET-001"
+          echo "not implemented: G-MPC-001"
+          echo "not implemented: G-STUB-001"
+          echo "not implemented: G-ASSERT-TRIV-001"
+          echo "not implemented: G-REVIEW-ORDER-001"
+          echo "not implemented: G-TEST-NOTHEATER"
+          echo "not implemented: G-TEST-REQUIRE-TESTS"
+          echo "not implemented: G-TEST-FIXTURE-GUARD"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: guard-AST hash equality across backends (74.4). Non-quarantinable.
+  guard-ast:
+    name: T1 guards / AST hash equality across backends (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice), when the guard AST is shared
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-GUARD-HASH"
+          echo "not implemented: G-GUARD-CHECK"
+          echo "not implemented: G-GUARD-LINT"
+          echo "not implemented: G-ORACLE-CODEGEN-REGRESSION"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: byte-identical replay, same runner, two repeats (74.4).
+  # Non-quarantinable (74.8.6). Cross-runner byte-identity is T2, not here.
+  determinism-replay:
+    name: T1 determinism / byte-identical replay, one runner (NOT IMPLEMENTED)
+    if: false # enabled at M1 (generator and ground truth)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-DET-REPLAY-T1"
+          echo "not implemented: G-DET-GOLDEN"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: Tier A language unit tiers (74.4). Tier B, C and D run in T2; 74.0
+  # OVERRIDES 43.1 so that a Tier C or D failure never blocks a Tier A milestone.
+  lang-tier-a:
+    name: T1 languages / Python, Rust, Go, TypeScript (NOT IMPLEMENTED)
+    if: false # enabled at M0 (skeleton and toolchain)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-LANG-PYTHON"
+          echo "not implemented: G-LANG-RUST"
+          echo "not implemented: G-LANG-GO"
+          echo "not implemented: G-LANG-TS"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: entity-resolution purity lints (60). The heavier ER gates are T2.
+  er-purity:
+    name: T1 ER / purity and no-fuzzy-matcher lints (NOT IMPLEMENTED)
+    if: false # enabled at M2 (ingest, entity resolution, event store)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ER-2"
+          echo "not implemented: G-ER-3"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: cross-language contract, determinism and metamorphic suites (44)
+  contract-tier-a:
+    name: T1 contract / cross-language differential, Tier A (NOT IMPLEMENTED)
+    if: false # enabled at M3 (vertical slice)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-CONTRACT-A"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: adversarial certificate must-reject corpus, spine subset (74.4).
+  # SAMPLED: its artifact carries claim_scope = "SAMPLED" and may not back a
+  # docs sentence (G-SAMP-001). The full corpus is G-CERT-CORPUS in T2.
+  # Non-quarantinable (74.8.6).
+  cert-corpus-spine:
+    name: T1 certificates / must-reject corpus, spine subset (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-ORACLE-ADVERSARIAL-CERTS"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: randomized-configuration simulator-versus-kernel agreement (74.4,
+  # 74.5). SAMPLED in T1; the full space is G-SIM-AGREE-FULL in T2.
+  sim-agreement-sampled:
+    name: T1 agreement / simulator vs kernel, sampled (NOT IMPLEMENTED)
+    if: false # enabled at M6 (independent Go checker and differential gates)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-SIM-AGREE-T1"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: degradation-matrix spine cells (74.4, 74.5). SAMPLED. 74.5 forbids
+  # describing this run as the full matrix, exhaustive, or every cell.
+  # Non-quarantinable (74.8.6).
+  degradation-spine:
+    name: T1 degradation / zero false ROBUST, spine cells (NOT IMPLEMENTED)
+    if: false # enabled at M7 (degradation, tampering, redundancy, frontier)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-KERNEL-FALSE-ROBUST"
+          exit 1
+
+  # NOT IMPLEMENTED - skipped, not passing.
+  # Class: the demo hash check (74.4). It is the flagship artifact.
+  demo:
+    name: T1 demo / transcript and certificate hash (NOT IMPLEMENTED)
+    if: false # enabled at M10 (documentation, demo, release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: not implemented
+        run: |
+          echo "not implemented: G-DEMO-HASH"
+          echo "not implemented: G-DEMO-CLAIMS"
+          exit 1
