@@ -1,0 +1,83 @@
+{
+  // SPECTRA development container.
+  //
+  // Part I section 33.8. Development happens inside WSL2 or inside this container; the host
+  // toolchain is never the build environment. Part I section 33.1: a contributor with only Docker
+  // installed can run every target, and the Makefile is the only entry point a human or CI needs.
+  //
+  // Status: not started. docker/builder.Dockerfile does not exist, and neither does
+  // .devcontainer/postCreate.sh. This file will not build until both land at M0.
+
+  "name": "spectra",
+
+  // Part I section 33.8 requires the devcontainer to build from the one builder image that contains
+  // every toolchain, so that the container and CI cannot drift.
+  "build": {
+    "dockerfile": "../docker/builder.Dockerfile",
+    "context": ".."
+  },
+
+  // TODO(M0, blocking): pin the base image by digest.
+  // Part I section 33.6 forbids a floating version and forbids `latest` in any Dockerfile, and
+  // Part I section 52.3 requires the M0 compose services to be pinned by digest. The digest belongs
+  // on the FROM lines inside docker/builder.Dockerfile, which does not exist yet, so there is no
+  // digest to record here.
+  // If this repository later switches to a prebuilt builder image instead of a local build, replace
+  // the "build" block above with:
+  //   "image": "spectra-builder@sha256:<digest>"
+  // and record the digest and the commit that produced it in docs/adr/. Do not reference a tag.
+
+  // The builder image runs as a non-root `builder` user with a writable /work.
+  "remoteUser": "builder",
+
+  // Part I section 33.8: mount the repo at /work.
+  "workspaceFolder": "/work",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached",
+
+  // Part I section 33.8: forward 8000 (api), 5173 (web), 5432 (postgres), 6379 (redis).
+  "forwardPorts": [8000, 5173, 5432, 6379],
+  "portsAttributes": {
+    "8000": { "label": "api" },
+    "5173": { "label": "web" },
+    "5432": { "label": "postgres" },
+    "6379": { "label": "redis" }
+  },
+
+  // Determinism. Part II section 58 and the repository-wide rule: TZ=UTC, LC_ALL=C.
+  // SPECTRA_IN_CONTAINER is declared by the builder image itself (Part I section 33.7) and is
+  // deliberately NOT repeated here, so there is exactly one place that sets it.
+  "containerEnv": {
+    "TZ": "UTC",
+    "LC_ALL": "C",
+    "LANG": "C.UTF-8"
+  },
+
+  // Part I section 33.8: postCreate.sh runs `make setup doctor`.
+  // TODO(M0, blocking): .devcontainer/postCreate.sh does not exist. Until it does, this container
+  // will fail on create rather than come up half-configured, which is the intended failure mode.
+  "postCreateCommand": "./.devcontainer/postCreate.sh",
+
+  // Part I section 33.8: "It must not add features that install a second copy of any toolchain."
+  // The builder image contains every pinned toolchain. This block stays empty. Adding a feature
+  // here that installs a language runtime creates a second, unpinned copy and breaks the pin
+  // guarantee of Part I section 33.6.
+  "features": {},
+
+  // SPECTRA is offline: no API keys, no cloud credentials, no paid services. Do not add a feature,
+  // an extension or a lifecycle command that requires network access at runtime.
+  "customizations": {
+    "vscode": {
+      // TODO(M0, decision: extension list): left empty deliberately. Extensions are editor
+      // convenience, not build inputs, and an extension that reformats or auto-fixes on save can
+      // silently diverge from `make lint`. If extensions are added, add only ones whose
+      // configuration is read from the repository's own config files, and record the list in
+      // CONTRIBUTING.md so it is reviewable.
+      "extensions": [],
+      "settings": {
+        "files.eol": "\n",
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true
+      }
+    }
+  }
+}
