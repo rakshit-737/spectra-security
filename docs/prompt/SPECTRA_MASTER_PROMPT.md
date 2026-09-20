@@ -4,21 +4,24 @@
 
 Reconstruct the security state. Replay the attack. Prove the control.
 
+> **GENERATED FILE.** Assembled from `part1/` and `part2/` by
+> `scripts/assemble-prompt.py`. Edit the section sources, not this file.
+
 ---
 
 ## WHAT THIS DOCUMENT IS
 
 This is the complete build specification for SPECTRA, written to be executed by an autonomous
-coding agent (Claude Code). It is addressed to that agent in the imperative second person.
+coding agent. It is addressed to that agent in the imperative second person.
 
 It is in two parts.
 
 - **PART I (sections 0-56)** — the platform: operating contract, research frame, data and state
-  models, temporal and causal engines, the ECLIPSE proof kernel, the control-replay flagship,
-  the local cyber range, the polyglot architecture, repository layout, API, CLI, database,
-  frontend, verification, benchmarks and delivery.
-- **PART II (sections 57-76)** — the hardening addendum. Part II was written after three
-  independent critics reviewed Part I and found real structural defects in it.
+  models, temporal and causal engines, the proof kernel, the control-replay flagship, the local
+  cyber range, the polyglot architecture, repository layout, API, CLI, database, frontend,
+  verification, benchmarks and delivery.
+- **PART II (sections 57-76)** — the hardening addendum, written after three independent critics
+  found structural defects in Part I.
 
 > **PART II OVERRIDES PART I WHEREVER THEY CONFLICT.**
 > Every override is marked inline with a line beginning `OVERRIDES Part I:`.
@@ -26,32 +29,35 @@ It is in two parts.
 
 ## THE DEFECTS PART II EXISTS TO FIX
 
-1. **Validation was circular.** Part I generated the concrete simulator and the ECLIPSE kernel
-   from one guard AST, then used their agreement as the correctness gate. Two artifacts generated
-   from one source agreeing proves codegen works, not that either models an attack.
-   Fixed by section 62 (four independent oracles, including re-executing the range with controls
-   genuinely enforced).
+1. **Validation was circular.** Part I generated the concrete simulator and the proof kernel from
+   one guard AST, then used their agreement as the correctness gate. Two artifacts generated from
+   one source agreeing proves codegen works, not that either models an attack. Closed by section
+   62, which introduces four independent oracles.
 2. **Headline outputs were mathematically ill-defined.** The blindness premium was a set
    difference of non-unique minimum cuts; "residual reachability" was an unnamed magnitude in a
    project that bans invented scores; the redundancy index was called exact while computed over a
-   cappable set. Fixed by section 64.
-3. **The honesty gates were one-sided.** "Zero false ROBUST" is passed by always returning UNSAFE,
-   by maximally permissive licensing, or by tripping a cap flag. Fixed by section 62
-   (false-UNSAFE and non-vacuity gates) and section 66 (ROBUST unconstructible while any
-   soundness flag is set).
-4. **Liveness was self-calibrating.** The blind-window test used a quantile computed from the run's
-   own data, so deletion inflates the threshold and suppression hides itself exactly at the
-   high-degradation cells the research is about. Fixed by section 65.
-5. **Scope was unbounded and evaluation was circular by construction.** Fixed by section 70
-   (pre-registration, held-out protocol, overfit ledger), section 73 (polyglot mutation audit),
-   section 74 (CI budget and tiering) and section 75 (non-goals, descope ladder, minimum
-   publishable core, test ratchet).
+   cappable set. Closed by section 64.
+3. **The honesty gates were one-sided.** "Zero false ROBUST" is passed by always returning UNSAFE.
+   Closed by sections 62 and 66.
+4. **Liveness was self-calibrating.** The blind-window test used a quantile computed from the
+   run's own data, so deletion inflated the threshold that detects deletion. Closed by section 65.
+5. **Scope was unbounded and evaluation was circular by construction.** Closed by sections 70,
+   73, 74 and 75.
+
+## RECONCILIATION STATUS
+
+An audit compared every Part II section against its Part I counterparts and classified 453
+disagreements: 100 already marked as overrides, 213 that contradicted Part I silently, and 140
+that neither part settles. The silent class has since been marked inline; the unresolved class is
+tracked in `docs/plan/DECISIONS.md`, each with a conservative default.
+
+Consequence for a reader: an unmarked disagreement between the two parts may still exist. Part II
+wins in every case.
 
 ## HOW TO USE IT
 
-Paste `KICKOFF.md` into a fresh Claude Code session in the repository root. It points the agent
-here. Do not paste this whole document into a chat window — it is a repository artifact to be
-read from disk.
+Paste `KICKOFF.md` into a fresh agent session in the repository root. It points the agent here.
+Do not paste this whole document into a chat window — it is a repository artifact read from disk.
 
 ## THE LAWS THAT OVERRIDE EVERYTHING
 
@@ -158,7 +164,6 @@ read from disk.
 ---
 
 # PART I — THE PLATFORM (SECTIONS 0-56)
-
 
 ============================================================
 0. OPERATING CONTRACT
@@ -961,7 +966,6 @@ The project is done when all of the following are true and each was observed by 
 
 If any line is unchecked, the project is not done. Do not declare it done. Report exactly which lines are unchecked and why.
 
-
 ============================================================
 5. RESEARCH FRAME
 ============================================================
@@ -1746,7 +1750,6 @@ OK: LIMITATIONS.md is current (last semantics change 2026-09-14, review 2026-09-
 - Do NOT claim any form of compliance, certification, or alignment with a security standard.
 - Do NOT describe SPECTRA as detecting, preventing, or stopping anything.
 - Do NOT ship a demo, video, or screenshot in which the SIMULATED marker is cropped out.
-
 
 ============================================================
 9. ENTITY MODEL
@@ -2634,7 +2637,6 @@ over the complete bundle. Incremental resolution is explicitly out of scope — 
   iteration everywhere; add a test that runs the resolver under three different insertion orders and
   diffs the serialized output byte for byte.
 
-
 ============================================================
 13. SECURITY STATE MODEL
 ============================================================
@@ -3506,7 +3508,6 @@ Negative requirements for this section:
 - Do NOT invent thresholds "because they look reasonable". If a value has no justification, it does not ship.
 - Do NOT calibrate any constant against a public benchmark, CVE feed, MITRE frequency table, or an external dataset; SPECTRA is offline and its numbers come from its own runs.
 - Do NOT emit a severity or anomaly result whose provenance cannot be traced to (a) a declared FSM edge, (b) a declared policy rule, or (c) a counted statistic over the current bundle. Every finding in the UI must be one click away from the exact `EventId`s and the exact counts behind it.
-
 
 ============================================================
 17. TEMPORAL REASONING ENGINE
@@ -4801,7 +4802,6 @@ NOTE: this verifies the derivation, not reality. See section 12.9.
     read-only labels on a transition, sourced from the rule's `provenance`, and
     must never enter ranking, assembly, or the certificate.
 
-
 ============================================================
 20. GRAPH ENGINE
 ============================================================
@@ -5800,7 +5800,6 @@ was blind between t1 and t2, which licenses unobserved steps in that window."
   proof kernel, plus an optional, off-by-default local narrator, plus an
   optional offline ML comparison arm.
 
-
 ============================================================
 22. CONTROL MODEL
 ============================================================
@@ -6537,7 +6536,6 @@ UI (route `/prove`): a control lattice panel (level sliders generated from `cont
 - Any result from a flagged run presented as ROBUST (25.9).
 - That it is formal verification of any real system, a compliance attestation, or an assurance case.
 - Any LLM-generated element inside a certificate. LLM narration may read a certificate and restate it in prose; the narration endpoint receives only the certificate JSON, its output is stored separately as `narration.md`, and no narration text is ever hashed into, or read back out of, the certificate.
-
 
 ============================================================
 26. THE LOCAL CYBER RANGE
@@ -7387,7 +7385,6 @@ lacks a recorded manifest. Enforcement, not convention:
   dependency graph gate fails if the kernel crate transitively depends on the truth crate.
 - Do NOT invent completeness levels, confidence scores, or interpolated points between measured
   matrix cells. Plot only cells that were run.
-
 
 ============================================================
 30. POLYGLOT ARCHITECTURE PRINCIPLE
@@ -8313,7 +8310,6 @@ Honesty rules for this file — all are CI-enforced:
    reason for each entry. It must not report a percentage bar as an accomplishment, and it must
    state that generated, vendored and documentation files are excluded from the count.
 
-
 ============================================================
 32. REPOSITORY LAYOUT
 ============================================================
@@ -8871,7 +8867,6 @@ Frozen keys may only be set at levels 1–4 and are rejected from env and CLI: `
 - Do not generate `costs.toml`. If it is absent, the Pareto frontier is disabled and the UI says so; SPECTRA never invents a cost.
 - Do not put rules, thresholds or control definitions in the database. Postgres stores telemetry, derived facts and run artifacts; policy lives in `config/` under version control.
 - Do not support a remote config source, a feature-flag service, or hot reload of rules mid-run. Rules change between runs, never within one.
-
 
 ============================================================
 35. BACKEND SERVICE ARCHITECTURE
@@ -9707,7 +9702,6 @@ ORDER BY s.source_id, s.seq_no;
 ```
 
 38.9 Negative requirements. Do not store ground truth from the generator in any table the reconstruction path can read; it lives in a separate schema `truth` with a database role that the API user cannot access, and a test asserts the API role is denied. Do not add `ON DELETE CASCADE` from `dataset` to `bundle` — regeneration must be explicit. Do not add triggers that mutate `event`. Do not store LLM output in the same table as computed structures. Do not use `SERIAL`, `TIMESTAMP` without time zone, `float` for anything counted, or `TEXT` for a hash. Do not create an index without recording its justification in the migration comment, and drop any index whose `idx_scan` is zero after a full benchmark run.
-
 
 ============================================================
 39. FRONTEND ARCHITECTURE
@@ -10644,7 +10638,6 @@ interface FormulaPopover {
    header render < 50 ms after job completion; checker pane first line < 300 ms after invocation.
    Playwright asserts each; regressions fail CI.
 
-
 ============================================================
 43. TESTING STRATEGY
 ============================================================
@@ -11253,7 +11246,6 @@ Cardinality guard: `incident_id` appears only on gauges that are deleted when th
 - Do NOT log raw event payloads at `info`; only ids and counts. Raw payloads appear at `debug` behind an explicit flag and are excluded from shipped log bundles.
 - Do NOT use `print`, `console.log`, `fmt.Println` or `println!` outside CLI output paths; lint-enforced.
 - Do NOT downgrade an error to a warning to keep a dashboard green.
-
 
 ============================================================
 48. BENCHMARK FRAMEWORK
@@ -12001,7 +11993,6 @@ references:
 16. The `version` and `date-released` fields are updated by `make release`, not by hand. The `identifiers` entry pointing at the benchmark run id is mandatory: a citation that does not name the run backing its numbers is incomplete.
 17. Do NOT claim a DOI you do not have. Do NOT list co-authors who did not contribute. Do NOT cite the repository as peer-reviewed work.
 
-
 ============================================================
 52. BUILD ORDER AND MILESTONES
 ============================================================
@@ -12566,12 +12557,9 @@ an ingest path that is not deterministic.
 ```
 
 
-
-
 # PART II — HARDENING ADDENDUM (SECTIONS 57-76)
 
 Part II overrides Part I wherever they conflict.
-
 
 ============================================================
 57. GLOSSARY, CANONICAL VOCABULARY AND ID TYPES
@@ -12648,6 +12636,12 @@ operator-id   = "op:"   snake
 oracle-id     = "orc:"  snake
 ```
 
+OVERRIDES Part I section 10.2: `source_id` matching `^src-[a-z2-7]{16}$` and `collector_id` matching `^col-[a-z2-7]{16}$` — content-addressed base32 digests produced by section 12's resolver from the `src` and `col` entity kinds declared in section 9.2 — are replaced by the authored symbolic forms `src:` snake and `col:` snake `@` u16, which are never derived from a digest and are not entity kinds at all. An implementer following section 10.2 emits `src-`/`col-` base32 values that fail the `source_id` and `collector_id` grammars, invalidating both worked examples in section 10.7, and requires section 12's resolver to materialize two kinds that no longer exist.
+
+OVERRIDES Part I section 10.2: `scenario_id` matching `^[a-z0-9][a-z0-9_-]{2,63}$`, with the version held separately in section 23.2's `version` key, is replaced by `sc:` snake `@` u16, in which hyphens are illegal and the `@` suffix is the only place the scenario schema version is recorded. An implementer following section 10.2 emits `s07-token-pivot` or section 23.2's `sc_oauth_token_pivot`, both invalid here, and because section 9.3 anchors every `EntityId` on `scenario_id` every entity digest in every fixture is then computed over the wrong string.
+
+OVERRIDES Part I section 13: the SCREAMING_SNAKE state names of section 13 (`AUTHENTICATED`, `EXFIL_STAGED`, `ELEVATED_JIT`), written bare, are replaced by lowercase `st:` `<dimension>` `:` `<state>` identifiers such as `st:session:active`. An implementer following section 13 generates Rust `enum` and Python `StrEnum` variant spellings that fail the case rule above, prints unprefixed names in section 15.4's mandatory CLI transcript, and stores states in section 15.2's `SMALLINT` columns rather than the `state_id` text domain.
+
 Prefix uniqueness is a hard invariant: no prefix is a prefix of another prefix. `make lint-vocab` recomputes this from `vocab.toml` and fails on violation.
 
 **Certificate width rule.** Any identifier matching an `h128` form appearing anywhere inside a certificate is a hard rejection by `spectra verify`, not a warning. Rationale: `h128` IDs derive from run-local structure and are never adversarially reachable; integrity-critical IDs derive in part from untrusted telemetry bytes, where 128 bits of truncated digest permits a birthday-grinding attack at roughly 2^64 work. Do not "optimize" certificate size by truncating these.
@@ -12666,6 +12660,8 @@ DIGEST(kind, payload) = BLAKE3-256( "spectra/v1/" || kind || 0x1F || payload )
 2. An `h256` ID renders all 32 output octets as lowercase hex. An `h128` ID renders **the first 16 octets only**, lowercase hex. Truncation is a prefix, never a fold, never a XOR.
 3. `payload` is the concept's canonical byte encoding, defined per concept in `vocab.toml` field `payload`. Canonical encodings are built only from: ASCII identifiers as written; unsigned integers as fixed-width big-endian (`u8`, `u16`, `u32`, `u64`); and ordered sequences as `count:u32` big-endian followed by elements. **No JSON, no floats, no locale-sensitive formatting, no platform-endian writes, no length-prefixed UTF-8 with implementation-defined normalization.**
 4. Sequences inside a payload are sorted by plain bytewise (`memcmp`) ascending order of the element's canonical bytes before hashing. Sorting is stable and total. Never sort by a language's default collation.
+
+   OVERRIDES Part I sections 9.3, 10.2, 11.3, 14.1, 23.4 and 23.5: the five distinct digest recipes of Part I — base32 `BLAKE3_128` over LF/US-delimited anchor bytes, `BLAKE3_128` over RFC 8785 JCS JSON, `BLAKE3_256` over a `spectra.chain.v1` prefix with a little-endian `u64le(epoch)`, `blake3` over canonical JSON bodies, and a truncated `blake3(trace_root || seq || emit_index)` — are all replaced by the single `DIGEST(kind, payload)` construction of rule 1, whose domain prefix is `spectra/v1/` + `kind`, whose payload admits no JSON and no platform-endian write, and whose only permitted truncation is the h128 prefix of rule 2. An implementer following any Part I recipe produces a digest differing in domain prefix, payload encoding, byte order or width, so every golden hash, every `tests/golden/traces.json` entry and every committed certificate fixture changes value.
 5. On the wire (JSONL bundles, certificate JSON, TOML catalogs, HTTP APIs) every identifier is the ASCII string of §57.2 — never a byte array, never base64, never an integer.
 6. In SQL, every identifier is `text` constrained by a `DOMAIN`, never `bytea`, never `uuid`:
 
@@ -12678,7 +12674,15 @@ CREATE DOMAIN tick        AS bigint CHECK (VALUE >= 0);
 -- ... one DOMAIN per row of Table A that has an ID type.
 ```
 
+   OVERRIDES Part I sections 9.2 and 9.3: the twenty-one-code entity-kind set (`idn, acct, svcacct, cred, sess, tok, dev, host, ctr, proc, svc, api, res, role, grant, netif, flow, zone, ctl, src, col`) and the wire form `EntityId := kind "-" b32` over lowercase base32 are replaced by the closed `EntityKind` set of Table C and the wire form `en:` `<kind>` `:` `<hex>` constrained by the `entity_id` domain above. An implementer following section 9.2 emits values shaped like `sess-k4m2q9x7t1b0dfe3`, which fail the `entity_id` domain on prefix, separator, alphabet and digest rendering and void section 10.2's `EntityRef` pattern, and builds resolvers for kinds that no longer exist (token, device, container, role, grant, zone, network interface, control instance, telemetry source, collector) while leaving `key`, `file` and `api_client` without an anchor tuple.
+
+   OVERRIDES Part I sections 15.2 and 25.5: `event_id BYTEA`, `tid BYTEA`, `chain_hash BYTEA`, `run_id UUID`, `entity_id BIGINT`, `license_id BIGINT` and the `SMALLINT` columns for dimension, state, trigger, support and classification, together with `LicenseId(u32)` and `EventId(u64)` in code, are replaced by `text` columns constrained by the DOMAINs above and by the byte widths Table B declares, so `LicenseId` is a certifiable `lic:` h256 rather than a run-local integer and `RunId` is `run:` h256 rather than a UUID or section 10.2's `^[0-9a-f]{32}$`. An implementer following section 15.2 builds a schema in which every identifier column and every foreign key has the wrong type, and emits `run_id` values that fail the `run_id` domain on every canonical event and every fixture.
+
 7. `Tick` is `u64`, an integer count of nanoseconds since the scenario epoch (tick 0). All intervals are half-open `[t0, t1)`. There is no floating point anywhere in the time model and no wall-clock value in any hashed payload.
+
+   OVERRIDES Part I sections 14.4, 16.6 and 23.2: `tick = floor((t_norm_ns - run_origin_ns) / tick_width_ns)` with `tick_width_ns` configurable in `config/constants.toml`, and section 23.2's separate `tick_unit_s` simulator unit exported by section 23.8, are replaced by a tick fixed at one nanosecond; `tick_width_ns` and `tick_unit_s` cease to exist. An implementer following section 14.4 builds a quantized clock in which every TTL, idle and absolute expiry deadline, blind-window bound, `horizon_ticks`, `burst_window_ticks`, `snapshot_interval_ticks` and `min_reorg_horizon_ticks` is scaled by the old tick width, and one following section 11.4's closed gap interval `[a.observed_at_ns, b.observed_at_ns]` includes the upper bound, changing the SUPPRESSED licensing basis at that boundary.
+
+   OVERRIDES Part I section 14.1: `wall_ns` as a required field of the transition record, hashed into `tid = blake3(canonical_json(record minus {tid, seq, superseded_by}))`, is replaced by a transition payload carrying no wall-clock value at all. An implementer following section 14.1's schema produces different `tid` values for two byte-identical runs on different machines, breaking the determinism guarantee asserted in section 15.6.
 
 ---
 
@@ -12725,6 +12729,10 @@ CREATE DOMAIN tick        AS bigint CHECK (VALUE >= 0);
 | 35 | degradation spec | `DegradationId` (`deg:`) | PART-II/degradation | An ordered list of (operator, parameters, seed) defining one matrix cell. |
 | 36 | run manifest | `RunId` (`run:`) | PART-II/determinism | The hashed core of one execution: all input digests, git SHA, toolchain versions, seeds. |
 | 37 | oracle | `OracleId` (`orc:`) | §62 | An independently implemented judge of a property; a closed set of five. |
+
+OVERRIDES Part I sections 11.3 and 15.2: the raw-bytes digest carried twice, under two names and two widths — `content_hash_n = BLAKE3_256(raw_record_bytes_n)` stored as `evidence.content_hash` and keyed by `event_id` (section 10.6.1), and `raw_event.event_id` as a blake3-128 of the raw bytes — is replaced by row 2's single `RecordId` (`rc:` h256) digested over the exact pre-parse bytes and stored on table `record`. An implementer following section 11.3 or 15.2 builds a `raw_event`/`evidence` pair keyed by a run-local ID instead of the `record` table Table B requires, and the h128 `raw_event.event_id` is a hard `spectra verify` rejection under the certificate width rule of §57.2 if it ever reaches a certificate.
+
+OVERRIDES Part I sections 13.3.4, 13.3.7, 13.3.10 and 14.1: transitions scoped to a composite subject — `principal x scope` for privilege, `host x interface` for network exposure, an ordered pair of zones or principals for trust — and written with section 14.1's `kind:name` entity pattern, shown as `principal:svc-deploy` in section 15.4, are replaced by row 10's single-`EntityId` key: one entity, one dimension, one tick. An implementer following section 14.1 emits transitions whose `entity` field matches no ID domain in either part, since `principal` is a union type by section 9.2's own statement, is not an `EntityKind` in Table C, and is a forbidden synonym in Table D.
 
 ---
 
@@ -12795,6 +12803,12 @@ EntityKind     : user host process session credential key service
                  account file netflow api_client resource           (exactly 12)
 ```
 
+OVERRIDES Part I sections 13.3, 13.5 and 14.1: the dimension enum `authentication, session, credential, privilege, device_trust, process, network_exposure, resource, service_identity, trust` is replaced by the closed `Dimension` set above, in which `authentication`, `device_trust`, `network_exposure` and `service_identity` are illegal `DimensionId`s and `identity`, `network` and `api` stand in their place. An implementer following section 13 generates FSMs, `st:` StateIds, coupling edges such as `service_identity -> credential` and `network -> device_trust`, a `dimension` SQL type and Rust/Python/Go/TypeScript enums keyed on names that are not members of the closed set; Part I defines no FSM, transition table or illegal-edge list for `api`, and that gap is owned by §13, not resolved by renaming.
+
+OVERRIDES Part I section 10.2: the `Degradation.mutation` enum `["none","delayed","duplicated","reordered","corrupted","suppressed"]` is replaced by the closed `Operator` set above — bare verbs, no `none` member, `delete` added — each carrying an `op:` `OperatorId`. An implementer following section 10.2 emits past-participle values that fail the `Operator` domain, has no operator for `delete` and no `OperatorId` for `none`, and names the field `mutation`, which Table D bans as a synonym of degradation operator.
+
+OVERRIDES Part I section 12.6: the certificate flag `ambiguous_entity` for a derivation whose leaves include an unresolved entity is replaced by `er_ambiguous` from the closed `Flag` set above. An implementer following section 12.6 emits an unknown flag that fails the closed-enum check in `spectra verify`, on exactly the runs section 12.6 says may not be presented as ROBUST without that flag shown.
+
 OVERRIDES Part I / ECLIPSE §5: `Cert.mode: ROBUST|OPTIMISTIC` is deleted. A certificate carries independent `safety` and `minimality` fields plus a scope binding, because subset-minimality is a statement about cut size and has nothing to do with whether the goal is reachable. Collapsing them suppressed honest safety results for unrelated reasons and created an incentive to keep the control catalog small.
 
 OVERRIDES Part I / ECLIPSE §8: a verdict is never rendered as a bare word. The only renderable form is
@@ -12845,6 +12859,10 @@ Matching is at identifier-segment granularity after splitting `snake_case`, `cam
 | run manifest | `metadata`, `run_info`, `provenance_blob`, `context` |
 | oracle | `validator`, `truth`, `reference_impl`, `baseline` |
 
+OVERRIDES Part I sections 10.2, 22.5, 23.2, 24.8 and 24.9: the required schema and CLI names `outcome`, `actor`, `stream_id`, `sensor_kind`, `control_context` / `ControlObservation`, `ground_truth` / `GroundTruth`, `coverage_limits`, `bypass[].condition`, `step` and `--axis` / `axes` are banned identifier segments under this table and must carry the canonical name of the concept instead. An implementer following section 10.2's canonical event schema, section 22.5's control-catalog schema or section 24.8's CLI ships identifiers that fail check V5, and because Table A supplies no replacement for several of them the rename is not mechanical — the owning section must bind the canonical term first.
+
+OVERRIDES Part I sections 11.3, 11.4, 12 and 16.1: `chain_hash`, `chain_prev` and `chain_checkpoints`, the `POLICY_VIOLATING` classification with `policy.toml`, the `classify::policy` module and its per-rule `edge:` key, the `finding` table and its `/findings` API resource, `GAP_BEFORE` and its gap counts, section 9.8's edge table and the `ingest_report.json` / `integrity_report.json` / `resolution_report.json` producers all spell themselves with segments banned by this table (`chain`, `policy`, `finding`, `gap`, `edge`, `report`). An implementer building sections 11, 12 and 16 to their written spelling fails V5 on every one of those identifiers and must take the name from Table A, not from the Part I text.
+
 **Universally banned identifier segments**, with no canonical counterpart, because the concept itself is forbidden by the project constraints: `score`, `confidence`, `probability`, `likelihood`, `risk_score`, `severity`, `priority`, `weight`, `ranking`, `percent_certain`, `residual_reachability`, `cost_mass`, `threat_level`.
 
 OVERRIDES Part I / ECLIPSE §4H: `residual reachability` is retired as a name and as a quantity. The frontier reports two sets — `residual_goal_facts: Vec<FactHash>` and `open_corridors: Vec<CorridorId>` — and nothing collapses them into a scalar. The lint bans the old name outright.
@@ -12856,6 +12874,8 @@ OVERRIDES Part I / ECLIPSE §4H: `residual reachability` is retired as a name an
 **OVERRIDES Part I: `atom` is retired.** ECLIPSE §3's comment `FactId(u32) // ground, time-indexed atom` reads `// ground, time-indexed fact`. ECLIPSE §2's "atom set A" reads "literal set L". `Cert.cut: Vec<Atom>` reads `Vec<LiteralId>`. `goal.toml`'s "objective atom" reads "goal fact", and goals are a set with one verdict each.
 
 **OVERRIDES Part I: evidence cites `RecordId`, never `EventId`.** `RuleInst.evidence: Vec<EventId>` becomes `Vec<RecordId>`, and every witness tree leaf is a `RecordId`. `EventId` is the generator's private identity for an occurrence; it is carried on the oracle channel, never in a bundle the kernel reads. This is what makes the zero-false-ROBUST invariant measurable under degradation: operators mutate records and therefore `RecordId`s, while `EventId`s survive, so §62 can re-link a perturbed bundle to ground truth through the `oracle_link(event_id, record_id)` table.
+
+OVERRIDES Part I sections 10.2, 10.5 and 15.2: `event_id` content-addressed adapter-side as `evt-` + base32 of `BLAKE3_128(canonical_json_without_event_id)`, re-derived on schema migration by section 10.5 and redefined again in section 15.2 as a blake3-128 of the raw ingested bytes, is replaced by an `ev:` h128 minted by the generator when the occurrence is emitted, rendered as lowercase hex, and never recomputed from anything the kernel reads. An implementer following section 10.2 makes `EventId` a function of the possibly corrupted ingested bytes, so `oracle_link(event_id, record_id)` cannot re-link a perturbed bundle under the corrupt operator and the zero-false-ROBUST measurement silently stops working.
 
 ```
          GENERATOR                          KERNEL-VISIBLE                 ORACLE CHANNEL
@@ -13018,13 +13038,14 @@ CI binding: `lint-vocab` is a required check on every pull request and is listed
 3. Do NOT use `atom` for anything. It is retired, not deprecated.
 4. Do NOT put an `EventId` in a bundle, a fact, a rule instance, a license, a witness tree or a certificate. Do NOT read `event_id` from any kernel, collector or checker code path.
 5. Do NOT emit any field, column, JSON key, GraphQL field, metric name or UI label containing `score`, `confidence`, `probability`, `severity`, `risk`, `likelihood` or `priority`. There is no numeric grading anywhere in SPECTRA.
+
+   OVERRIDES Part I section 16.5: the normative severity tuple `Sev(x) = (K, D, R, E)`, its `CRITICAL/HIGH/MEDIUM/LOW/INFO` band table, the `band=` query parameter on the findings endpoint, `dimension.criticality`'s stated purpose in section 13.2 and the mandatory severity doctest are deleted rather than renamed, because there is no grading concept for them to be renamed to. An implementer following section 16.5 ships a severity subsystem whose every identifier fails check V5, which §57.11.8 classifies as a correctness defect with no waiver path, so the work cannot merge.
 6. Do NOT compare two `blockers` bitmasks, two bit positions, or two cut encodings across differing `catalog_hash` values, and do NOT display a raw bitmask to a user.
 7. Do NOT render a verdict as a single word, and do NOT construct a verdict string by concatenation in any language.
 8. Do NOT treat `make lint-vocab` findings as style. A synonym drift across two languages is a correctness defect, because the Rust kernel and the Go checker must agree on what they are checking.
 9. Do NOT claim that this section makes the five implementations semantically equivalent. It makes them *nominally* aligned. Two components can agree on the word `license` and still disagree on when one is issued; that equivalence is the job of the differential fuzz gates, not of this table.
 10. Do NOT claim a "shared type system" or "single source of truth for types" in README or docs. The honest claim is: one authored vocabulary file, five hand-written bindings, and a lint that fails when they drift or when a banned synonym appears.
 11. Do NOT count the tokens in this section toward any language, format, or "concepts modeled" figure in the README. `vocab.toml` is configuration.
-
 
 ============================================================
 58. DETERMINISM AND REPRODUCIBILITY CHARTER
@@ -13065,6 +13086,14 @@ never a stored or hashed value.
    SQL:        BIGINT NOT NULL                           -- never TIMESTAMP, never TIMESTAMPTZ
    ```
 
+   OVERRIDES Part I section 2.4: "timestamps inside artifacts are scenario-relative, not
+   wall-clock" is replaced by absolute nanoseconds since the Unix epoch, and Part I section 3.1's
+   transition-schema field `"t": {"type":"integer","description":"scenario-relative microseconds"}`
+   together with section 3.5's `interval: (Micros, Micros)` is replaced by `TsNanos`. An
+   implementer who generates the Pydantic, Rust and TypeScript types from the section 3.1 schema
+   as written emits scenario-relative microseconds, which no hashed artifact in this section
+   accepts.
+
 2. Forbidden as stored or hashed time representations: `float`/`double` seconds, `time.Time`,
    `datetime`, JS `number` milliseconds, `NUMERIC`, RFC 3339 strings, monotonic clock readings,
    and any value carrying a timezone. RFC 3339 exists only at the ingest boundary (parsed to
@@ -13085,6 +13114,13 @@ never a stored or hashed value.
    (58.6) fails the build on `SystemTime::now`, `time.Now`, `datetime.now`, `Date.now`,
    `getTimeOfDay`, `clock_gettime` outside an allowlisted file list committed at
    `tools/lint/clock-allowlist.txt`.
+
+   OVERRIDES Part I section 17.1.2 and section 15.6: the three-clock record's `t_ing`, "the
+   instant SPECTRA durably received the record", and section 15.6's permission for wall-clock
+   reads at the ingest boundary are revoked for any value that reaches a hashed artifact. The two
+   reads listed above are the only permitted ones and neither of them is `t_ing`. An implementer
+   who populates `t_ing` from a host clock and lets that record feed `content_hash` makes the
+   fact base host-dependent and trips the 58.6 lint.
 
 6. `TZ=UTC` and `LC_ALL=C` are set in every Dockerfile, every CI job, every devcontainer and the
    `Makefile` itself (`export TZ := UTC`, `export LC_ALL := C`). A gate asserts both are set
@@ -13128,6 +13164,13 @@ made grounding and `t+1` expiry semantics ill-defined.
    are listed in `rules/granularity-sensitive.txt`, must carry a written justification, and the
    test asserts exactly that list, so adding a sensitive rule silently is impossible.
 
+   OVERRIDES Part I section 17.10: gate G17.5, which rejects a granularity-sensitive rule at load
+   with diagnostic `V19` unless the rule's own `flags` field carries `time_fragile_ok` (section
+   18.1), is replaced by the committed list `rules/granularity-sensitive.txt`, and the comparison
+   is `tick_nanos = 1_000_000` against `1_000` rather than Δ against Δ/2. An implementer who keeps
+   `V19` and the per-rule flag rejects at load the rules this section admits, and leaves the
+   committed list unasserted.
+
 
 58.3 THE TOTAL ORDER ON EVENTS AND THE TIE-BREAK CHAIN
 ------------------------------------------------------------
@@ -13143,6 +13186,13 @@ made grounding and `t+1` expiry semantics ill-defined.
    | 4 | `content_hash`   | `[u8;32]`     | ascending byte-lexicographic, BLAKE3-256 of canonical record |
    | 5 | `line_ordinal`   | `u64`         | ascending, 0-based line index in `bundle.jsonl`      |
 
+   OVERRIDES Part I section 17.1.3: the 4-tuple `order_key(e) = (t_evt(e), source_id(e), seq(e),
+   event_id(e))` is replaced by this 5-tuple, in which component 2 is the BLAKE3 of the source
+   name compared byte-lexicographically rather than the TEXT `source_id` of the section 3.1 DDL,
+   and the final tie-break is `line_ordinal` rather than a content address. An implementer who
+   sorts by the Part I key obtains a different permutation of the same bundle, and therefore a
+   different fact base and a different certificate.
+
 2. String comparison anywhere in the order is **byte-lexicographic over UTF-8**, never
    locale-aware, never case-folded, never normalized at compare time. Unicode normalization
    (NFC) happens once at ingest; after ingest all strings are opaque bytes.
@@ -13152,6 +13202,14 @@ made grounding and `t+1` expiry semantics ill-defined.
    counter, not a database sequence, and not stable across bundles. A gate asserts that shuffling
    the physical lines of `bundle.jsonl` produces a byte-identical fact base and a byte-identical
    certificate.
+
+   OVERRIDES Part I section 17.1.3 and section 19.3: `event_id` as the 16-byte BLAKE3-128 content
+   address, written `ev:<32 hex>` in the section 19.3 edge record and constrained to
+   `^ev_[0-9a-f]{16}$` by the section 3.1 transition schema, is replaced by a dense 0-based rank
+   that is neither a content address nor stable across bundles. An implementer who keeps the
+   content-addressed form leaves the shuffle gate, the `DUP_EVENT_SAME_KEY` diagnostic and the
+   `line_ordinal` tie-break with nothing to attach to, and those two patterns no longer describe
+   the value.
 
 4. If component 5 is ever reached between two distinct events, the pipeline emits diagnostic
    `DUP_EVENT_SAME_KEY` into the run manifest with both `EventId`s. This is not an error (exact
@@ -13168,6 +13226,14 @@ made grounding and `t+1` expiry semantics ill-defined.
    LicenseId    := rank of (source_id, t0, t1, basis_tag)
    CorridorId   := rank of the corridor's blocker mask, ascending as u64
    ```
+
+   OVERRIDES Part I section 17.2.1 and section 19.3: interning a fact to a `FactId(u32)` in
+   first-appearance order is replaced by the rank of the canonical key, and the content-addressed
+   `ri:`, `lc:` and `ed:` identifiers of the section 19.3 edge record — `BYTEA` primary keys in
+   that section's DDL, and `^tr_[0-9a-f]{16}$` in the section 3.1 schema — are replaced by ranks.
+   An implementer who interns in first-appearance order assigns different `FactId`s to the same
+   bundle, and one who emits fixed-width content addresses produces a hypergraph this discipline
+   rejects.
 
    Bit positions in the `blockers: u64` mask are therefore a pure function of `controls.toml`
    and are written to `build/atom-positions.txt`, which is committed and diffed in CI so a
@@ -13211,6 +13277,12 @@ disallowed-types = [
   { path = "std::collections::HashSet", reason = "58.4: use BTreeSet or IndexSet in decision paths" },
 ]
 ```
+
+OVERRIDES Part I section 15.6: scoping the `clippy.toml` denial of `std::collections::HashMap` to
+`spectra-state` and `spectra-eclipse` is replaced by a denial that applies to every decision crate
+in the workspace. An implementer who keeps the two-crate scoping leaves every other decision crate
+unchecked; the crate names in the comment above identify that role and are not a renaming of the
+workspace members declared in Part I section 1.5.
 
 ```go
 // tools/vet/maprange: a golang.org/x/tools analyzer.
@@ -13354,6 +13426,13 @@ are banned in every decision path.
    process prints a warning and **continues**. It may not abort, because aborting on time is a
    wall-clock decision. CI kills runaway jobs at the job level, and a job killed that way is a
    red build, not a flagged certificate.
+
+   OVERRIDES Part I section 47.6: the degradation flag set of 47.6(6), which enumerates "a
+   timeout" alongside a cap, a voided license, a dead-lettered record and a partial source as
+   states the API response, the certificate and the UI header must carry, loses its timeout
+   entry; no run aborts on time, so no timeout state exists to flag. An implementer who adds a
+   `timeout` flag to the certificate schema builds a flag that is either unproducible or, if
+   derived from wall-clock, not reproducible across the 58.10 environments.
 
 6. Forbidden constructs in decision paths, lint-enforced: `tokio::time::timeout`,
    `context.WithTimeout`, `signal.alarm`, `SIGALRM`, `setTimeout` gating a computation,
@@ -13564,6 +13643,13 @@ operators' stream and silently invalidates every fixture. Seeds are now derived 
    corpus at `tests/scj/` must produce byte-identical output from the Rust writer, the Go writer
    and the Python writer. Disagreement fails the build.
 
+   OVERRIDES Part I section 44.1: "integers only (no floats; fixed-point millis for time), `\u`
+   escapes uppercase" is replaced by SCJ — every integer emitted as a decimal string, `\u00xx`
+   escapes lowercase, and time carried as `TsNanos` nanoseconds rather than fixed-point
+   milliseconds. An implementer who serializes per section 44.1 produces different bytes for the
+   same data, so the stage digests, the `tests/scj/` corpus, `make test-golden` and the Go
+   checker's re-serialization all disagree with this writer.
+
 3. `git_dirty: true` forces `flags.dirty_tree` on the certificate, and per the verdict-algebra
    section a dirty run is never ROBUST and its numbers may never reach `docs/`.
 
@@ -13748,7 +13834,6 @@ The following are build failures, not code-review opinions:
    "guaranteed". The mechanisms are lints, pinned types and differential gates. They catch the
    enumerated failure modes and nothing more, and `LIMITATIONS.md` says so.
 
-
 ============================================================
 59. INGESTION, PARSING AND SOURCE ADAPTERS
 ============================================================
@@ -13819,6 +13904,8 @@ Every source is declared in the source manifest with exactly one `source_class`:
 | `unchained` | absent | none | none | models the common real case: rotating text logs, syslog over UDP |
 | `derived` | absent | none | n/a | produced by SPECTRA itself; never counts as evidence of liveness |
 
+OVERRIDES Part I sections 10 and 11: `Source.required` listing `seq`, `Evidence.required` listing `chain_hash`, and the evidence DDL's `seq bigint NOT NULL` / `chain_prev bytea NOT NULL` / `chain_hash bytea NOT NULL` columns with `UNIQUE (scenario_id, collector_id, stream_id, seq, content_hash)` are replaced by per-class optionality: `seq` and both chain hashes are absent on `unchained` and `derived` sources. An implementer who runs the Part I schema and migration unchanged has a validator and a database that physically cannot hold the `unchained` class this section makes mandatory in every scenario family, and a UNIQUE constraint whose `seq` column is NULL.
+
 At least one `unchained` source class must be present in every scenario family, and results must be reported **split by source class**. `docs/ingest/chain-of-custody.md` must state plainly which real-world source types have sequence and chain guarantees and which do not, and must state that suppression detection on `chained` sources is a laboratory affordance rather than a general result. A repo that demonstrates deletion localization only on hash-chained logs and presents it as a result about suppressed telemetry is padding; the gate `gate-source-class-coverage` fails if any degradation-matrix cell was executed with `unchained` sources absent.
 
 ------------------------------------------------------------
@@ -13852,11 +13939,19 @@ pub struct CanonicalEvent {
 }
 ```
 
+OVERRIDES Part I section 10: the canonical event JSON Schema `schemas/event/1.0.0.json` — its required set (`event_type`, `dimension`, `occurred_at_ns`, `observed_at_ns`, `time_trust`, `scenario_id`, `run_id`, `source`, `outcome`, `evidence`), its optional `actor`, `target`, `network`, `control_context`, `raw_identifiers`, `integrity`, `degradation` and `ground_truth` members, and its `allOf` per-dimension conditionals — is replaced in its entirety by the `CanonicalEvent` struct above, which is the only record ingest emits. An implementer who keeps the Part I schema validates every event this section produces against a document whose `additionalProperties: false` and required fields it cannot satisfy, and the bindings generated by `make schemas` type-check nothing the ingest crate emits.
+
+OVERRIDES Part I section 10: `schema_version` as a semver string matching `^1\.[0-9]+\.[0-9]+$`, and the versioning policy under which consumers must accept an unknown MINOR within the same MAJOR by ignoring unknown optional fields, are replaced by an integer `schema_version` whose only accepted value is the one declared here; any other value is `Q041`. An implementer following the Part I compatibility rule accepts a bundle written at a newer MINOR that this section quarantines outright, and no Part II event can pass the Part I pattern at all.
+
+OVERRIDES Part I sections 10 and 29: RFC 8785 JCS canonicalization with lexicographic key ordering, and the rule that `bundle.jsonl` carries RFC3339 UTC timestamps at fixed precision, are replaced by emission in the struct's declared field order with `t_utc_ns` as an integer; only `attrs` is key-sorted. An implementer who canonicalizes by sorting keys, or who formats the timestamp as text, produces a `bundle.jsonl` whose BLAKE3 hash no other component can reproduce, failing `gate-ingest-cross-os` and the bundle MATCH check in `make dataset-reproduce` with no localizable cause.
+
 Negative requirements on the schema:
 - `attrs` may not contain a floating-point value. A source number that is not exactly representable as `i64` is quarantined `Q034`, never rounded. There is no `f64` anywhere in the ingest crate; `gate-no-float-ingest` greps the crate for `f32`/`f64` and fails on a hit.
 - There is no `other`, `unknown`, `misc`, or free-text escape hatch in `dim` or `action`. An unrecognized action is a quarantine, because an unmodeled action silently reclassified as `other` is an invisible hole in the rule table.
 - `source_id` is taken from the manifest entry that the bytes came from, never from a field inside the record. A record claiming to be from another source is quarantined `Q037`. Attacker-chosen source identity is otherwise free entity-resolution poisoning.
+  OVERRIDES Part I section 10: `Source.source_id` matching `^src-[a-z2-7]{16}$` and the required `collector_id` (`^col-[a-z2-7]{16}$`) and `stream_id` members are replaced by a manifest-declared `source_id` whose value space is the manifest's symbolic names, with no collector or stream identifier carried on the event at all. Minting a `src-` EntityId would require the entity resolution the next bullet forbids ingest from performing, so an implementer enforcing the Part I pattern cannot satisfy it at the ingest boundary and every downstream lookup keyed on `src-` or `col-` matches nothing ingest writes.
 - Ingest performs no entity resolution. `actor_raw`/`target_raw` carry the strings as they appeared. Merging identifiers is the entity-resolution section's job and its uncertainty must not be laundered through the parser.
+  OVERRIDES Part I section 26: the service table's authoritative `normalizer` row, which places schema normalization, entity resolution, `EventId` assignment and `bundle.jsonl` in one component, and its healthcheck built on a monotone `EventId` range, are replaced by the pipeline order of 59.2: ingest writes `bundle.jsonl` and entity resolution runs strictly after it. An implementer who builds the Part I normalizer emits a bundle whose identifiers are already merged, defeating the poisoning defence above and contradicting Part I 12.7's own requirement that the resolver be a single batch pass over the complete bundle.
 
 ------------------------------------------------------------
 59.5 ADAPTER INTERFACE
@@ -13909,6 +14004,8 @@ Hard constraints on every adapter, each with a gate:
 
 The supported set is closed. An input whose declared `format_id` is not in this table is refused at manifest validation with a non-zero exit, not sniffed. **Content sniffing is forbidden**: format is declared in the manifest, never inferred from magic bytes, extension, or first-line heuristics.
 
+OVERRIDES Part I section 10: the `Source.input_format` enum `["json","jsonl","csv","xml","yaml","syslog","winxml","binlog"]`, the full `winxml` adapter specification (framing on `<Event>` elements, `EventID` to type table, `EventData/Data[@Name]` mapping, time from `TimeCreated/@SystemTime`) and the worked example built on it are replaced by the closed `format_id` table below, which contains neither `winxml` nor `binlog`. An implementer who builds the `winxml` adapter from Part I produces code that no manifest may declare and an `input_format` enum that disagrees with `spec/grammars/`, and `binlog` has no adapter at all.
+
 | format_id | framer | shape | notes / hardening focus |
 |---|---|---|---|
 | `jsonl.v1` | Lines | one JSON object per line | native generator output; duplicate-key rejection, depth cap |
@@ -13921,6 +14018,8 @@ The supported set is closed. An input whose declared `format_id` is not in this 
 | `xml.audit.v1` | SingleDocument | audit record set | DTD and external entities disabled, see 59.7 |
 | `yaml.config.v1` | SingleDocument | service config snapshot | safe loader only; **config snapshots only, never event streams** |
 | `flow.summary.v1` | Lines | textual flow records | a declared text summary, not pcap |
+
+OVERRIDES Part I section 10: the normalization table's `yaml` row — multi-document `---` framing, field mapping as for JSON, and anchors expanded before mapping — is replaced by `yaml.config.v1`: a single document, safe loader only, config snapshots and never event streams, with custom tags, alias-budget overruns and merge keys quarantined as `Q029`, `Q030` and `Q031`. An implementer who writes the Part I YAML adapter is rejected by `gate-yaml-safe`, and a source configured to emit YAML events has no legal `format_id` in this closed table.
 
 Negative requirements:
 - **No binary packet parsing in the core.** `libpcap`, `tshark`, and any binary capture parser are forbidden as ingest dependencies. Network evidence enters as `flow.summary.v1` text produced by the generator or range emitter. Rationale: a binary parser is the largest attack surface in the system for the least proof value, and it cannot be audited by byte conservation as cleanly.
@@ -14033,6 +14132,7 @@ allow_silent_offset_fix     = false        # MUST remain false
 
 Enforcement rules that override any generic parser behaviour:
 - **Exceeding a limit is a quarantine, never a truncation.** No adapter may emit a `CanonicalEvent` built from a clipped field. `gate-no-truncation` includes a fixture whose only defect is an oversized field and asserts the output contains zero accepted events and exactly one quarantine record with code `Q038`.
+  OVERRIDES Part I sections 10 and 11: the recorded-loss design — `Evidence.adapter_lossy` and `Evidence.dropped_fields`, the `adapter_lossy boolean NOT NULL DEFAULT false` evidence column, and the loss policy that records dropped fields for JSON and routes unmapped CSV columns and unparsed syslog tails into attributes — is replaced by quarantine: a record whose field exceeds a limit or whose content the declared format does not admit yields zero accepted events and one quarantine record (`Q038`, or `Q012` for an unknown field under the strict schema). An implementer following Part I emits an accepted event flagged lossy in exactly the case `gate-no-truncation` exists to fail, and there is no field on the `CanonicalEvent` in which that loss could be recorded.
 - **Decompression is streamed with a running ratio check** every `ratio_check_every_bytes`, aborting the entry the moment `output_bytes / input_bytes > max_ratio`. A ratio computed only at the end is not compliant, because the memory is already gone. Nested archives are refused outright (`max_nested_archives = 0`).
 - **Archive entry names are never used as filesystem paths.** Entries are extracted to a content-addressed temporary name; any entry whose name contains `..`, an absolute prefix, a drive letter, a NUL, or a path separator that is not a plain `/` is quarantined `Q025`. Symlink, hardlink, device, FIFO, and setuid entries are quarantined `Q026` and never materialized.
 - **Limits are checked before allocation**, not after. A declared length field in a length-prefixed framer is validated against `max_record_bytes` before any buffer is reserved.
@@ -14055,8 +14155,10 @@ Clock normalization at the adapter edge (OVERRIDES Part I sections 17-19, which 
   - `AssumedTz` — the manifest declared a zone for a format that carries none (`syslog.rfc3164`). **`AssumedTz` is a soundness-affecting basis**: any interval containing an `AssumedTz` event is ineligible to be certified LIVE; it may only be BLIND or TAINTED. Assumed time may admit attacker steps; it may never withhold a license.
 - Ambiguity and non-existence are quarantines, not guesses: a local time falling in a DST fold is `Q014`; a local time falling in a DST gap is `Q014` with a distinct detail; a source with no declared zone for a zoneless format is a manifest validation failure (`Q016`) that aborts before any parsing.
 - The zoneless-year problem in `syslog.rfc3164` is solved by a manifest-declared `epoch_year` per file, not by inferring the year from the wall clock or from neighbouring records. Inference from neighbours lets a single crafted record retro-date a whole file.
+  OVERRIDES Part I section 10: the normalization rule that an absent `occurred_at_ns` is filled from `observed_at_ns` with `time_trust = "collector"` and `attributes._time_synthesized = true`, and the `inferred` trust value assigned when a time is derived from neighbouring records, are replaced by quarantine — `Q013` for an unparseable timestamp, `Q014` for an ambiguous or non-existent local time — with the year for a zoneless format supplied only by the manifest's `epoch_year`. An implementer who keeps the Part I substitution path accepts events bearing a timestamp ingest never read from the source, which is the license-manufacturing hazard of 59.1, and the neighbour inference Part I blesses is the retro-dating attack this bullet forbids.
 - Timestamps outside `[min_t_utc_ns, max_t_utc_ns]` are `Q015`. Leap seconds are not smeared and not represented: a `:60` second field is `Q013`.
 - **No clock correction, ever.** Ingest does not shift, skew-correct, or reorder by time. Backdating is a kernel-level concern (ECLIPSE §4A's difference-constraint pass) and is handled there, with the fail-closed rule stated in the Part II threat-model section: an unresolvable timestamp yields BLIND, never a voided license. Ingest's contribution is to preserve `t_source_raw` and `t_basis` so that pass has something honest to work with.
+  OVERRIDES Part I sections 10, 11 and 12: the required `time_trust` enum (`authoritative`, `collector`, `inferred`, `untrusted`) is replaced by `t_basis`, which records how the value was obtained rather than how far it is trusted; the `BACKDATED` remedy of marking the timestamp untrusted and voiding any license resting on it is replaced by the fail-closed rule that an unresolvable timestamp yields BLIND; and the fallback of ordering untrusted events by `(collector, seq)` within their stream is unavailable here, since this section defines no collector field and `unchained` sources carry no `seq`. An implementer who voids a license on backdating withholds admission of silent attacker steps and turns a blind window into a false ROBUST, the exact failure direction 59.1 names.
 - `ingest_ord` is a deterministic tie-break key derived from `(file_id, byte_start)`. It is not a time and may never be used as one.
 
 ------------------------------------------------------------
@@ -14136,6 +14238,8 @@ Reason-code registry (`spec/quarantine-codes.toml`, closed set, codes never reus
 | Q041 | SEMANTIC | unsupported record `schema_version` |
 | Q042 | STRUCTURAL | truncated input at EOF (frame incomplete) |
 
+OVERRIDES Part I section 11: the anomaly classification under which `b.seq == a.seq` with divergent `content_hash` is `CHAIN_BREAK (fork)` with both records retained, the stream marked forked and no liveness claim permitted anywhere in the epoch, is replaced by `Q018`: neither record becomes an event, and the blast radius is the tainted window that 59.11.2 forces to BLIND rather than the entire epoch. An implementer following Part I keeps forked records in the fact base and lets them be counted and cited, which the rule above forbids outright.
+
 Sequence **gaps** are deliberately absent from this table: a gap is not a malformed record, it is a liveness observation, and it is emitted into `ingest-signals.json` for ECLIPSE §4A rather than into quarantine. Quarantine describes bytes that arrived and could not be trusted; gaps describe bytes that never arrived.
 
 `quarantine-report.json` accompanies every run:
@@ -14177,12 +14281,16 @@ EventIdPreimage := canonical-CBOR({
 EventId := lowercase_hex(BLAKE3-256(EventIdPreimage))
 ```
 
+OVERRIDES Part I section 10: `EventId` as `evt-` + base32(BLAKE3_128(canonical JSON without `event_id`)) matching `^evt-[a-z2-7]{26}$`, content-addressed over the event's normalized content so that two adapters normalizing the same record produce the same id, is replaced by the preimage above, which binds the id to `source_id` and `raw_b3` instead of to normalized content. An implementer who keeps the Part I derivation produces ids that this section's format and the Go checker's independent recomputation both reject, and inherits the opposite semantics: identical content from two sources now takes two ids, and a content-changing migration no longer changes the id, so Part I's `idmap.json` and the stale-certificate-by-hash-mismatch detection built on it have nothing to key on.
+
 Rules:
 - Canonical CBOR means definite-length items, integer keys in ascending order, shortest-form integers, no floats, no tags. The encoder is committed with a round-trip property test and a cross-language vector file (`spec/vectors/eventid.jsonl`) that the Go checker reproduces independently.
 - **Idempotency.** Ingesting the same raw inputs twice yields a byte-identical `bundle.jsonl`. Ingesting an input twice, or ingesting overlapping bundles, collapses to one event per `EventId`. Collapses are counted in the manifest as `duplicates_collapsed` per source and per code path — **never silently absorbed**, because the degradation model has a `duplicate` operator and an ingest that quietly deduplicates it would erase the very perturbation the experiment applies.
 - Two frames with the same `EventId` but different `raw_b3` are impossible by construction; if the invariant is ever violated (hash collision, or a preimage-construction bug), the run aborts with `Q021`. Do not "pick the first".
 - **Total order of `bundle.jsonl`** is `(source_id, t_utc_ns, seq.unwrap_or(0), raw_b3, file_id, byte_start)` — total, deterministic, independent of input file order and of directory iteration order. No `HashMap`/`HashSet` iteration may reach the output path; use `BTreeMap` or an explicit sort with a stable comparator. This is the ingest instance of the determinism charter.
+  OVERRIDES Part I section 29: writing `bundle.jsonl` sorted by `(sim_tick, source_id, ev_)`, and relying on the normalizer's final sort to make inter-source interleaving irrelevant, are replaced by the total order above. `sim_tick` exists nowhere on a `CanonicalEvent`, so an implementer following Part I cannot produce that ordering at all, and a bundle written under it has a different line order and therefore a different hash from the one `make dataset-reproduce` compares against the manifest.
 - Chain verification for `chained` sources recomputes `chain_self = BLAKE3(chain_prev || canonical_frame_bytes)` and emits per-source `chain_ok`, `first_break_seq`, and `break_count` into `ingest-signals.json`. A break localizes suppression; ingest reports it and never repairs it.
+  OVERRIDES Part I section 11: the construction `chain_hash_0 = BLAKE3_256("spectra.chain.v1" || collector_id || stream_id || u64le(epoch))` with `chain_hash_n = BLAKE3_256(chain_hash_{n-1} || content_hash_n || u64le(seq_n))`, computed by the collector at emission and checkpointed per stream into `chain_checkpoints`, is replaced by the recomputation above over canonical frame bytes, with no domain separator, no genesis block, no collector, stream or epoch binding, no `seq` in the preimage and no checkpoints. A chain emitted per Part I fails verification here and is reported as `Q019` on every record, which taints the source's windows into BLIND and may exceed `max_quarantine_ratio` so that no bundle is produced at all; dropping `seq` and the epoch-bound genesis also removes Part I 11.5's means of detecting tail truncation and of binding a chain to one collector epoch.
 
 ------------------------------------------------------------
 59.11 QUARANTINE-TO-ECLIPSE COUPLING AND THE CERTIFICATE GATE
@@ -14191,6 +14299,7 @@ Rules:
 OVERRIDES ECLIPSE §4A and §5: liveness consumes quarantine taint, and the certificate carries ingest state.
 
 1. `ingest-signals.json` is a hashed input to liveness, containing per source: observed frame count, sequence gaps, chain breaks, `AssumedTz` intervals, and **tainted windows** derived from locatable quarantine records.
+   OVERRIDES Part I section 11: the `collector.declare` record emitted once per epoch (`collector_id`, `source_id`, `stream_epoch`, `clock_source`, `declared_flush_interval_ns`) and the rule that streams without a declaration are marked `UNDECLARED` and can never support a liveness claim are replaced by the source manifest plus `ingest-signals.json`, which declare `source_class`, format, timezone and epoch-year and carry no collector, stream epoch or flush cadence. An implementer who keeps the Part I rule marks every source in this system `UNDECLARED` and can therefore certify no window LIVE at all, and the absent `declared_flush_interval_ns` removes Part I 11.5's only way to distinguish tail truncation from a quiet sensor.
 2. **A tainted window may never be certified LIVE.** For liveness purposes it is treated as BLIND (fail-closed toward admitting attacker steps, conservative for ROBUST, honest about the blindness premium because the taint is named as the cause rather than attributed to the source).
 3. **Quarantined records never contribute to the arrival-statistics sample** used for the liveness threshold. Including them would let malformed input tune the detector that is supposed to police it.
 4. If a source has any quarantine record with `locatable = false`, apply `on_unlocatable_quarantine`: `source_blind` marks the source BLIND over its entire covered interval for this run; `abort` refuses to produce a bundle. `make certify` sets `strict_abort_on_any = true`. There is no third option in which unlocated malformed bytes are ignored.
@@ -14323,7 +14432,6 @@ Forbidden claims in `README.md`, `docs/`, UI strings, commit messages, and paper
 - "Validated", "hardened", or "secure parser" as a bare adjective. State the gate: "quarantines the declared corpus of 40-odd malformed inputs" is sayable only if that corpus is committed and the count is generated from it by the claims-binding linter, never typed by hand.
 - Any capability figure (records per second, bundle size, event count) quoted from this section's illustrative defaults. Every published number comes from the benchmark harness with its run-manifest hash attached.
 
-
 ============================================================
 60. ENTITY RESOLUTION: ALGORITHM, QUALITY CONTRACT AND UNCERTAINTY
 ============================================================
@@ -14357,6 +14465,14 @@ ER is a pure function. No clock, no RNG, no environment read, no network, no dat
 er_resolve : (bundle_raw.jsonl, er.toml) -> (er.jsonl, er-mergelog.jsonl, er-report.json)
 ```
 
+OVERRIDES Part I sections 10.6 and 12.1: ER's declared input of (ordered canonical events, source
+registry, realm profiles), with identifiers pre-extracted by adapters into `raw_identifiers`, is
+replaced by the two-input signature above; `spectra-er` performs its own extraction from the
+per-source field paths declared in `er.toml` (60.7) and is therefore not subject to the section
+10.1 import lint that makes non-adapter code reading a vendor format a build failure. An
+implementer following Part I builds ER over `CanonicalEvent.raw_identifiers` and has nowhere to
+read the `[crossref]` field pairs that `B7` (60.3) and rules 11-15 (60.4) require.
+
 Same bytes in, same bytes out, on every machine, forever. Enforced by G-ER-1 and G-ER-2 (60.12).
 
 ---
@@ -14376,6 +14492,16 @@ Classes:
 - `HINT`    — attacker-writable, cosmetic, or derived from free text. May be used for blocking,
               display and explanation. MAY NEVER CAUSE A MERGE. This is the ER-poisoning defense
               (60.13) and it is enforced by a type-level lint, not by convention.
+
+OVERRIDES Part I section 12.2: the three identifier strength tiers (Tier A authoritative and
+merging on its own, Tier B strong-local and merging within a realm that declares the class unique,
+Tier C never alone) are replaced by the three evidential classes above, with different memberships
+and different merge licenses. `HOST_NAME` is `HINT` and may never cause a merge, where Part I
+places `host_ref` in Tier B; `UID_POSIX`, `CONTAINER_ID`, `MAC` and `DEVICE_ID` are `LINK` and
+require a corroborating `ANCHOR` or a second independent `LINK`, where Part I places `uid` and
+`container_ref` in Tier A and merges on either one alone. An implementer following Part I's Tier A
+and Tier B licenses performs exactly the hostname and bare-uid merges that the ER-POISON-01
+fixture (60.13) requires to produce nothing.
 
 | IdKind             | Class  | Scope        | Reuse            | Validity interval source                |
 |--------------------|--------|--------------|------------------|-----------------------------------------|
@@ -14403,8 +14529,25 @@ Classes:
 | `DISPLAY_NAME`     | HINT   | -            | freely           | n/a                                     |
 | `CONTAINER_NAME`   | HINT   | node         | freely           | n/a                                     |
 
+OVERRIDES Part I section 10.2: the closed 19-value `RawIdentifier.class` enum (username, upn,
+email, uid, gid, sid, account_ref, token_hash, cred_hash, session_ref, device_ref, host_ref,
+container_ref, ip, mac, cert_fp, pid, service_name, resource_ref) is replaced by the `IdKind`
+catalog above. Neither catalog contains the other: `gid`, `email`, `account_ref`, `cred_hash`,
+`service_name` and `resource_ref` have no `IdKind` and are extracted by nothing, and
+`OBJECT_GUID`, `CLIENT_ID`, `POD_UID`, `IMAGE_DIGEST` and `PROCESS_KEY` cannot be carried in a
+section 10.2 `raw_identifiers` array without a MAJOR schema bump. An implementer following Part I
+writes adapters that emit classes this stage will not consume.
+
 `PROCESS_KEY` is the triple `(host_entity, pid, start_time_ns)` — never the bare pid. A bare pid is
 a `HINT`.
+
+OVERRIDES Part I section 12.3: rule R8, which attaches a `process.*` record carrying only a bare
+pid to the unique process with `start <= t < exit` and yields UNRESOLVED when that process is not
+unique, is replaced by rule 26 `process_key` (60.4), which requires an identical
+`(host_entity, pid, start_time_ns)` triple; a bare pid is a `HINT`, is skipped before rule
+evaluation (60.7), and joins no component at all. An implementer following Part I resolves a
+bare-pid record by time-window lookup, which is the pid-reuse attachment the triple exists to
+prevent.
 
 Normalization is per-kind, declared in `er.toml`, and applied before any comparison. Normalization
 is itself an attack surface (ERF-6), so it is deliberately narrow:
@@ -14419,6 +14562,13 @@ is itself an attack surface (ERF-6), so it is deliberately narrow:
 - `HOST_NAME`: NFKC, ASCII-lowercase, trailing dot stripped, IDN punycode preserved as written.
 - `IP_ADDR`: parsed to a 16-byte representation; IPv4-mapped IPv6 normalized to IPv4.
 - `MAC`: lowercase hex, colon-separated.
+
+OVERRIDES Part I sections 9.3 and 10.6: NFC normalization with case-folding applied only to fields
+that a realm profile declares case-insensitive is replaced by the per-kind NFKC plus
+ASCII-lowercase rules above, declared in `er.toml` and applied uniformly before every comparison;
+the realm profile's case-sensitivity declaration is not an input to this stage. An implementer
+following Part I computes a different normal form for the same raw identifier, and therefore a
+different partition and different content-addressed `EntityId`s (60.5) from the same bundle.
 
 A normalization that maps two byte-distinct raw identifiers to the same normal form emits a
 `NORM_COLLISION` record carrying both raw forms and both EventIds. Collisions are published in
@@ -14471,6 +14621,14 @@ adjacent(a, b) ::=  a.t_hi == b.t_lo  AND  a.edge_hi == WITNESSED  AND  b.edge_l
 `adjacent` licenses continuity across a witnessed handoff (a token rotation, a session renewal).
 Nothing else licenses continuity. There is no slack parameter, no epsilon, no "close enough".
 
+OVERRIDES Part I sections 12.5 and 12.8: the requirement that a rotated credential never merge
+across the rotation boundary — two entities with disjoint validity intervals,
+`rotation_generation` incremented, a `succeeded_by` edge, and a mandatory regression test asserting
+that a rotation does not merge generations — is replaced by `adjacent` together with rule 13
+`token_rotation` (60.4), which merges the two `REFRESH_TOKEN_ID` bindings into one entity across a
+witnessed handoff. An implementer following Part I keeps a rotation test that rule 13 fails, and
+gives `rotation_generation` and `succeeded_by` a role that ER output does not have.
+
 ---
 
 60.3 CANDIDATE GENERATION AND BLOCKING
@@ -14511,6 +14669,14 @@ The first non-`PASS` verdict wins for that pair; no rule below it is consulted. 
 stable across releases: a rule is never renumbered, only retired (its ordinal is burned and listed
 in `er.toml` under `retired_rules`). Ordinals are hashed into `er_config`.
 
+OVERRIDES Part I section 12.3: the rule catalog `R1`..`R14`, evaluated in fixed order and recorded
+on every resolved reference as `resolved_by_rule` matching `^R[0-9]{1,2}$` (section 10.2), is
+replaced by the ordinal-keyed table below; an applied merge cites its `rule_ord` in
+`er-mergelog.jsonl` and the checker verifies that ordinal against the hashed `[rules] enabled`
+list (60.11). An implementer following Part I emits `R`-prefixed rule ids that no checker
+obligation can validate, and Part I's R3, R8, R10, R11, R12 and R13 have no ordinal in this table
+at all.
+
 | # | Name                    | Condition                                                                                   | Verdict |
 |---|-------------------------|---------------------------------------------------------------------------------------------|---------|
 | 00| `exclusion_realm_sid`   | both ANCHOR `SID_WINDOWS`, same realm, `norm_a != norm_b`                                    | EXCLUDE |
@@ -14540,6 +14706,32 @@ in `er.toml` under `retired_rules`). Ordinals are hashed into `er_config`.
 | 43| `non_ascii_demoted`     | pair whose only join is a `NON_ASCII`-demoted identifier                                      | AMBIG   |
 | 44| `cross_realm_name`      | same `USERNAME`/`UPN_EMAIL` local part, different realms                                      | AMBIG   |
 | 99| `default`               | anything else                                                                                 | PASS    |
+
+OVERRIDES Part I sections 9.2 and 9.8: the treatment of `sess`, `tok` and `cred` as distinct entity
+kinds, each with its own anchor tuple and its own `EntityId`, joined to a subject by the
+time-bounded `principal_of`, `authenticates_with` and `exchanged_for` edge rows, is replaced by
+rules 11, 12, 14 and 15 above, which merge a `TOKEN_JTI`, `SESSION_ID`, `API_KEY_ID` or
+`CERT_FINGERPRINT` binding into the subject's own component: a token, session, key or certificate
+is a binding on the subject entity and not an entity, and the resulting component is reported with
+kind `PRINCIPAL` (60.15), which Part I section 9.2 forbids as a kind. An implementer following
+Part I builds a typed union-find that merges only within a kind, which makes rules 11-15
+unimplementable, and retains credential and session edges with no endpoints in this partition.
+
+OVERRIDES Part I sections 12.2 and 12.8: the Tier-C prohibition on merging two entities on an
+address alone, the lint that rejects any rule consuming a Tier-C identifier as its sole basis, and
+the structural NAT-collapse defense built on that prohibition are replaced by rule 30
+`ip_within_lease` above, which merges on a matching `IP_ADDR` in one vrf when both bindings fall
+inside a single lease with `WITNESSED` or `INFERRED` endpoints — the lease interval, not a second
+identifier, supplies the corroboration. An implementer following Part I lints rule 30 out of the
+build and leaves `IP_ADDR` unable to license any merge.
+
+OVERRIDES Part I section 12.3: rule R3, which links `username` to `sid` whenever one
+`authentication.*` record carries both in the same realm, has no ordinal in the table above and is
+not reinstated elsewhere; a `USERNAME` and `SID_WINDOWS` co-occurrence matches no MERGE rule, so
+`USERNAME` merges only through rule 21 (both sides already sharing an ANCHOR component) or rule 22
+(a second independent LINK), and otherwise reaches rule 41 `username_one_link` -> `AMBIG`. An
+implementer following Part I merges an account name into its SID on a single logon record, which is
+how the Windows 4624 worked example of Part I section 10.8 resolves there and not here.
 
 There are no scores, no thresholds, no weights, no learned models, and no approximate string
 metrics anywhere in this table or in the code that implements it. See 60.14.
@@ -14627,6 +14819,13 @@ crate by a clippy lint plus a symbol-level check in CI; `BTreeMap`/`BTreeSet`/so
 pub enum EntityStatus { Resolved, Ambiguous, Unresolved }
 ```
 
+OVERRIDES Part I sections 9.4 and 10.2: the four-valued `resolution_state` enum
+`RESOLVED | PROVISIONAL | UNRESOLVED | SPLIT_SUSPECT` is replaced by the three-valued
+`EntityStatus` above. `PROVISIONAL` and `SPLIT_SUSPECT` are not entity statuses here, `AMBIGUOUS`
+is new, and `PROVISIONAL` denotes only an interval endpoint (60.2). An implementer following
+Part I emits `resolution_state` values this type cannot represent and has no status in which to
+record a fork, while `AMBIGUOUS` fails the section 10.2 `additionalProperties:false` schema.
+
 - `RESOLVED` — the component is joined by at least one `ANCHOR` merge, or by at least two
   independent `LINK` merges over overlapping witnessed intervals, and carries no open ambiguity.
 - `AMBIGUOUS` — first-class. The component carries at least one `AmbiguityId`: a recorded pair (or
@@ -14636,6 +14835,14 @@ pub enum EntityStatus { Resolved, Ambiguous, Unresolved }
 - `UNRESOLVED` — a singleton with no qualifying merge. Usable, addressable, and explicitly not
   claimed to be anyone. `UNRESOLVED` is not an error and is not a failure; a run consisting largely
   of `UNRESOLVED` entities at 30% completeness is the honest outcome, and 60.10 publishes it.
+
+OVERRIDES Part I section 12.6: the separate unresolved identifier space
+`"unres-" base32(BLAKE3_128(scenario_id LF kind_guess LF sorted_raw_identifiers))` and the closed
+reason-code set `NO_RULE_MATCHED | AMBIGUOUS_PID | KIND_AMBIGUOUS | SPLIT_SUSPECT | REALM_UNKNOWN`
+are replaced by an ordinary `ent:`-prefixed content-addressed id (60.5) carrying no reason code and
+no `kind_guess`. An implementer following Part I builds a UI that renders "unresolved: <reason>"
+from fields `er.jsonl` does not carry, and any consumer keying off the `unres-` prefix matches
+nothing.
 
 ```json
 {"ambiguity_id":"amb:9c1e0f42","rule_ord":44,"kind":"USERNAME","norm":"svc_deploy",
@@ -14660,6 +14867,14 @@ There is no step at which an ambiguity is resolved by picking the more likely br
 branch, the larger component, or the branch that makes the proof work. There is no tie-break here.
 Tie-breaking is correct for *presentation order* (Part II, solver well-definedness) and forbidden
 for *identity*.
+
+OVERRIDES Part I section 12.5: the conflict policy that resolves a cardinality conflict by dropping
+the union edge with the highest rule number, then the later witness timestamp, then the
+lexicographically larger witness `EventId`, and resolves a type conflict by splitting at the
+lowest-tier union edge into two `SPLIT_SUSPECT` components, is replaced by the recorded fork above:
+the component is left as it is and carries an `AmbiguityId`. An implementer following Part I ships
+exactly the rule-number, recency and provenance tie-breaks that 60.14(4) forbids and that the lint
+and the reviewers are instructed to reject.
 
 ---
 
@@ -14734,6 +14949,14 @@ machine.
 
 `er.toml` is the only ER tunable surface. It is hashed byte-exactly *and* as a canonical AST; the
 certificate records both, so a comment edit is distinguishable from a semantic edit.
+
+OVERRIDES Part I sections 12.1 and 12.5: realm profiles and `source_registry.toml` are not ER
+inputs. The realm class-uniqueness declaration that licensed R2, the realm case-sensitivity
+declaration, the shared-account `is_shared` flag whose effect was "never merge on it", and the zone
+and cross-realm maps behind R10 and R12 have no counterpart in `er.toml` and no other input carries
+them, so a shared account is not exempt from rules 21 and 22. An implementer following Part I wires
+two configuration files into ER that are not hashed into `er_config`, so the certificate's config
+hash stops covering everything that determined the partition.
 
 ```toml
 schema_version = 3
@@ -14811,6 +15034,14 @@ contributes a fact to any enumerated corridor, the kernel MUST NOT emit `ROBUST`
 `resolvable_by` set. The state is unconstructible otherwise: `Safety::Robust` is produced by a
 single constructor that takes a `ProofOfNoCorridorAmbiguity` witness value, which can only be built
 by the function that scans the corridor set. There is no other way to build it, in any code path.
+
+OVERRIDES Part I section 12.6: the rule that a derivation whose leaves include an unresolved entity
+is marked `ambiguous_entity` in the certificate flags, and that such a run may not be presented as
+ROBUST without that flag shown, is replaced by the gate above. `ErFlags` is closed and has no
+`ambiguous_entity` bit, and per 60.6 an `UNRESOLVED` entity is neither an error nor a verdict
+blocker, so a corridor fact grounded on one does not by itself prevent `ROBUST`. An implementer
+following Part I blocks or flags a plain `ROBUST` that this section and checker obligation 4
+(60.11) accept, and expects a flag the `ErBlock` type cannot hold.
 
 The rendered verdict string carries its scope and therefore its ER binding:
 
@@ -15102,7 +15333,6 @@ The last two lines are mandatory output whenever the safety field is `ROBUST_MOD
 that cannot say which source would collapse the ambiguity prints `resolvable_by: none known` — it
 never omits the line.
 
-
 ============================================================
 61. TELEMETRY DEGRADATION AND TAMPERING MODEL
 ============================================================
@@ -15168,6 +15398,14 @@ before entity resolution, before `EventId` assignment. It is never applied to `b
         v
   metrics (61.11) : cert x anchor_map x objective --> metrics.json
 ```
+
+OVERRIDES Part I section 26.7: the requirement that every telemetry event originate in a range
+service and traverse collector -> normalizer, with direct synthesis forbidden outside
+`tools/fixture-mint`, is replaced by the generator above, which writes `truth/emission.jsonl` and
+byte-stable `raw/clean/<source>.log` per source as the only ingest input perturbation acts on. An
+implementer following Part I builds the live range and the `raw.jsonl` collector path of Part I
+sections 26.3 and 27.1, which produce no byte-stable per-source clean log and no generator-assigned
+`record_id` or `emit_time_ns`, so every gate in 61 is undefined on their output.
 
 Hard rules:
 - The perturber MUST NOT read entity-resolution output, `rules.toml`, `controls.toml`, `goal.toml`,
@@ -15390,6 +15628,13 @@ Semantics: insert `count` fabricated records into the chosen window and, with `r
 recompute the BLAKE3 sequence chain from the insertion point forward so no sequence gap is visible.
 Ledger fate `SYNTHETIC{parent = none, kind = FORGED}`.
 
+OVERRIDES Part I section 50.2: the `forge_provenance` operator, which rewrites BLAKE3 sequence-chain
+links so an existing deletion looks like a clean chain, is replaced by CHAIN-FORGE, which only
+inserts fabricated records and reseals forward from its own insertion point; no operator in this
+closed catalog conceals a deletion. An implementer who maps the Part I section 48.3 manifest entry
+`forge_provenance` onto CHAIN-FORGE keeps the name while substituting "add records" for "hide a
+deletion", and 61.5 then classes DELETE on a CHAINED source as `OBS-C` in every cell.
+
 Hard rule: CHAIN-FORGE never creates a `StepId`. Ground truth is unchanged by fabrication. A fact the
 kernel derives whose entire evidence set anchors to synthetic lines is a `phantom_derivation` and is
 counted as such (61.11). Forbidden: describing a forged record as an attacker action in any output.
@@ -15411,6 +15656,12 @@ Every source declares `chain_class` in `sources.toml`: `CHAINED` (BLAKE3 sequenc
 MUST be `BARE`. OVERRIDES Part I: results that rely on chain-detectable suppression must be reported
 per `chain_class` and never pooled; demonstrating deletion detection only on chained sources and
 presenting it as a result about suppressed telemetry is disallowed.
+
+OVERRIDES Part I section 26.3: the single collector that BLAKE3 sequence-chains every source, and the
+`sources.toml` that declares no observability attribute, are replaced by a per-source `chain_class`
+declaration with at least one `BARE` source in every scenario. An implementer following Part I chains
+all sixteen sources, so every deletion classes as `OBS-C`, `invisible_class_volume` comes out empty,
+and the generated `LIMITATIONS.md` reads as a stronger result than the system supports.
 
 Observability classes: `OBS-C` detectable from a chain break; `OBS-B` detectable from bracketing,
 inter-arrival or obligation reasoning; `OBS-N` no signal exists in the delivered bundle — only the
@@ -15539,6 +15790,16 @@ Fate variants, closed set: `KEPT`, `DELETED`, `MUTATED`, `STRIPPED`, `BACKDATED`
 applied class in the 61.4.0 order. Lint `ledger-fate-total`: every pre-perturbation `record_id`
 appears exactly once, and every delivered line appears exactly once. Gate `make ledger-bijection`.
 
+OVERRIDES Part I section 29.4: degraded variants as child datasets that carry the parent's
+`truth.jsonl` with `suppressed_by: "degradation"` written onto dropped events — together with the
+`dataset.parent_dataset_id` degradation lineage of Part I section 29.3, build-failing invariant I-5,
+and the `make dataset-degrade` and `make dataset-matrix` targets of Part I section 29.5 — are
+replaced by this ledger: `truth/emission.jsonl` and `truth/steps.jsonl` are never rewritten,
+perturbation is recorded only in `truth/ledger.jsonl`, and per-cell artifacts live under
+`runs/matrix/<matrix_id>/cells/<cell_id>/` (61.9.2). An implementer following Part I writes
+`suppressed_by` back into an `EventId`-keyed truth stream that 61.0 bans and that the perturbation
+itself destroys.
+
 61.7.3 The anchor map. The relinker produces:
 
 ```jsonc
@@ -15654,6 +15915,12 @@ and diffs certificate hashes.
 `seed_index` ranges over a declared seed set of size `n_seeds >= 5` (illustrative, not a target: the
 repo ships 5 and nightly runs 20). A single run per cell is not a result; every reported quantity
 carries its per-cell median and IQR over `seed_index`, and never a mean alone.
+
+OVERRIDES Part I section 49.7: the floor of ten seeds per reported cell, and the `NOT REPORTABLE`
+renderer refusal of Part I section 48.8 that enforces it, are replaced by the `n_seeds >= 5` floor
+above with per-cell median and IQR reported over `seed_index`. An implementer following Part I sizes
+the seed set, the BCa bootstrap and the signed-rank tests for ten seeds and then refuses to publish
+any cell this section declares reportable.
 
 61.9.2 Artifact layout.
 
@@ -15809,7 +16076,6 @@ All are build-failing unless marked.
   under an explicitly declared perturbation model, and the docs say so in those words.
 - Do not present a cell with `status: INVALID` as a result, and do not delete it.
 
-
 ============================================================
 62. GROUND TRUTH, ORACLES AND THE VALIDATION PROTOCOL
 ============================================================
@@ -15945,6 +16211,11 @@ scenario author who also picks the goal can tune the cut to a hand-picked target
 62.2.5 Multi-goal scenarios carry a goal set; verdicts are emitted per goal atom. Aggregating goals
 into a single verdict, a count, a ratio or a score is forbidden.
 
+OVERRIDES Part I section 23.2: the loader constraint of exactly one `goal: true` step per scenario is
+replaced by a loader that admits a goal set and a kernel that emits one verdict per goal atom. An
+implementer following Part I rejects every multi-goal scenario at load time, so the per-goal verdict
+path is never built and no test reaches it.
+
 ------------------------------------------------------------
 62.3 THE FOUR ORACLES
 ------------------------------------------------------------
@@ -16036,6 +16307,14 @@ probe   = "probes/iam_audit_emits.sh"
 kind    = "NONE_MODELED"
 reason  = "no range component implements attestation; excluded from Oracle R scope"
 ```
+
+OVERRIDES Part I section 22.6: the fifteen-control catalog, in which observability is the telemetry
+SourceId `iam_audit` emitted by identity-service (section 26.3) and not a control, is replaced by a
+catalog that also carries observability as a threshold atom of kind `OBSERVING`, which changes
+telemetry and never blocks a step; each such atom consumes the section 22.2 atom budget
+`Sigma_k m_k <= 64`. An implementer following Part I emits no `iam_audit>=1` atom from the control
+compiler, so the OBSERVING entries required here have no atom to bind and `gate:enforcement-total`
+cannot be satisfied.
 
 62.4.3 `gate:enforcement-total` fails if any atom lacks an entry. `gate:enforcement-effective` runs
 every `probe` twice, once with the atom off and once on, and fails if the probe output is identical —
@@ -16179,6 +16458,14 @@ real fixpoints for all cuts of cardinality < |S|. Printing `no smaller cut exist
 `PSI_RELATIVE` certificate is forbidden in every surface; the permitted string there is
 `no smaller cut satisfies the enumerated corridor set`.
 
+OVERRIDES Part I section 25.9: the rule that a run carrying `subset_minimal_only` MUST NOT be
+presented as ROBUST — restated as a build assertion in section 44.9 and as a forbidden claim in
+section 25.13 — is replaced by reporting minimality in this separate `minimality` field, which does
+not bear on safety; a subset-minimal run is ROBUST with `minimality: PSI_RELATIVE`. An implementer
+following Part I downgrades every such run to OPTIMISTIC_ONLY with a grey badge, which suppresses the
+robust yield measured by `gate:nonvacuity-yield` (62.9.2) and inflates `flagged_share` against the
+ceiling in 62.9.4.
+
 ------------------------------------------------------------
 62.6 ORACLE S -- SMT DIFFERENTIAL (TEST ONLY)
 ------------------------------------------------------------
@@ -16201,6 +16488,13 @@ absent from the image.
 minimality claim. Divergence fails `gate:smt-differential`. Bounds are declared, small, and enforced
 by a harness assertion, not by hope. Illustrative bounds: instances <= 400, |A| <= 12, cuts enumerated
 exhaustively (illustrative, not a target).
+
+OVERRIDES Part I section 44.10: the requirement that the Z3 minimality test cross-check the
+branch-and-bound result on every fixture with `|A| <= 64` is replaced by a declared small-instance
+bound enforced by a harness assertion. An implementer following Part I attempts exhaustive cut
+enumeration over 2^64 masks and claims SMT corroboration of minimality across the whole fixture set,
+which Oracle S does not supply; `minimality: EXHAUSTIVE` (62.5.5) therefore cannot rest on Oracle S
+at production size.
 
 62.6.4 Oracle S certifies only that the Rust solver's answer on small instances matches an
 encoding-independent solver. It certifies nothing about the rule semantics, nothing at production
@@ -16271,6 +16565,13 @@ false-ROBUST figure is forbidden.
 62.8.5 A run whose certificate carries any soundness-affecting flag (`grounding_capped`,
 `er_ambiguous`, `subset_minimal_only` is NOT soundness-affecting, see 62.5.5) cannot be ROBUST and is
 therefore outside this predicate. That escape route is closed by 62.9.4, not here.
+
+OVERRIDES Part I section 25.9: the three-flag rule that `grounding_capped`, `subset_minimal_only` or
+`greedy_cover` each bar a ROBUST verdict — asserted in the build by section 44.9 — is replaced by a
+soundness-affecting set that excludes `subset_minimal_only` and adds `er_ambiguous`, which is not one
+of the three flags in section 25.7's certificate schema. An implementer following Part I treats
+`subset_minimal_only` as a downgrade trigger and emits no `er_ambiguous` field, so this predicate's
+exclusion set and `flagged_share` (62.9.4) are both computed over the wrong flags.
 
 ------------------------------------------------------------
 62.9 THE MISSING COUNTERPART: FALSE UNSAFE AND NON-VACUITY
@@ -16457,7 +16758,6 @@ strings, the demo script, API field names and CI job names, or by the named gate
 - Do not report any headline number from a single seed per cell.
 - Do not let `make validate` exit 0 while any INDETERMINATE or quarantined cell is uncounted.
 
-
 ============================================================
 63. THE GUARD LANGUAGE: GRAMMAR, TYPE SYSTEM AND COMPILER
 ============================================================
@@ -16486,6 +16786,15 @@ the kernel's guard evaluator is generated. See 63.10 and 63.13, and the oracle p
    (`blocked_when`), a positive monotone formula over threshold literals only. They cannot mix.
    A data expression may not mention `ctl.`; a control expression may not mention a variable, a
    literal, an arithmetic operator, or `not`.
+   OVERRIDES Part I sections 22.3, 22.5 and 22.6: the single gate field `admit_when`, an antitone
+   formula in which control literals may appear only negated, is replaced by `blocked_when`, a
+   positive monotone formula, alongside the separate data field `when`. The polarity is inverted:
+   Part I states the condition under which a gated transition is still permitted, this section
+   states the condition under which the instance is blocked. An implementer following Part I
+   authors every control gate on the admit side, is rejected on the `not` (E-SYN-009), and
+   silently turns permit into block if the negations are stripped mechanically; the `admit_when`
+   key required by 22.5's schema and the `dnf_mask_equivalence` property test of 22.7 have no
+   counterpart here and must be restated against `blocked_when`.
 2. **Monotone by construction.** The CONTROL sort has no negation, no equality, no `<`, and no
    level predicate other than `ctl.X >= LEVEL`. `ctl.X == 2`, `ctl.X < 3`, `ctl.X != 0` and
    `not (ctl.X >= 2)` are parse errors, not lint warnings.
@@ -16518,6 +16827,11 @@ bool_lit    = "true" | "false" ;
 Reserved (may never be an `ident`):
 `and or not in true false ctl min max abs within overlaps distinct`
 
+OVERRIDES Part I section 22.3: the control-reference keyword `ctrl.` is replaced by `ctl.`;
+`ctrl` is not reserved in SGL and no guard spelled that way compiles. An implementer following
+Part I authors the whole control catalog against `ctrl.`, and every such reference lexes as an
+ordinary identifier and then fails as an unknown field path (E-TYP-014).
+
 SGL has **no comments and no string literals**. Rationale for comments: a guard is a TOML string;
 prose belongs in the sibling `note` field, which is not hashed into `guard_ast_hash` (63.7), so
 commentary can be edited without invalidating certificates. Rationale for strings: every
@@ -16549,6 +16863,15 @@ literal     = dur_lit | int_lit | sym_lit | bool_lit ;
 set_lit     = "{" , sym_lit , { "," , sym_lit } , "}" ;  (* 1..=32 members *)
 ```
 
+OVERRIDES Part I sections 22.3 and 25.4: the single `guard` field carrying one formula that mixes
+control and state predicates is replaced by two disjoint sorts in two fields, and Part I's state
+constructs are removed — there is no `has(path)`, no prefix `in(path, list)` form, no string
+literal, no user-defined predicate such as `ctx_matches_bind`, and no unbounded `Path`; `in` is an
+infix operator over a symbol-set literal, the builtins are exactly those listed above, and path
+depth is capped by the structural caps of this section. An implementer following Part I's worked
+rule `r_session_replay` writes a guard that does not parse, on the mixed sorts, on the negated
+control literal and on the call to a predicate SGL gives no way to declare.
+
 CONTROL sort:
 
 ```
@@ -16558,6 +16881,12 @@ b_and       = b_atom , { "and" , b_atom } ;
 b_atom      = threshold | "(" , block_expr , ")" ;
 threshold   = "ctl" , "." , ident , ">=" , ident ;       (* level by NAME, never by number *)
 ```
+
+OVERRIDES Part I section 22.3: the threshold production whose right operand may be an integer
+(`Int | LevelName`) is replaced by one whose right operand must be the level's declared symbolic
+name. An implementer following Part I writes the level as the index defined in 22.2 and used in
+the atom names of 23.4, 24.7 and 25.7, and every such guard is E-SYN-012 (63.11) rather than a
+build; the name-to-index direction exists only in the atom record of 63.7.
 
 Precedence, loosest to tightest: `or` < `and` < `not` < rel_ops (non-associative, at most one per
 `rel_expr`) < `+ -` (left) < `*` (left, literal RHS) < unary application. `a < b < c` is
@@ -16802,6 +17131,12 @@ manifest for provenance, and is explicitly non-load-bearing.
 | Python services | none — shells out to `sglc`; never evaluates a guard | n/a | n/a |
 | TypeScript frontend | renders a pretty-printed AST for display; **must not evaluate guards or compute verdicts** | n/a | n/a |
 
+OVERRIDES Part I section 25.2: the paths `crates/spectra-eclipse`, `crates/spectra-guard` and
+`cmd/spectra-verify` are replaced by `crates/eclipse-kernel`, the `sglc` compiler of this section
+as the sole shared guard front end, and `go/spectra-verify`. An implementer following Part I ships
+a separate guard-parser crate that nothing here builds against, and writes the grep-based
+independence and staleness gates (63.10, 63.8) over paths that do not exist in the tree.
+
 DECISION: generated code is **committed**, and CI regenerates and requires byte-identity.
 
 Justification (all four must hold, or the decision is wrong):
@@ -17006,6 +17341,12 @@ note          = "free prose; NOT hashed into guard_ast_hash"
 attck         = ["T1550.004"]
 ```
 
+OVERRIDES Part I sections 25.3 and 25.4: the single free-prose `provenance` field with the
+technique id embedded in its text is replaced by two fields, `note` for prose and `attck` for the
+list of technique ids. An implementer following Part I produces a rule table with no `attck`
+field, so `rules_table_hash` (63.7) cannot be computed as specified, and the guarantee that
+editing a comment does not invalidate a certificate holds only for prose kept in `note`.
+
 63.14 NEGATIVE REQUIREMENTS AND FORBIDDEN CLAIMS
 
 1. Do not add a float, a probability, a weight, a score, a confidence, or a severity to SGL. There
@@ -17045,7 +17386,6 @@ attck         = ["T1550.004"]
 | Monotonicity in controls | grammar (63.1.2) plus `make guard-lattice-test` |
 | Simulator independence | `make sim-independence` build-graph gate |
 | Gates are alive | `make guard-mutation` with the published mutation-to-gate table |
-
 
 ============================================================
 64. WELL-DEFINEDNESS, TIE-BREAKING AND OUTPUT ALGEBRA
@@ -17097,6 +17437,12 @@ Two distinct orders exist. Confusing them is the defect that made cuts unstable.
     the catalog contents and is *history-independent*: inserting a new control never changes the
     relative order of two pre-existing atoms.
 
+    OVERRIDES Part I section 22.5: the catalog schema's `control_id` pattern
+    `^[a-z][a-z0-9_]{2,31}$`, enforced by `schemas/controls.schema.json`, is replaced by
+    `^[a-z][a-z0-9_]{2,47}$`, which is the single authority for both the lint and the catalog
+    validator. An implementer following Part I rejects at catalog compile time the longer ids this
+    section's atom order and bit-lock generator accept.
+
 (2) **Bit positions** — used only for `u64` blocker masks, mask arithmetic and hashing. Assigned from
     an append-only registry `controls/catalog-bits.lock`, never from file position:
 
@@ -17115,11 +17461,20 @@ Rules, each with a build gate:
 - 64.1.1 A `(control_id, level)` pair keeps its bit position forever. Removing a control sets
   `state = "tombstone"`; the position is never reused. `make bits-lock` may only append. CI fails if
   the lock file's diff against `HEAD~` contains any deletion or any change to an existing `pos`.
+  OVERRIDES Part I section 22.7: deriving bit positions from `build/controls.toml`, i.e. from
+  catalog file or compilation order, is replaced by assignment from the append-only
+  `controls/catalog-bits.lock` registry. An implementer following Part I renumbers every existing
+  bit on any catalog edit, which this rule and `make stability-cut` step 4 forbid.
 - 64.1.2 Live + tombstoned positions must satisfy `max(pos) < 64`. The gate is
   `make atom-budget`, which prints live and tombstoned counts and fails at `pos == 64`. At exhaustion
   the only sanctioned action is a `lock_version = 2` epoch: a new lock file, a new
   `catalog_epoch` field in the certificate, and an explicit statement in `docs/` that certificates
   from different epochs are not comparable by mask. Silent renumbering is forbidden.
+  OVERRIDES Part I section 22.2: the `E_ATOM_BUDGET` check, taken over currently declared live atoms
+  only as `Σ_k m_k ≤ 64` and published as that live count in `build/controls.meta.json`, is replaced
+  by a budget over live plus tombstoned positions, `max(pos) < 64`, gated by `make atom-budget`. An
+  implementer following Part I accepts a catalog whose tombstoned positions have already exhausted
+  the mask width, and frees those positions for reuse.
 - 64.1.3 The certificate records, for every atom in the cut, all three of `control_id`, `level`,
   `bit`, and the `rank` (0-based index in `≺` over live atoms), plus `hashes.catalog_bits`. The Go
   checker recomputes `rank` from the catalog and rejects the certificate on mismatch.
@@ -17190,6 +17545,12 @@ the `cut_cmp`-minimum admissible cut of cardinality `r`, independent of internal
   solver terminating inside budget, and is never inferred from atom count.
 - 64.2.2 `safety` and `minimality` are independent certificate fields. A `SUBSET` minimality never
   degrades `safety`.
+  OVERRIDES Part I section 25.9: the rule that a run with any of `grounding_capped`,
+  `subset_minimal_only` or `greedy_cover` set MUST NOT be presented as ROBUST — the API returning
+  `mode: "OPTIMISTIC_ONLY"` with `downgraded_by: [...]` and a grey badge — is replaced by two
+  independent fields, where degradation is carried by `minimality` and never rewrites `safety`. An
+  implementer following Part I emits one `mode` field carrying both meanings and suppresses a
+  ROBUST verdict that this section holds to be sound.
 - 64.2.3 Property test `prop_cut_canonical`: for 512 seeded shuffles (illustrative, not a target) of
   clause order, atom insertion order and rule-instance order, `canonical_min_cut` returns
   byte-identical output. Failure fails the build.
@@ -17304,6 +17665,11 @@ type Residual struct {
   of the corridor's atom ranks in ascending `≺` order, rendered as 32 lowercase hex characters. It is
   stable across runs with the same catalog and rule table, and is the join key for every residual,
   redundancy and frontier output.
+  OVERRIDES Part I section 25.7: the small integer `corridor_id` assigned as corridors are
+  discovered by the hitting-set loop, and used as the key of `spectra eclipse corridors --explain
+  <corridor_id>` and `GET /api/v1/eclipse/corridors` in section 25.11, is replaced by this content
+  hash. An implementer following Part I emits a solver-order-dependent identifier, so the join keys
+  of residual, redundancy and frontier outputs change between runs over identical inputs.
 - 64.4.2 **Scalarisation ban.** There is no field named `residual_reachability`, `residual_score`,
   `residual_pct`, `coverage`, `severity`, `risk`, `confidence`, `probability`, `score`, `rating`,
   `index` (except `redundancy_index`, which is the Jaccard defined in 64.5 and is name-registered) on
@@ -17383,6 +17749,11 @@ Consequences, each of which must be written in the docs in these terms:
   extracted from P_max, may combine silent instances that no single consistent world realizes. The
   tree may depict an attack that could not have happened. This is the demo's climax and it must
   carry its status on screen.
+  OVERRIDES Part I section 25.9: the definition of `UNSAFE` as the goal being reachable in `P_min`
+  under the user's current configuration — an observed-only property — is replaced by a verdict and
+  counterexample trees that may be extracted from `P_max`, a superset of realizable worlds. An
+  implementer following Part I builds counterexamples from `P_min` alone, so no tree can ever be
+  unrealizable and the realizability apparatus of 64.6 has nothing to run on.
 - 64.6.3 **Not sound for any OPTIMISTIC artifact derived from P_max.** Blindness premium members,
   decisive observation sets and frontier points computed over Ψ_max inherit the superset semantics
   and carry `program: "PMax"` so that no consumer can forget it.
@@ -17426,6 +17797,11 @@ The decidable subset, which is mandatory to implement:
 - 64.6.7 GHOST labelling is orthogonal and still mandatory: every silent instance renders as GHOST at
   every zoom level and in every export, and never enters any observed-event count. A `REALIZABLE`
   badge does not make a GHOST an observation.
+  OVERRIDES Part I section 25.8: checker check (e)'s requirement that each redundancy witness
+  re-derive the goal under `S \ {c}` from real `EventId` leaves, and section 25.11's counterexample
+  endpoint returning a derivation tree with `EventId` leaves, are replaced by trees whose silent
+  instances appear as GHOST leaves carrying `evidence: []`. An implementer following Part I rejects
+  with exit code 4 exactly the `P_max`-derived trees this section mandates.
 
 
 64.7 COST FRONTIER: NO UNIT-COST DEFAULT
@@ -17513,6 +17889,10 @@ independently and are held equal by the differential corpus (§62).
   enumerated corridors, and enumeration reached fixpoint"; `SUBSET` → "no control can be removed from
   this cut; smaller cuts were not ruled out". The Go checker rejects a certificate whose rendered
   verdict strings (carried in `render_strings`) do not match the registry for its flag combination.
+  OVERRIDES Part I section 25.13: the licensed phrasing "no smaller cut exists over the declared
+  control catalog" is replaced by these two registered strings, and is itself now a banned form. An
+  implementer following Part I ships a sentence that omits the enumeration-fixpoint qualifier and
+  the controls-versus-atoms distinction, and that the claims-registry check rejects.
 
 CLI transcript for a suppressed run (illustrative, not a target — every number and hash here is a
 placeholder and the docs gate fails if any of these literal values reaches `docs/` or `README.md`):
@@ -17558,6 +17938,10 @@ keep the headline objects honest.
 - Do not report any cut without its `minimality` tag. Do not print "the minimum cut" — print "a
   cardinality-minimum cut over the declared catalog, canonical representative" or, for `SUBSET`,
   "a subset-minimal cut".
+  OVERRIDES Part I section 25.11: the mandated UI result header "Minimum cut {session_binding>=device,
+  egress_seg>=1} — ROBUST — …" and section 25.8's checker line "OK: no cut of size 1 satisfies Psi"
+  (both quoted illustratively, not as targets) are replaced by the phrasings required here and by
+  64.8.3. An implementer following Part I ships literal strings that the banned-phrase gate fails.
 - Do not compute `S_rob \ S_opt` and call it the blindness premium. That expression is deleted.
 - Do not scalarise residual reachability. Do not add a percentage, a ratio, a normalised coverage, a
   "% of attack paths blocked", or a progress bar backed by one.
@@ -17571,7 +17955,6 @@ keep the headline objects honest.
   completion order, or a wall-clock measurement.
 - Do not claim invariance, minimality, exactness or completeness in prose that no gate in 64.9
   enforces. If the gate does not exist, the sentence does not ship.
-
 
 ============================================================
 65. LIVENESS ESTIMATION AND THE SELF-CALIBRATION PROBLEM
@@ -17648,6 +18031,14 @@ drawn from a declared calibration seed band that is disjoint from every analysis
 
 OVERRIDES Part I: ECLIPSE §2 input list gains a fifth mandatory input, `profile.json`, and ECLIPSE
 §5 `Cert.hashes` gains the field `profile`.
+
+OVERRIDES Part I section 25.10: the content-addressed liveness cache key
+`liveness/<H(bundle, liveness_params)>` is replaced by `liveness/<H(bundle, liveness_params,
+profile_id)>`, because the profile now determines every threshold and is a determining input on the
+same footing as the bundle. An implementer following Part I would serve a second run its
+predecessor's verdicts whenever only the profile changed — a different calibration seed band, or a
+source that is CALIBRATED in one profile and INSUFFICIENT in the other — defeating gates B1..B6 on a
+warm cache while `--no-cache` still reproduced correct output.
 
 ### 65.2.2 Gap population
 
@@ -17760,6 +18151,15 @@ pub enum ThresholdProvenance {
 pub fn classify(t: Option<&Threshold>, o: &WindowObservation, cfg: &LivenessCfg) -> Verdict;
 ```
 
+OVERRIDES Part I section 17.1.4: interval-valued evaluation against the per-source skew envelope —
+a record asserting `t_evt` treated as having occurred anywhere in `[t_evt + lo_s, t_evt + hi_s]`,
+with every window and sequence operator evaluating over intervals rather than points and emitting
+`order_indeterminate` when two intervals overlap — does not apply to the liveness stage. Brackets
+are compared, the breakpoint grid of 65.5.3 is built, and `max_observed_gap_ns` is measured on point
+timestamps in the canonical order, and the only outcomes are the verdicts of 65.5.2. An implementer
+following Part I would emit `order_indeterminate` from a stage whose verdict lattice cannot
+represent it, and would compute bracket and gap values that no other implementation reproduces.
+
 `liveness::classify` takes no bundle handle, no fact base, no `&[u64]` sample. A build gate
 (`make lint-liveness-deps`) asserts the `spectra-liveness` crate's dependency closure excludes the
 ingest and grounding crates.
@@ -17839,6 +18239,14 @@ its reason are written into `liveness.json` and the certificate.
   the decisive observation set and the redundancy index are **degenerate** under F2 and are
   structurally suppressed from the certificate, the API response and the UI. Emitting them under F2
   fails the schema lint.
+
+  OVERRIDES Part I sections 25.6, 25.7, 25.8, 25.11 and 19.7.3: the blindness premium, the decisive
+  observation set and the redundancy index cease to be unconditional stage outputs, certificate
+  fields, checker re-derivations and API endpoints; under F2 they are absent, `redundancy_witnesses`
+  is not carried, the decisive observation set is not produced for AMBIGUOUS sets, and emitting any
+  of them fails the schema lint. An implementer following Part I builds a certificate and
+  `GET /api/v1/eclipse/premium`, `/decisive` and `/redundancy` responses that always carry these
+  fields, and the build fails the schema lint the first time it is run with `--no-profile`.
 - F3 exists so that a synthetic emitter with a declared fixed period is not penalized for lacking a
   calibration run. It is not a licence to invent a rate for a source whose rate is unknown. The
   scenario spec field is `sources.<id>.nominal_period_ns`; absent the field, F3 is unavailable and
@@ -17890,6 +18298,15 @@ R11 otherwise                                    -> LIVE       L_CALIBRATED_OK
   SUPPRESSED window carries `witness: [event_of_seq_i, event_of_seq_j]` and a missing-`seq` count;
   a BLIND window carries a reason code only. SUPPRESSED sets `tamper_suspected(s)` when the missing
   range intersects any corridor-relevant interval.
+
+  OVERRIDES Part I sections 25.5, 25.7 and 19.8.1: `License.witness: Vec<EventId>` and the rule that
+  every edge dereferences either to concrete `EventId`s or to the licenses that dereference to the
+  witness events establishing blindness no longer hold for BLIND intervals, which publish a reason
+  code and nothing else; witness events survive only on SUPPRESSED intervals, and the schema in 65.7
+  carries no `license_id` on any interval. An implementer following Part I would populate
+  `cert.licenses_used[].witness`, `dependency_edge` license objects and
+  `finding_provenance.licenses[].license_id` for BLIND licenses out of fields that `liveness.json`
+  does not contain, and checker obligations 25.8(c)/(d) and 19.8.2(c) would have nothing to resolve.
 - A window may be SUPPRESSED on one source and LIVE on another. Licensing of a silent rule instance
   requires **all** of `producing_sources(tau)` to be non-LIVE over the interval, unchanged from
   ECLIPSE §4C.
@@ -17921,6 +18338,14 @@ consistency pass.**
 1. Build the difference-constraint graph over event timestamps from happens-before edges declared by
    the rule table plus per-source `seq` monotonicity. Run Bellman-Ford with a deterministic edge
    order (canonical `(src_event, dst_event)` lexicographic) and a step budget, never a wall clock.
+
+   OVERRIDES Part I section 17.1.5: the edge set drawn from every pair with a causally forced
+   ordering (same session, same file descriptor, same TCP flow, same chained sequence) is replaced
+   by the happens-before edges declared by the rule table plus per-source `seq` monotonicity. An
+   implementer following Part I builds a different graph, hence different negative cycles, a
+   different correction set `C` and a different `tamper_suspected` set, and the Go checker of 65.6.2
+   rejects the resulting certificates with no diagnostic pointing at the edge-set definition.
+
 2. **No negative cycle** -> every license is `TEMPORALLY_CONSISTENT`. Proceed.
 3. **Negative cycle found** -> the timestamp set is mutually inconsistent. It does *not* identify
    which timestamp is wrong. Compute the deterministic minimal correction set `C`: the
@@ -17930,6 +18355,15 @@ consistency pass.**
 4. Every license whose interval endpoints depend on an event incident to `C` is marked
    `TEMPORALLY_DISPUTED`. **It is retained in `P_max` with full force.** Fail-open on the license is
    fail-closed on the verdict (EDR clause 2).
+
+   OVERRIDES Part I section 17.1.5: marking every record in the cycle `BACKDATED`, excluding those
+   records from licensing ECLIPSE silent instances, and publishing a voided license set in
+   `liveness.json` are all replaced by the `TEMPORALLY_DISPUTED` marking, full retention in `P_max`,
+   and the `tamper_sensitivity` reporting of step 6. An implementer following Part I strips
+   licensing power at record granularity before the license-level protocol ever runs, reproducing
+   the exact attack this section closes: tampered timestamps shrink `P_max` and move the verdict
+   toward ROBUST.
+
 5. Set `tamper_suspected` on every source contributing an event in `C`.
 6. Compute, for reporting only, the counterfactual `P_max' = P_max \ {disputed licenses}` and its
    verdict. If `verdict(P_max') != verdict(P_max)`, set `verdict_tamper_sensitive = true` and record
@@ -18209,7 +18643,6 @@ suppress_premium_under_f2 = true
     seeded generator's emission behavior under one scenario family; it says nothing about the arrival
     process of any production telemetry source, and no document may imply otherwise.
 
-
 ============================================================
 66. VERDICT AND FLAG ALGEBRA
 ============================================================
@@ -18269,6 +18702,15 @@ axis implies any value on another.
                               every API response, every UI node.
 ```
 
+OVERRIDES Part I sections 40.4, 40.6 and 42.4: the verdict vocabulary "ROBUST / OPTIMISTIC-ONLY /
+UNSAFE / FLAGGED", the FLAGGED palette row with its cross-hatch overlay and flag icon, and the rule
+that any non-exact value renders with the FLAGGED treatment are replaced by the three independent
+axes above; the safety alphabet is exactly {ROBUST, OPTIMISTIC_ONLY, UNSAFE, INDETERMINATE} and
+flags are a separate u16 that is never a verdict value. An implementer who keeps FLAGGED keeps a
+palette entry and a vocabulary term the Part II type cannot produce, and paints `greedy_cover` and
+`sampled_matrix` runs as "flagged — not a ROBUST result", which is a false statement about a
+legitimately constructible ROBUST verdict.
+
 Rationale, stated once so no implementer re-litigates it: `EXACT_*` is a statement about the search
 over cut cardinalities. `ROBUST` is a statement about a fixpoint over the licensed program. A cut can
 be exactly minimal and unsafe; a cut can be robust and of unknown minimality. Cross-contamination
@@ -18286,6 +18728,15 @@ between the axes was a Part I contradiction and is now a type error.
 | `OPTIMISTIC_ONLY` | The goal is not derivable in **P_min** but is derivable in **P_max**. | Always, provided the P_min fixpoint terminated. |
 | `UNSAFE` | The goal is derivable in **P_min**, with a witness derivation tree. | A witness tree is present and every leaf is a real `EventId` present in the hashed bundle. |
 | `INDETERMINATE` | Neither a safety claim nor a witness can be defended under this run's flags. | Whenever the other three are not constructible. This is the fail-closed sink. |
+
+OVERRIDES Part I section 25.9: the automatic downgrade, under which a run carrying a flag is
+relabelled `mode: "OPTIMISTIC_ONLY"` with a `downgraded_by` list regardless of the fixpoint results,
+is replaced by the constructibility conditions in this table — `OPTIMISTIC_ONLY` requires that the
+goal is not derivable in P_min and is derivable in P_max, and a flagged run that cannot defend that
+claim falls to `INDETERMINATE` (66.4 A10). An implementer following section 25.9 emits
+OPTIMISTIC_ONLY for a run whose goal is unreachable in P_max, which is a factually false safety
+claim under this section's own definition, and attaches a `downgraded_by` field that does not exist
+in the canonical object of 66.2.3.
 
 `UNSAFE` carries a mandatory `witness_class`:
 
@@ -18336,9 +18787,25 @@ whose minimality is not `EXACT_EXHAUSTIVE`. `make lint-claims` (§72) greps for 
 }
 ```
 
+OVERRIDES Part I sections 25.7 and 38.2: the five-hash scope `{rules, bundle, controls, liveness,
+goal}` with no entity-resolution hash and no attacker field is replaced by a six-hash scope that
+adds `er` and by the mandatory literal `attacker: "non-adaptive"`; the `proof_cert` DDL needs an
+`er_hash` column and the content-key unique index must include it, and the checker invocation takes
+`--er` (66.8). An implementer building the section 25.7 certificate emits a scope the Go checker
+rejects with `VRD-005`, and a content key over the five old hashes collides for two runs that differ
+only in entity resolution.
+
 Canonicalization rules (binding on emitter and checker alike):
 1. `flags` is a JSON array of flag names sorted by **bit position** (66.3), never alphabetically,
    never a bitmask in the wire format. The checker recomputes the mask and rejects duplicates.
+
+   OVERRIDES Part I sections 25.7, 36.4 and 38.2: the wire representation of flags as a three-key
+   object of booleans `{grounding_capped, subset_minimal_only, greedy_cover}`, and its storage as
+   the three boolean columns `flag_capped, flag_subset_only, flag_greedy`, are replaced by a
+   bit-ordered array of flag names drawn from the closed nine-flag set of 66.3. An implementer
+   emitting the Part I flags object, or serializing those three columns, produces a certificate the
+   checker cannot parse or rejects with `VRD-008` for out-of-bit-order names, and has no storage at
+   all for six of the nine flags.
 2. `witness_class` is `null` unless `safety == "UNSAFE"`. Present-and-null, never absent.
 3. Hashes are lowercase hex, exactly 64 nybbles, prefixed `b3:`. No truncation on the wire.
    Truncation to 8 nybbles happens only in the short rendering (66.5.2).
@@ -18365,6 +18832,32 @@ Adding a flag is a schema-version bump (`spectra/verdict/v2`), never an in-place
 | 6 | `greedy_cover` | The decisive observation set used the greedy cover beyond the exact search bound. | **D** | Does not block ROBUST. Forces the approximation factor to render inline with the set, never in a tooltip. |
 | 7 | `sampled_matrix` | The degradation matrix cells backing this run's aggregate context were sampled, not executed exhaustively. | **R** | Does not block a per-run ROBUST. Blocks every aggregate claim built from the run; any docs table derived from it must carry the sampling clause. |
 | 8 | `profile_missing` | The hashed clean-baseline arrival profile was absent for at least one source. Without it the liveness threshold would have to be self-calibrated from the run's own (possibly deleted) data — the known false-ROBUST path. Sources with no profile are forced BLIND. | **S** | Blocks ROBUST. |
+
+OVERRIDES Part I sections 25.6 A, 25.8 and 38.2 (bit 5): the treatment of a license voided by the
+difference-constraint pass as routine hygiene, recorded as `voided_by_dcg` in `liveness.json` and in
+the `license.voided` column with no verdict consequence, is replaced by
+`license_voided_by_suspected_tampering`, a soundness-class flag that makes ROBUST unconstructible.
+An implementer following Part I emits ROBUST on a run with voided licenses, which the Go checker
+rejects with `VRD-001`, and the Part I liveness output exposes no field the verdict builder can read
+to set bit 5.
+
+OVERRIDES Part I sections 25.9, 36.5, 37.3, 38.2 and 40.4 (bits 6 and 7): the rule that a run with
+ANY flag set must never be presented as ROBUST — enforced by the serializer guard, the
+`robust_never_flagged` CHECK constraint, the exit-8 gate and the chip rule — is replaced by the
+class system in this table, under which only **S**-class flags block ROBUST, so `greedy_cover` and
+`sampled_matrix` are compatible with a constructible ROBUST verdict. An implementer who writes the
+Part I constraint, serializer guard or visual-regression test makes those two combinations
+unstorable, unserializable and unpaintable, and fails the exhaustive flag sweep of 66.9, which
+requires exactly the subsets disjoint from `SOUNDNESS_MASK` to accept.
+
+OVERRIDES Part I sections 25.6 A and 38 query Q4 (bit 8): the liveness inter-arrival threshold
+computed as `q99(s)` from the run's own data — mandated there as "never a constant, never a tuned
+hyperparameter" — is replaced by a hashed clean-baseline arrival profile per source, because
+self-calibration is the known false-ROBUST path; sources with no profile are forced BLIND and
+`profile_missing` blocks ROBUST. An implementer who builds liveness to section 25.6 A produces no
+profile artifact at all, so bit 8 is set on every run and no run in the system can ever reach a
+constructible ROBUST verdict; the profile is also a hashed input that appears in neither section
+25.3's input table nor the scope of 66.2.3.
 
 Classes: **S** soundness-affecting, **M** minimality-affecting, **D** derived-output-suppressing,
 **R** reporting-affecting. A flag may carry several classes.
@@ -18408,6 +18901,20 @@ A8  derived_suppressed ⊇ {pareto_frontier}         if no costs.toml was suppli
 A9  scope is total: all six hashes present, non-empty, well-formed; attacker = "non-adaptive"
 A10 if A1 fails and OPTIMISTIC_ONLY / UNSAFE are also not constructible, safety = INDETERMINATE
 ```
+
+OVERRIDES Part I sections 25.6 F, 25.11 and 36.3 (A7): the unconditional redundancy index — computed
+from Ψ on every run and exposed through `GET /api/v1/eclipse/redundancy`, the per-certificate
+redundancy route, the `spectra eclipse redundancy` command and the /prove heatmap, with a cap
+requiring only that `grounding_capped` be set and the measured sizes published — is replaced by
+mandatory suppression: under `corridor_cap` or `grounding_capped` the index must be listed in
+`derived_suppressed` and withheld. An implementer following Part I serves the matrix on a capped run
+and emits an empty `derived_suppressed`, which the checker rejects with `VRD-014`.
+
+OVERRIDES Part I section 25.6 H (A8): the rule that an absent `costs.toml` causes the frontier to be
+computed over cardinality and labeled `cost_basis: "cardinality"` is replaced by mandatory
+suppression — with no `costs.toml` supplied, `pareto_frontier` must appear in `derived_suppressed`
+and no frontier is published on any basis. An implementer of section 25.6 H publishes a
+cardinality-basis frontier and takes `VRD-014` on every costs-free run.
 
 A1 is the headline rule the critics demanded: **ROBUST is unconstructible while any
 soundness-affecting flag is set.** A5 is the Part I contradiction fix: `atoms_over_budget` now
@@ -18485,6 +18992,14 @@ Long rendering (docs, exports, API `verdict_prose`, LLM narration input):
 
 The trailing sentence "This is a statement about the model, not about the system." is part of the
 long rendering and is not optional. Removing it fails `make lint-verdict-scope`.
+
+OVERRIDES Part I section 42.8.6: the verbatim Proof-screen footer beginning "Soundness is relative
+to the rule table..." and containing "ROBUST means:" is deleted and replaced by the long rendering
+above, whose scope body and trailing sentence carry the same limitation; the Proof screen is not an
+allowlisted file under 66.5.1, so the footer's standalone `ROBUST` token is a lint violation rather
+than a release blocker to preserve. An implementer who ships the section 42.8.6 footer, believing it
+non-negotiable, fails `make lint-verdict-scope` and leaves the build with two competing mandatory
+closing sentences.
 
 ### 66.5.3 One renderer per language, no concatenation
 
@@ -18710,6 +19225,15 @@ Exit codes: `0` accept, `1` certificate internally consistent but a proof obliga
 (closure, witness, Ψ), `2` verdict-algebra violation, `3` malformed input. The checker prints the
 code, never a bare word.
 
+OVERRIDES Part I sections 25.8 and 37.3: the exit tables `0` OK, `2` invariant violated, `3`
+unlicensed, `4` witness invalid, `5` smaller cut exists, `6` input hash mismatch, and the CLI-wide
+table in which `4` is validation failure, `5` integrity violation and `7` a checker rejection, are
+replaced by the four codes above for `spectra verify`; a failed proof obligation, including a
+smaller cut existing, is exit `1`, and every algebra rejection is exit `2`. An implementer who keeps
+either Part I table wires CI gates and the /eclipse/verify endpoint to classify every
+verdict-algebra rejection as "invariant violated" or to miss checker rejections entirely, since
+exit `7` is never produced.
+
 ```
 $ spectra verify out/cert-4f1c.json --rules rules.toml --controls controls.toml \
       --bundle bundle.jsonl --liveness out/liveness.json --er out/er.json
@@ -18801,6 +19325,14 @@ banned_substrings = [
 ]
 ```
 
+OVERRIDES Part I section 25.13: the licensed phrasing "no smaller cut exists over the declared
+control catalog" is withdrawn — "no smaller cut exists" and "minimum cut" are banned substrings with
+no allowlist and no qualifying suffix that rescues them, and the permitted rendering for
+`EXACT_PSI_RELATIVE` is "no smaller cut satisfies the enumerated corridor set" (66.2.2). An
+implementer who writes the section 25.13 sentence into docs or the UI, or who builds the Part I
+section 41.11 Proof header that renders the "minimum cut" as atoms, fails `make lint-verdict-scope`
+on a rule that admits no exemption.
+
 Additional gates in the same target:
 - **Concatenation gate.** An AST pass per language flags any expression in which a safety token
   literal is an operand of string concatenation/interpolation outside the sanctioned renderer files
@@ -18837,6 +19369,14 @@ Exempt by explicit allowlist, because they are not judgements: `redundancy_index
 over corridors, suppressed under A7), `bit`, `cardinality`, `count`, `bytes`, `millis` in benchmark
 artifacts only. Every exemption carries a one-line rationale in `spec/verdict/score-ban.toml`.
 
+OVERRIDES Part I section 41.2: the investigations route
+`GET /api/v1/investigations?q&status&severity&sort&page` is replaced by the same route with the
+`severity` query parameter removed — the ban here covers field and parameter names across the API,
+not only returned values as in Part I section 36.5, and `severity` is not on the exemption
+allowlist. An implementer who ships the section 41.2 route as written puts a banned name into the
+OpenAPI document and the TypeScript query types, fails `make lint-no-scores`, and has to rework the
+frontend filter control built on that parameter.
+
 FORBIDDEN CLAIMS. No implementation, document, UI string, API field, commit message, README line,
 paper abstract or CV bullet generated from this repository may say, of any verdict:
 - that it is a probability, a confidence, a risk level or a severity;
@@ -18850,7 +19390,6 @@ paper abstract or CV bullet generated from this repository may say, of any verdi
 A verdict is a claim about a fixpoint over a hand-authored rule table, under a hand-authored control
 catalog, over the telemetry actually ingested, against an attacker who does not re-plan. The type
 system in 66.6-66.8 exists so that no build of SPECTRA can emit a sentence that says more than that.
-
 
 ============================================================
 67. ADVERSARIAL THREAT MODEL OF THE PROOF KERNEL
@@ -18905,8 +19444,24 @@ Attacker capability classes, declared per fixture in `attack.toml`:
 | `C5_flooder` | emit unbounded volume and unbounded distinct entities | exceed the range's declared resource limits |
 | `C6_catalog_author` | contribute rules, blocker bits, controls, goals (supply-chain-of-the-model) | modify the kernel or the checker |
 
+OVERRIDES Part I §6.2: the closed capability set declared in `threat/model.toml`
+(`C1_credential_theft` through `C11_time_manipulation`) does not govern red-team fixtures. The
+`C0`–`C6` set above is a separate namespace, declared per fixture in `attack.toml`, and the
+identifiers collide across the two files — `C5` is lateral authentication in one and unbounded
+flooding in the other, `C6` is service-account abuse in one and catalog authorship in the other —
+so a capability id is meaningful only together with the file that declares it. An implementer
+running §6.2's capability linter over `attack.toml` fails the build on every fixture in 67.12.
+
 `C6` is included deliberately: a control catalog is a contribution surface, and 67.7/67.8 are the
 only defenses SPECTRA has against a contributor who authors a flattering model.
+
+OVERRIDES Part I §6.3 L3 and §6.5: "the attacker CANNOT modify the control configuration; controls
+are defender-side state" and the out-of-scope entry assigning supply-chain compromise to WARDEN are
+replaced for the catalog surface. A contributor who authors rules, blocker bits, controls or goals
+is in scope as `C6_catalog_author`, and 67.8's gates are the defense; `threat/SCOPE.md` no longer
+states the scope the code enforces. An implementer maintaining §6.5's rule linter rejects the
+provenance notes on the very fixtures 67.8 requires (`A6_universal_atom`, `A6_inert_atom`,
+`A6_unenforced_blocker`).
 
 ## 67.2 Attack table
 
@@ -18948,6 +19503,10 @@ Required implementation:
    obligation axiom satisfied. Search to a declared depth bound; report `>bound` otherwise.
    Emit `artifacts/evasion.json`. Every τ with `d_evade(τ) < ∞` is written into `LIMITATIONS.md`
    by the docs build. The build fails if `LIMITATIONS.md` is stale relative to `evasion.json`.
+   OVERRIDES Part I §8.8: the staleness gate keyed only to `crates/eclipse/**` and `rules.toml` is
+   replaced by one that also fails on staleness relative to `evasion.json`, and `LIMITATIONS.md`
+   gains a second generated region beyond the §8.8 skeleton's section 10. An implementer following
+   §8.8 ships a gate that stays green while the evasion-depth table is out of date.
 2. **Anchor coverage.** Every fact in `invariant_U` and every node of every witness tree is
    `OBSERVED` (cites ≥1 real `EventId`), `LICENSED` (cites a `LicenseId`), or `UNANCHORED`.
    `UNANCHORED` must be unconstructible; if the grounder ever produces one, abort with exit 4.
@@ -18956,6 +19515,14 @@ Required implementation:
    declared clean calibration run of the *same generator config*, hashed into the certificate as
    an input. A window whose observed count falls below the envelope floor is BLIND regardless of
    chain continuity and regardless of gap size. Deleting records can now only ever *add* licenses.
+   OVERRIDES Part I §7.4: Def 11's requirement that the inter-arrival quantile be "computed from
+   this run" is replaced by thresholds read from `baseline.json`. Consequently §8.1 CV3's
+   sensitivity sweep over q95/q99/q999 is no longer the mitigation for self-calibration, §6.6 T2 no
+   longer detects DELAY via a q99 taken from the bundle, and §44.8 `test_irrelevant_event_removal`
+   may no longer assert that a liveness change is confined to that source's q99. `baseline.json` is
+   a new required kernel input, produced by a clean calibration run that the §43.4 fixture builder
+   does not yet emit. An implementer following Part I computes the threshold from attacker-authored
+   evidence and trips the build failure of 67.14 #2.
 4. **Obligation-orphan flag.** If any derivation used in the cut proof rests on a source-window
    pair for which no obligation axiom applies and no bracketing corroboration exists, set
    `obligation_orphan`. A run with this flag may not be ROBUST.
@@ -19035,6 +19602,12 @@ sealer        = false
 bracketing    = false
 ```
 
+OVERRIDES Part I §6.4 TB1 and §7.2: the boundary obligation "every record gets `(source_id, seq,
+prev_hash, hash)`" and the `event` table's `NOT NULL` `prev_hash`/`self_hash` with
+`UNIQUE (run_id, source_id, seq)` do not hold for `UNCHAINED` sources, which carry no chain fields
+and no per-source sequence. An implementer keeping Part I's collection-plane schema cannot
+represent the all-`UNCHAINED` held-out scenario family this section requires.
+
 Liveness admissibility by class:
 
 | class | chain gap absent | sealer digest matches | volume envelope met | cross-source corroboration | LIVE? |
@@ -19048,11 +19621,21 @@ Additional fail-closed rules:
 - **Post-compromise blackout.** If the scenario's ground truth (§62) places a host in the
   compromised set at time `t`, every `CHAINED_LOCAL` and `UNCHAINED` source resident on that host
   is BLIND for all `t' ≥ t`. No exceptions, no reinstatement by later clean-looking records.
+  OVERRIDES Part I §6.6 rule 1, §7.2 and §8.2 IV2: the absolute ban on the reconstruction path
+  reading generator ground truth is narrowed to a declared carve-out — the compromised-host set and
+  compromise time of §62 are an input to the liveness stage, and to the §6.4 TB4 re-derivation of
+  liveness in the Go checker, which needs the same set. No other part of the ground-truth stream
+  crosses the boundary. An implementer following Part I either fails the IV2 compile-time test and
+  the §7.2 column test, or disables them wholesale and loses the boundary for everything else.
 - **Sealer divergence.** A mismatch between a source-local chain head and the sealer's digest is
   `SUPPRESSED` with flag `chain_divergence` — it localizes deletion and *adds* licenses.
 - **Unsealed honesty.** A bundle with no sealer digests carries `unsealed`. Any document reporting
   suppression-detection results must split them by source class; a claim stated over all classes
   without the split fails the claims-registry lint.
+  OVERRIDES Part I §6.4 TB2: the single collector-level manifest seal that must be verified before
+  any parsing, on pain of refusing to run, is replaced by per-source sealer digests that are
+  optional; a bundle with none runs and carries `unsealed`. An implementer following TB2 refuses to
+  run on every unsealed and `UNCHAINED` fixture this section requires.
 - At least one scenario family in the held-out set must consist entirely of `UNCHAINED` sources.
 
 ## 67.6 A4 — Entity-resolution poisoning by attacker-chosen identifiers
@@ -19087,6 +19670,13 @@ Required implementation:
    mirrored in the Go checker. Two distinct raw identifiers from different sources that normalize
    to the same key do not merge: they emit an `er_collision` quarantine record with a reason code,
    and the window is `er_ambiguous`.
+   OVERRIDES Part I §44.8: `test_relabeling_invariance` may no longer quantify over an arbitrary
+   bijection on entity identifiers. Reconstruction is deliberately sensitive to identifier spelling
+   here, so a bijection that maps two non-colliding names onto one normalized key sets
+   `er_ambiguous`, bars ROBUST and changes the certificate. The test holds only for bijections that
+   preserve normalization classes and the `attacker_writable` namespace declarations of `er.toml`.
+   An implementer keeping the Part I test as written sees it fail against a correct implementation
+   of this section, and will weaken normalization to make it pass.
 5. **Flags.** `er_ambiguous` bars ROBUST. `er_poisoning_suspected` is set when any merge used only
    attacker-writable evidence *and* that merge is load-bearing for the cut (removing it changes
    `S`). Both appear in the certificate and in the UI banner, not only in JSON.
@@ -19199,6 +19789,12 @@ Rules:
   - `DERIVED`: the goal set is computed from the generator's ground truth via the correspondence
     relation of §62 — the objectives the scenario script actually achieved. Required for every
     headline number and for the demo fixture.
+    OVERRIDES Part I §7.4 Def 10 and §7.2: "reconstruction sees only `B` and the declared catalogs"
+    is replaced for the goal input. A `DERIVED` goal set is computed outside the kernel from
+    `transition.ground_truth` and supplied to it as a hashed input, a second declared carve-out in
+    the §8.2 IV2 boundary alongside 67.5's compromised-host set. An implementer following Part I
+    has no way to produce a `DERIVED` goal set and falls back to `AD_HOC`, which is never
+    ROBUST-eligible.
   - `LIBRARY`: a frozen library goal not achieved in this scenario; permitted, clearly labeled.
   - `AD_HOC`: hand-authored for this run. **Never ROBUST-eligible.** Watermarked in UI and in
     every export. The Go checker refuses `Safety::Robust` with `goal_provenance = AD_HOC`
@@ -19242,10 +19838,21 @@ Required consequences:
   No code path formats a verdict by string concatenation; there is one constructor and one
   formatter, and a unit test asserts no other path produces a verdict string. The Go checker
   rejects a certificate whose mode string lacks its scope binding (`E_UNSCOPED_VERDICT`).
+  OVERRIDES Part I §46.6: the pinned demo-path header shape `verdict: ROBUST  cut: {…}
+  corridors: <n>` with `flags: none`, asserted as a required CI check and re-asserted through the
+  UI by the Playwright job in `e2e.yml`, is replaced by the scoped render above and by the flag set
+  of 67.11. An implementer keeping the Part I header assertions emits a certificate the Go checker
+  rejects with `E_UNSCOPED_VERDICT`, failing the demo-path check and the e2e job together.
 - **Banned vocabulary**, enforced by the claims-registry lint across README, docs, UI strings, API
   field names, demo script and commit-message templates: "prevents", "would have stopped", "stops
   the attack", "guaranteed", "formally verified", "proves the system is secure". The permitted
   phrasing is "severs every recorded corridor in the model" and "lower bound on control effort".
+  OVERRIDES Part I §8.6 and §8.9: this list replaces §8.6's word list and §8.9's instruction never
+  to describe SPECTRA as detecting anything. "Detects" is no longer banned and is required in the
+  scoped form of 67.14. The §8.6 certificate footnote, required verbatim in every render, contains
+  "the attacker would have been stopped", which this list's "would have stopped" entry matches as a
+  substring. An implementer running both word lists over the same surfaces fails the repository
+  against itself.
 - **Adaptivity probe** (required for the demo fixture and for every held-out scenario family). Run
   the generator a second time with the cut `S` enforced *and* the scenario script permitted to take
   its declared alternate branch. If the alternate branch reaches a goal atom, the certificate
@@ -19253,6 +19860,11 @@ Required consequences:
   A demo fixture with a known adaptive bypass must say so on screen.
 - `LIMITATIONS.md` opens with (3) and (4), verbatim, above the fold, linked from the README's
   first screen.
+  OVERRIDES Part I §8.8: the skeleton's "## 0. One-paragraph summary ... before anything else" no
+  longer holds the first position; (3) and (4) stand above it, and the §8.8 CI gate on absence,
+  length, TODOs and staleness continues to apply alongside the `evasion.json` staleness gate of
+  67.3 and the fixture-reference requirement of 67.12. An implementer following §8.8 alone puts
+  the plain-language summary first and breaks this requirement while the §8.8 gate stays green.
 
 ## 67.11 Fail-closed algebra
 
@@ -19291,6 +19903,15 @@ impl Verdict {
 }
 ```
 
+OVERRIDES Part I §47.3, §47.2 and §47.1: the closed, lint-enforced observability surface is
+replaced. `tests/observability/test_metric_names.py`, which asserts the documented label sets "and
+no others", must admit `verdict=incomplete` on `spectra_proofs_total` and the `SoundnessFlags`
+values above on `spectra_proof_flags_total`, which no longer carries `subset_minimal_only` or
+`greedy_cover`; `spectra_licenses_voided_total` and the `voided_licenses` span attribute on
+`spectra.liveness.compute` now describe a behavior 67.4 deletes; and the closed log-`event`
+registry gains the events these flags raise. An implementer following Part I ships a metrics test
+that fails the moment an `INCOMPLETE` run or any new flag is emitted.
+
 - OVERRIDES Part I: safety and minimality are **independent** fields. `subset_minimal_only` (a
   statement about cut size) no longer suppresses a safety result. A fully verified unreachability
   result with `Minimality::Subset` is still `Safety::Robust`. This removes Part I's standing
@@ -19300,6 +19921,11 @@ impl Verdict {
   (reason code `E_ALGEBRA`). It never accepts the emitter's word for a flag.
 - `make no-score-lint`: no field, column, API key or UI string anywhere in the repo may be named
   or typed as a probability, confidence, score, severity, risk or likelihood. Schema-level lint.
+  OVERRIDES Part I §45.3: the mandatory `severity:` front-matter key on every security finding, and
+  the matching key in `docs/security/findings/index.json`, are forbidden names under this lint,
+  which grants no carve-out for the declared ordinal; §47.5 row 2's "reduce confidence by degrading
+  mode" wording trips the same lint. An implementer following §45.3 writes a findings schema that
+  fails `make no-score-lint` on the field §45.3 requires.
 
 ## 67.12 Red-team fixture corpus and the build gate
 
@@ -19323,6 +19949,16 @@ fixtures/redteam/
   A7_adhoc_chokepoint/  A7_disjunct_cherrypick/
   A8_adaptive_branch/
 ```
+
+OVERRIDES Part I §43.4 and §46.8: "fixtures are generated, never hand-edited" and "do NOT cache the
+fixture bundles" do not govern `fixtures/redteam/`. This corpus lives outside
+`tests/fixtures/scenarios/`, is checked in with a hand-written `attack.toml`, an adversarial
+`bundle.jsonl`, a `baseline.json` and an `expected.json`, and is not regenerated from a seed
+in-job. `tools/lint/fixture_guard.py` and the manifest-hash test are scoped to exclude this tree;
+the committed `bundle.jsonl` is the artifact under test, and `attack.toml`'s `transform` records
+how it was derived from the benign twin rather than authorizing in-job regeneration. An
+implementer applying §43.4 fails the build on every red-team fixture for a missing
+`manifest.sha256`.
 
 ```toml
 # fixtures/redteam/A2_backdate_to_robust/attack.toml
@@ -19416,6 +20052,11 @@ Forbidden claims, in the repository and in any paper drawn from it:
 
 - "SPECTRA detects log tampering." It detects declared tampering classes on declared source
   classes, and publishes the classes it cannot detect.
+  OVERRIDES Part I §8.9 and §8.6: the instruction never to describe SPECTRA as detecting anything,
+  and the banned word "detects" in the §8.6 linter over UI strings, API schemas and report
+  templates, are replaced by this scoped claim, which is the prescribed wording. An implementer
+  keeping §8.6's word list fails the build on the sentence this section requires, and on 67.2's
+  "detection" column and 67.5's source-class split of suppression-detection results.
 - "The minimum cut would have prevented this attack." The cut severs every recorded corridor in
   the model; the attacker is non-adaptive; the cut is a lower bound (67.10).
 - "The proof kernel is resistant to adversarial telemetry." It fails closed on the enumerated
@@ -19426,7 +20067,6 @@ Forbidden claims, in the repository and in any paper drawn from it:
   `docs/redteam-scope.md` what a passing corpus does **not** establish: an attack strategy nobody
   wrote a fixture for, an error shared between the rule table and the simulator, an omission in the
   control catalog, and any behavior of a real adversary who read this section first.
-
 
 ============================================================
 68. CERTIFICATE FORMAT, CANONICALIZATION AND THE CHECKER CONTRACT
@@ -19465,6 +20105,15 @@ Hard rules, enforced by gates named below:
 | Magic | First 26 bytes are exactly `{"body":{"schema":{"v":` |
 | Max size | 64 MiB (normative limit, not a measurement) |
 | Content address | `blake3(canonical_bytes(body))`, lowercase hex, printed as `blake3:<64 hex>` |
+
+OVERRIDES Part I sections 25.2, 25.7 and 25.11: the artifact `cert.json` — ordinary JSON whose
+top level carries `mode`, `hashes`, `lower_bound`, `eclipse_version`, `redundancy_witnesses` and
+`measured`, with a numeric `seed` — is replaced by a `.spcert` file whose entire content is
+`{"body":…,"cert_hash":…}` in canonical SCF, carrying only the members of §68.2, with `seed` as a
+`0x`-prefixed hex string (C7). An implementer following Part I emits a file that fails the
+magic-byte check before parsing, and every surface that names `cert.json` — the §25.2 independence
+gate's shared-format list, `spectra verify cert build/cert.json`, the certificate API endpoint —
+points at an artifact that no longer exists under that name or that shape.
 
 The outer object has exactly two members:
 
@@ -19572,6 +20221,14 @@ Each triple is `[control_id, level, bit]`. `n` ≤ 64. Bit assignment is derived
 from `controls.toml` (documented order) and is hashed into `controls_hash`. All 64-bit masks are
 encoded as fixed-width lowercase hex strings `"0x0000000000000021"` — never as JSON numbers.
 
+OVERRIDES Part I sections 25.7 and 36.4: the cut as a list of atom name strings
+(`["x_session_binding_2","x_egress_seg_1"]`, rendered as `session_binding>=bound`) is replaced by
+`cut: Vec<AtomRef>` over this bit assignment, sorted ascending by bit, unique, and upward-closed
+under `x_{k,l+1} -> x_{k,l}`, checked at O6 (`E-CUT-*`). Part I's own example cut is not
+upward-closed — it carries level 2 of `session_binding` without level 1 — so it is rejected at O6,
+and because closure pulls in the lower levels, `|S|`, the `|S|-1` exhaustive obligation and any
+"no cut of size 1" statement are computed over a larger atom set than Part I assumes.
+
 ### 68.2.6 `flags`, `budgets`, `derived`
 
 ```json
@@ -19588,6 +20245,21 @@ zeroed, whenever `grounding_capped` or `corridor_capped` is set; the emitter mus
 the checker rejects a certificate that carries it alongside those flags (`E-FLAG-DERIVED`).
 `residual` inside a frontier point is a **set** — `{"goal_atoms":[…],"open_corridors":[…]}` —
 never a scalar. A scalar residual is `E-FLAG-SCALAR`.
+
+OVERRIDES Part I section 25.6 B: continuing the pipeline through F (redundancy index), G (decisive
+observations) and H (cost frontier) on a capped run — setting `flags.grounding_capped`, publishing
+the sizes and downgrading the verdict — is replaced by omitting `derived` entirely whenever
+`grounding_capped` or `corridor_capped` is set. An emitter following Part I publishes redundancy,
+decisive-observation and frontier data on every capped run, and every such certificate is rejected
+with `E-FLAG-DERIVED`; the Part I endpoints that serve those three artifacts per certificate have
+nothing to return on a capped run.
+
+OVERRIDES Part I section 25.6 H: the Pareto set of `(declared_cost, residual_reachability)`,
+exposed by Part I as `[{cost, residual, cut, evidence:[EventId]}]` with one scalar `residual` per
+point, is replaced by frontier points whose `residual` is a set of `goal_atoms` and
+`open_corridors`. An implementer following Part I emits a scalar — and, if it is expressed as a
+fraction, a float — which is rejected as `E-FLAG-SCALAR` or `E-CANON-FLOAT`, and any API model or
+scatter plot typed for one number per axis has no single residual to carry.
 
 ============================================================
 
@@ -19704,6 +20376,13 @@ Rules:
   checked-in `cert-schema.toml`; `make cert-schema-sync` fails if either generated file is stale.
   The schema table is *data*, not guard semantics: this sharing is declared in
   `docs/checker-scope.md` and does not make the two grounders non-independent.
+  OVERRIDES Part I section 25.2: the independence gate's statement that the only shared artifacts
+  are the on-disk formats (`rules.toml`, `bundle.jsonl`, `controls.toml`, `liveness.json`,
+  `cert.json`) and their JSON Schemas is replaced by that list plus `cert-schema.toml` and the
+  field tables generated from it into both the Rust emitter and the Go checker — including the
+  §68.7 flag algebra, which is generated from the same file. An implementer who leaves
+  `gates/checker_independence.sh` worded as Part I states it puts that gate in direct conflict
+  with `make cert-schema-sync`, and one of the two will have to be disabled in CI.
 
 ============================================================
 
@@ -19730,6 +20409,16 @@ O13 psi-hit         cut hits every clause of psi                              E-
 O14 flags           flag algebra (§68.7)                                      E-FLAG-*
 O15 minimality      per verdict.minimality, §68.6.2                           E-MIN-*
 ```
+
+OVERRIDES Part I section 25.8(d): the checker RECOMPUTING the liveness derivation from the bundle
+— bracketing, blake3 chain-gap detection, per-run q99 inter-arrival, and the Bellman–Ford
+difference-constraint pass that voids backdated licenses — is replaced by O10, which checks only
+that every silent instance cites a license implied by the `liveness.json` whose bytes O4 pinned
+through `liveness_hash`; backdating enters the certificate only as the emitter-set flag
+`license_voided_by_backdating`. An implementer following Part I builds a second liveness engine in
+Go that no obligation here calls for and that O10's linear cost (§68.6.1) does not permit, and
+states the wrong guarantee: an ACCEPT establishes that `liveness.json` was the file hashed, not
+that its licenses were honestly derived from the bundle.
 
 ### 68.6.1 The linear-pass argument, stated honestly
 
@@ -19765,6 +20454,12 @@ claiming 2^24 entries can therefore not cause an allocation.
   cardinality `|S|-1` over the upward-closed atom lattice. Permitted only when
   `C(n, |S|-1) <= 200000` (normative limit, not a measurement); above that the emitter must not
   claim `EXACT`. Cost `O(C(n,|S|-1) · Σ|body|)`, and it is reported separately in the transcript.
+  OVERRIDES Part I section 25.9: `|A| <= 64` as the only precondition for exact
+  cardinality-minimality is replaced by the combinatorial cap stated in this bullet, plus §68.7's
+  requirement that the exhaustive obligation was actually run and recorded in `budgets`. An
+  emitter that trusts `|A| <= 64` — or a `doctor` line that prints "exact minimality available"
+  from `|A|` alone — claims `EXACT` on runs whose honest value is `PSI_RELATIVE`, and O15 refuses
+  them (`E-MIN-UNEARNED` when no exhaustive budget was recorded).
 * `minimality: PSI_RELATIVE` — the checker verifies only that no cut of size `< |S|` hits all of
   Ψ. This establishes nothing about cuts outside Ψ. The checker's own output must print
   `minimality: PSI_RELATIVE (no claim that a smaller sufficient cut does not exist)`.
@@ -19914,6 +20609,15 @@ ACCEPT  ROBUST(rules@3f9a1c, catalog@a11c40, licenses@7d20be, er@c4b8f1, non-ada
 ```
 (all figures in this transcript are illustrative, not a target)
 
+OVERRIDES Part I sections 37.1 and 25.8: the `verify cert | bundle | liveness` subcommand tree and
+the four-input invocation `spectra verify cert.json --bundle --rules --controls` are replaced by
+one flat form, `spectra verify <cert>.spcert --rules --controls --goal --bundle --liveness --er`,
+because O4 recomputes every hash in §68.2.3 over the files named on argv. An implementer following
+Part I omits `--goal`, `--liveness` and `--er`, so O4 cannot run at all, and keeps a `cert`
+subcommand that is a usage error here. Part I §37.1's Python `spectra verify` shelling out to
+`spectra-verify` is withdrawn with it: `spectra verify` is the Go binary itself (§68.0 rule 1), and
+§68.12 #4 forbids a subprocess dependency reachable from it.
+
 ```
 $ spectra verify fixtures/certs/adversarial/11_truncated_psi.spcert …
 O13 psi: 4 corridors, cut misses corridor #3 {credential_rotation>=1, iam_audit>=1}
@@ -19926,6 +20630,14 @@ Exit codes: `0` ACCEPT, `1` REJECT (reason code on stderr and in `--json`), `2` 
 error. `--json` emits a canonical JSON report; the report is not a certificate and carries no
 `cert_hash`. There is no `--force`, no `--skip`, no `--ignore-hash-mismatch` flag; adding one is
 a review-blocking change.
+
+OVERRIDES Part I sections 25.8 and 37.3: the checker exit codes `2` invariant violated, `3`
+license unlicensed, `4` witness invalid, `5` smaller cut exists, `6` input hash mismatch, together
+with the CLI-wide codes `7` verification failed and `8` result is flagged, are replaced by exactly
+three codes — `0` ACCEPT, `1` REJECT with the reason code on stderr and in `--json`, `2` usage or
+I/O error. An implementer following Part I classifies rejections by a code the checker never
+emits, and reads code `2` as "invariant violated" when it now means an operator typo, so a
+tampered certificate is silently filed as a usage error.
 
 ============================================================
 
@@ -19954,6 +20666,13 @@ The build fails if any of the following is present.
 2. Any `HashMap`/`map[...]` iteration that reaches certificate bytes, in either language.
 3. Any wall-clock timestamp, hostname, username, absolute path, process id, or duration inside
    `body`. Timings belong in the run manifest, which is not hashed into the certificate.
+   OVERRIDES Part I sections 25.7 and 25.12: the certificate's `measured` object (`instances`,
+   `facts`, `corridors`, `ground_ms`, `solve_ms`) and the `golden_certificates` rule that
+   regenerated output is byte-identical "including `measured` fields' presence", with `*_ms`
+   values free to vary because they are excluded from the hash, are replaced by a `body` that has
+   no `measured` member and a `cert_hash` that covers the whole canonical `body` with no excluded
+   fields (§68.1). An implementer who keeps `measured` is rejected at O2 with `E-SCHEMA-UNKNOWN`,
+   and one who carves `*_ms` out of the hash fails O0 and O1 as well.
 4. Any network, database, Redis, or subprocess dependency reachable from `spectra verify`.
 5. Any decompression performed by the checker.
 6. Any checker flag that weakens an obligation.
@@ -19977,7 +20696,6 @@ written in docs or README:
   guard by both front ends is invisible to the checker and must be listed as such.
 * Any statement that an ACCEPT covers the bundle's truthfulness. The bundle is an input, and
   `bundle_hash` binds which bytes were used, not whether they were honest.
-
 
 ============================================================
 69. KERNEL BOUNDARY, ABI AND THE PERSISTENCE BOUNDARY
@@ -20045,6 +20763,13 @@ input reference. They accept only `blake3:<64 lowercase hex>` object ids plus ex
 `--cas-root` directory. This closes path traversal and SSRF on the ingest and PROVE endpoints at
 the ABI layer rather than in request validation.
 
+OVERRIDES Part I section 37: the checker invoked on a filesystem path
+(`spectra verify cert build/cert_3f9a12.json`) is replaced by object-id-only arguments,
+`--cert blake3:<64 lowercase hex>` plus exactly one `--cas-root`; a certificate supplied inline in
+the body of Part I section 36's verify endpoint must be written into the CAS by the Python layer
+before the checker sees it. An implementer following Part I hands the checker a path under
+`data/runs/`, which the binary rejects with exit 2.
+
 ------------------------------------------------------------
 69.2 PROCESS TOPOLOGY
 ------------------------------------------------------------
@@ -20098,6 +20823,13 @@ var/spectra/cas/
   runs/<run_id>/manifest.json               # symlink-free index of this run's objects
   tmp/                                      # write-then-rename staging only
 ```
+
+OVERRIDES Part I section 32: the root tree's run-artifact home `data/runs/`, and its instruction to
+produce that structure exactly and invent no extra top-level directories, are replaced by the CAS
+root above; section 69 additionally requires the top-level paths `abi/v1/` (69.5.4),
+`budgets/default.toml` (69.10.1) and `services/kernel_client.py` (69.12.1). An implementer who
+writes run artifacts to `data/runs/<run_id>/cert.json` produces files the kernel, the checker and
+the GC cannot address, because every input reference is a CAS object id.
 
 69.3.2 Object id = `blake3:` + hex of BLAKE3-256 over the payload bytes AS STORED. If the payload is
 compressed, the hash covers the compressed bytes and `.meta.json` records the uncompressed hash as
@@ -20338,6 +21070,12 @@ every forged certificate; a corpus entry that yields exit 0 fails the build.
 in the form `ROBUST(rules@<hash>,catalog@<hash>,licenses@<hash>,non_adaptive)`. A bare `ROBUST`
 string is not a valid ABI value and must be unrepresentable in both the Rust and Go types.
 
+OVERRIDES Part I section 38: `CREATE TYPE verdict_t AS ENUM ('ROBUST','OPTIMISTIC_ONLY','UNSAFE')`,
+the `mode` CHECK over the same bare strings, and the `"mode": "ROBUST"` value in Part I section 36's
+payload are replaced by the scope-bound safety string stored as `safety text` (69.14.1). An
+implementer who builds the enum stores a value the checker rejects with exit 22, and Part I's
+`robust_never_flagged` CHECK stops matching any row instead of failing loudly.
+
 ------------------------------------------------------------
 69.9 STDERR DIAGNOSTIC FORMAT
 ------------------------------------------------------------
@@ -20392,6 +21130,15 @@ arena_cells    = 268_435_456   # 8-byte cells; the memory ceiling, counted not m
 checker_steps  = 200_000_000   # checker's own single budget
 ```
 
+OVERRIDES Part I section 34: the atom limit, B&B node budget, corridor cap and grounding caps held
+in `config/defaults/eclipse.toml` and `config/defaults/recon.toml` under `config/schema/`
+validation, with level-6 environment overrides such as `SPECTRA__ECLIPSE__CORRIDOR_CAP`, are
+replaced by this single CAS-stored budget object, passed as `--budget blake3:<hex>` and hashed into
+the run manifest; the binaries may not read these values from the environment at all (69.21.3). An
+implementer who wires the environment override that Part I's precedence transcript requires can
+change a corridor cap without changing the run manifest hash, which is exactly the hidden
+nondeterminism this contract exists to prevent.
+
 69.10.2 Every counter is decremented at a single, documented call site. Exhaustion is checked with
 `if budget.ground_steps == 0 { return Exhausted(Stage::Ground) }` — never by sampling, never by a
 background thread, never by signal.
@@ -20422,6 +21169,11 @@ for CI on any fixture in the core suite. `make gates` fails if any core fixture 
 `budgets/default.toml`, because that means the declared budget no longer fits the declared scale.
 Nightly publishes the observed budget_used distribution so the budget can be revised deliberately,
 in a commit, with a rationale — never silently.
+
+OVERRIDES Part I section 36: the error code `GROUNDING_CAP_EXCEEDED` at HTTP 507, and Part I section
+35's classification of `CapExceeded` as a terminal error, are replaced by a successful API response
+carrying the flagged, degraded artifact. An implementer following Part I returns an error envelope
+and discards the deterministic partial certificate that the flag and verdict machinery depends on.
 
 69.10.6 A flagged run may never be presented as ROBUST. That rule is enforced in the type system:
 the safety field is constructible only from a flag set proven empty; see the verdict-algebra section
@@ -20455,6 +21207,12 @@ operational event, never an input to a verdict, and it must never be confused wi
 inputs produces identical output, so retrying can only mask an infrastructure fault. Python retries
 ONLY on failure modes 1 and 5, at most once, and records the retry in the run manifest.
 
+OVERRIDES Part I section 35: the retry policy of three attempts with exponential backoff and jitter
+for `TransientError`, together with the `retrying` job state and the `attempts` CHECK of Part I
+section 38, is replaced by at most one retry confined to failure modes 1 and 5. An implementer who
+keeps Part I's policy masks the infrastructure faults this section exists to surface and builds a
+job state that the `run.status` CHECK in 69.14.1 does not admit.
+
 ------------------------------------------------------------
 69.12 THE PYTHON CLIENT
 ------------------------------------------------------------
@@ -20462,6 +21220,12 @@ ONLY on failure modes 1 and 5, at most once, and records the retry in the run ma
 69.12.1 Exactly one module, `services/kernel_client.py`, may spawn either binary. A lint fails the
 build if `subprocess`, `asyncio.create_subprocess_exec` or `os.exec*` appears anywhere else in the
 Python tree.
+
+OVERRIDES Part I section 35: the kernel call placed in the pure engine layer as
+`engines/eclipse_bridge.py`, reaching the Rust kernel in-process via pyo3 under the engine-purity
+import contract, is replaced by a single spawning module `services/kernel_client.py` that runs the
+binary as a subprocess. An implementer who keeps the engine-layer bridge fails
+`make one-spawner-lint` and builds the pyo3 extension module 69.1.2 forbids.
 
 ```python
 def prove(inputs: ProveInputs, budget: ObjId, seed: int) -> ResultPointer:
@@ -20505,6 +21269,13 @@ the CAS alone; the resulting `pg_dump --data-only` must be byte-identical to the
 the rebuild. If it is not, a projection has acquired state that is not in the CAS, and the build
 fails.
 
+OVERRIDES Part I section 38: `proof_cert.document JSONB`, the full certificate body held in
+PostgreSQL alongside `cut_atoms`, `corridor_count`, `instance_count` and `silent_count`, is replaced
+by the CAS `cert` object plus the derived `proj_cert_summary` and `proj_cut_atom` projections; a
+certificate body carries the invariant set, which 69.21.5 forbids in a JSON column. An implementer
+who builds the Part I table puts the invariant set into PostgreSQL and fails `make schema-lint` and
+`make rebuild-projections`.
+
 RULE P2 — THE FACT BASE IS NEVER MATERIALIZED IN POSTGRESQL. No table may contain facts, rule
 instances, hypergraph nodes, hypergraph edges, corridors, invariant sets, or licenses as rows. The
 fact base exists in the kernel's arena during a run and as one SFB object afterwards. It is read by
@@ -20523,6 +21294,14 @@ performance, convenience, observability, or caching.
 ------------------------------------------------------------
 
 69.14.1 Four families only: run index, run metadata, entity catalog, API-facing projections.
+
+OVERRIDES Part I section 35: the durable `job` and `idempotency_key` tables — the latter storing
+`fingerprint`, `state`, `response_status`, `response_body_hash` and `job_id` so a replay can return
+the stored response and a fingerprint mismatch can return `409 IDEMPOTENCY_KEY_REUSE` — are
+replaced by the run index plus the ephemeral Redis keys in 69.15.1; neither table is one of the four
+permitted families. An implementer who ships the Part I DDL adds a fifth family that
+`make schema-lint` rejects, while the Redis key that replaces it holds only key -> run_id, so Part
+I's fingerprint comparison and stored-response replay have no backing store.
 
 ```sql
 -- RUN INDEX AND METADATA -------------------------------------------------
@@ -20573,6 +21352,25 @@ CREATE TABLE proj_quarantine (
   PRIMARY KEY (run_id, record_index));
 ```
 
+OVERRIDES Part I section 38: hash columns declared `BYTEA` with an octet-length CHECK, and the
+negative requirement forbidding `TEXT` for a hash, are replaced by `char(71)` columns holding
+`'blake3:' + 64 lowercase hex`. An implementer who builds the Part I columns produces keys that
+neither join to nor match those of `run_artifact` and `proj_cert_summary`, and
+`make rebuild-projections` compares dumps of two different column types.
+
+OVERRIDES Part I section 38: the ULID-like prefixed `TEXT` public identifiers (`cert_`, `jb_`,
+`rp_`, `bn_`, `ev_`, `en_`) used as primary keys, including `proof_cert.cert_id` and `job.job_id`,
+are replaced by `run_id uuid` for runs and the `blake3:` object id for certificates and artifacts.
+An implementer who keys the certificate table on `cert_id TEXT` has no column by which Part I
+section 36's `/api/v1/eclipse/proofs/{cert_id}` route can reach `proj_cert_summary`.
+
+OVERRIDES Part I section 38: the entity catalog's `entity_uid`, `canonical_name`, `first_seen`,
+`last_seen` and `attrs` columns, and `entity_alias`'s `alias_kind`, `merge_rule`, `evidence_uids`
+and `(alias_kind, alias)` uniqueness, are replaced by the two tables above, with aliases keyed
+`(entity_id, alias, source_id)`. An implementer who builds the Part I catalog gets key columns that
+do not match this schema, and the merge evidence Part I section 36's `GET /entities/{id}/aliases`
+returns has no column here to come from.
+
 69.14.2 Projection tables are prefixed `proj_` without exception. `make schema-lint` asserts: every
 `proj_` table is written only by the projection builder; no `proj_` table is read by the kernel,
 the checker, the generator, or the bench harness; no non-`proj_` table is written by the projection
@@ -20603,6 +21401,13 @@ nothing else.
 | `spectra:lock:gc`          | str  | 1h       | GC mutex                                      |
 | `spectra:idem:<key>`       | str  | 24h      | idempotency key -> run_id                     |
 | `spectra:sse:<run_id>`     | pubsub| n/a     | progress frames for the PROVE stream          |
+
+OVERRIDES Part I section 35: the six Redis Streams with consumer groups, per-queue `maxlen~`,
+explicit `XACK` and an untrimmed dead-letter stream `spectra:dlq`, together with the admission
+control that computes `XLEN(stream)` against a soft limit and returns `429 QUEUE_SATURATED`, are
+replaced by the closed key set above, whose only queue is the arq list `arq:queue:prove`. An
+implementer following Part I creates keys this table does not permit and a dead-letter stream that
+contradicts `save ""` / `appendonly no`, and a depth check by `XLEN` has no meaning against a list.
 
 69.15.2 NEGATIVE: Redis never holds a certificate, a verdict, a cut, a fact, an instance, a license,
 an event, an entity, or any bytes from the CAS. A value larger than 4 KiB (a hard design constraint,
@@ -20660,6 +21465,16 @@ new runs at 90% occupancy with a clear error rather than failing mid-run.
 | SCRATCH     | Developer runs, `make demo` re-runs, failed runs                | 14 days                      |
 | TMP         | `cas/tmp/` staging files                                        | swept every GC pass          |
 
+OVERRIDES Part I section 34: run-artifact lifetime declared in `config/policies/retention.yaml` as
+schema-validated data under `config/` is replaced by these six retention classes, which are
+normative in this section and have no config file. An implementer who writes the retention policy as
+config data gives the GC a second, editable source of truth for what may be collected.
+
+OVERRIDES Part I section 32: the claim file whose references pin the PERMANENT class is
+`docs/claims.md`, not the repository-root `CLAIMS.md`. An implementer who keeps Part I's file name
+gets a GC whose PERMANENT root set is empty, and the sweep then collects claim-referenced
+certificates.
+
 69.17.1 A MATRIX run's `bundle`, `factbase` and `instances` objects may be collected while its
 `run_manifest`, `liveness` and `cert` are retained, because the first three are regenerable from
 (seed, scenario, degradation spec, rules) by a deterministic generator and the last three are the
@@ -20711,6 +21526,12 @@ regeneration command. Deleting run history to make the index tidy destroys the a
 69.19.1 PostgreSQL migrations are forward-only, numbered, checked in, and applied by one tool.
 Because every `proj_` table is derivable, a projection migration is always: drop, recreate, rebuild
 from CAS. Never write a data-backfill migration for a `proj_` table.
+
+OVERRIDES Part I section 38: the requirement that every migration implement a real `downgrade()`,
+with CI running `upgrade head -> downgrade base -> upgrade head` on an empty and on a seeded
+database, is replaced by a forward-only migration set. An implementer who keeps Part I's gate must
+author downgrades for migrations this section declares irreversible, and the two CI gates cannot
+both pass.
 
 69.19.2 Migrations may not alter CAS objects. There is no such thing as migrating a certificate. An
 old certificate is verified by a checker that still supports its ABI, or it is marked unverifiable in
@@ -20797,7 +21618,6 @@ messages, paper text or demo narration:
 - Any sizing, throughput, latency or row-count figure taken from 69.16. Those numbers are
   illustrative arithmetic and are traceable to nothing. Only `make sizing-report` output may be
   published, and only with its run manifest hash attached.
-
 
 ============================================================
 70. PRE-REGISTRATION, HELD-OUT PROTOCOL AND THE OVERFIT LEDGER
@@ -20896,6 +21716,25 @@ required = ["A_eclipse", "B0_trivial_all", "B0_trivial_none", "B1_time_order",
             "B5_dev_frequency_prior", "C_ceiling_clean"]
 ```
 
+OVERRIDES Part I section 50.2: the eleven-operator catalog (`none`, `delete_random`,
+`delete_targeted`, `reorder`, `duplicate`, `delay_jitter`, `corrupt_field`, `strip_identity`,
+`backdate`, `forge_provenance`, `silence`) is replaced by the six operators declared above, and
+`research/prereg.toml` rather than `bench/manifests/*.json` is the binding matrix. An implementer
+following Part I would execute `backdate`, `forge_provenance`, `strip_identity` and `none` cells that
+no metric in 70.3 and no arm in 70.9 consumes, against a matrix file that 70.6 freezes and 70.10
+forbids editing.
+
+OVERRIDES Part I section 50.1 item 2: the rule that `completeness` applies only to data-removing
+operators while shape-preserving operators sweep their own intensity knob and record
+`completeness = 1.0` is replaced by the single `levels_pct` axis crossed with every operator in the
+cell key above. An implementer following Part I would emit every `duplicate`, `reorder` and `corrupt`
+row at completeness 1.0 and produce one level where the cell key declares eight.
+
+OVERRIDES Part I section 50.3: the requirement to present `delete_random` and `delete_targeted`
+adjacent at the same scale in every figure and table, and never to report `delete_random` alone, is
+replaced by the single `delete` operator, which carries no random/targeted split. An implementer
+following Part I would look for an adjacency the declared operator set cannot produce.
+
 `make prereg-check` (runs on every push, and is the first gate in CI) verifies:
 
 1. `research/prereg.toml` parses and `schema_version` is known.
@@ -20984,7 +21823,21 @@ tier          = "secondary"
 definition    = "Share of the forged-certificate corpus the Go checker rejects. Must be 1."
 ```
 
-Hypotheses are declared alongside, each with the outcome that would falsify it:
+OVERRIDES Part I section 50.7 item 13: the invariant that rows with `eclipse_verdict = ROBUST` and
+`block_miss = 1` number exactly zero across the entire executed matrix, as one absolute build gate, is
+replaced by `M1_false_robust_count`'s pool-split decision rule above — a nonzero count fails the build
+on HELD-OUT and opens an overfit-ledger entry on DEV. This also supersedes Part I section 5.3 H0 and
+section 5.4 for the DEV pool: a DEV false ROBUST is no longer a corpus-wide falsification filed to
+`research/results/falsifications/`. An implementer following Part I would stop the build on exactly
+the DEV cells that 70.7 expects to be diagnosed and recorded as a `CORRECTION`, `COVERAGE` or
+`THRESHOLD` change.
+
+OVERRIDES Part I section 5.7: the prohibition on the words "accuracy", "detection rate", "precision"
+and "recall" for ECLIPSE outputs — permitted only when scoped by name to the optional ML anomaly
+baseline — is replaced by the metric ids declared above; `M4_premium_precision`, `M4b_premium_recall`
+and `M5_chain_edge_f1` are computed over `A_eclipse` and are the headline, and no ML anomaly baseline
+is among the arms 70.9 requires. An implementer who also builds the Part I section 8.6 string linter
+over UI strings, API schemas and report templates would have it reject this section's primary metrics.
 
 ```toml
 [[hypothesis]]
@@ -21008,6 +21861,15 @@ falsified_if = "the prior matches the kernel; then the result is 'the catalog is
                 kernel reconstructs'."
 ```
 
+OVERRIDES Part I section 5.3: the hypotheses bound to the ids H1, H2 and H3 in
+`research/questions.toml` (premium strictly increasing in telemetry loss and zero at 100%
+completeness; every premium control attributable to a License, removed on re-run in at least 80% of
+attributed instances; `|D| <= 3` on at least half of the degraded runs) are replaced, under the same
+ids, by the three statements declared above, and it is these that `<<VERDICT:H1>>`, `<<VERDICT:H2>>`
+and `<<VERDICT:H3>>` in 70.12 resolve to. An implementer following Part I would bind the section 5.4
+falsifier rows, the section 5.6 `[[H1]]` claim markers and the section 8.8 `LIMITATIONS.md` status
+table to these ids and report a verdict about a different hypothesis than the one measured.
+
 Negative requirement: no metric may be a confidence, probability, severity, risk score, likelihood or
 any scalar that collapses a set-valued output. Residual reachability is a set (§4H of the ECLIPSE spec
 as amended by the solver well-definedness section) and appears in `results.jsonl` as a sorted list of
@@ -21021,6 +21883,13 @@ and the results schema for the banned nouns and fails on a hit.
 A single run per cell is not a result. The binding minimum is five replicates per cell (binding
 constraint, not a measurement); raise it in the pre-registration only, never in a commit that also
 touches the harness.
+
+OVERRIDES Part I section 49.7 item 14: the minimum of `n = 10` seeds per reported cell, below which a
+claim is not publishable and the renderer emits `NOT REPORTABLE`, is replaced by the five-replicate
+minimum above, and the `sample_size_min = 40` field of the Part I section 5.5 research registry does
+not bind rows produced under this protocol. An implementer who builds the section 49.7 floor would
+have the renderer refuse every held-out cell this section mandates, including the `n=5` headline rows
+in 70.12.
 
 Seed derivation is a pure function so that no RNG state is shared between cells and any cell can be
 re-run in isolation and byte-identically:
@@ -21072,6 +21941,15 @@ research/heldout/
    to a path recorded in `sealed.manifest` as a name only.
 4. Writes `sealed.manifest`, `SEALED`, deletes the plaintext.
 5. Fails if the working tree contains `rules/rules.toml`, `axioms/*` or `controls.toml`.
+
+OVERRIDES Part I section 51.4 item 7: the held-out scenario set (`S80..S85`) authored **after the rule
+table is frozen** is replaced by a held-out pool generated and sealed before any rule table, axiom
+file or control catalog exists, as guard 5 above enforces. The same reordering supersedes Part I
+section 8.2 IV5 and section 8.4 M3, whose held-out fixture family from unseen seeds is re-run in every
+release job: here the pool is opened once, by the UNSEAL event, and never resealed. An implementer
+following Part I would author the held-out set after the freeze, at which point `make prereg-check`
+and `make seal-heldout` both refuse it and the protocol cannot be recovered without a new
+pre-registration.
 
 Because generation is deterministic, anyone can later re-derive the plaintext from `spec.toml` and the
 generator at the sealing commit and confirm it hashes to `sealed.manifest.plaintext_blake3`. That is
@@ -21230,6 +22108,21 @@ Pool labels travel with the data, not with the prose. Every results row:
  "unseal_index":1,"tuned_inputs":false}
 ```
 
+OVERRIDES Part I sections 48.6 and 48.2: the Pydantic v2 results schema at one row per (scenario, arm,
+seed, operator, completeness, repeat), written to `bench/results/<run_id>/results.jsonl` plus
+`results.parquet` under a DuckDB DDL whose `eclipse_verdict VARCHAR` holds a bare
+`ROBUST|OPTIMISTIC_ONLY|UNSAFE|null`, in a directory git-ignored except `results/INDEX.json`, is
+replaced by the committed, accumulating `results/results.jsonl` above, keyed per metric by
+`result_id`, whose schema rejects a bare `ROBUST` in `safety`. An implementer following Part I would
+git-ignore the artifact that every `README.md` and `docs/` numeral must resolve into, so no
+`result_id` resolves in a fresh clone.
+
+OVERRIDES Part I section 48.8: rendering each document from the `results.parquet` of a single run,
+under "do not copy a number from an older run into a newer document", is replaced by rendering every
+table and figure from the complete `results/results.jsonl` across runs and generations. An implementer
+following Part I would drop the superseded rows that 70.6 requires to stay renderable, because they
+belong to an earlier run than the one being rendered.
+
 Rules, all gated:
 
 - `make docs` renders every table and figure programmatically from the complete
@@ -21244,6 +22137,11 @@ Rules, all gated:
 - Any numeral appearing anywhere in `README.md`, `docs/`, the UI, the demo script or a figure caption
   must resolve to a `result_id`. Hard-coded numerals fail the build. This closes the Part I defect
   where illustrative figures in the prompt itself were copied into documentation as if measured.
+  OVERRIDES Part I section 48.8 item 24: the `scripts/check_generated.py` exemptions that allow a
+  numeric literal outside a GENERATED region when it sits in a `codeblock`, in a version string, or on
+  a line ending with `<!-- static: <reason> -->` are removed for these surfaces; there is no
+  exemption. An implementer who keeps the `<!-- static: -->` hatch reopens the defect this rule
+  closes, because an illustrative figure passes the check by carrying a stated reason.
 - Verdict strings in results and UI carry their scope binding, per the verdict algebra section; a
   results row whose `safety` field is a bare `ROBUST` string is rejected by the schema.
 
@@ -21287,6 +22185,13 @@ only those paths. An arm that opens a path outside its set fails the run.
 | generator ground truth | – | – | – | – | – | – | – | – |
 | deterministic step budget | identical across arms, declared in `prereg.toml` | | | | | | | |
 | seeds | identical `seed(cell)` per replicate, arm id included in the derivation | | | | | | | |
+
+OVERRIDES Part I section 49.2 item 4: the requirement that every arm sees the perturbed bundle and
+never the pristine one, with the resulting `bundle_hash` asserted equal across arms and a projection
+violation aborting the cell, is replaced by the rows above, in which `C_ceiling_clean` alone reads the
+undegraded `bundle.jsonl` and therefore necessarily carries a different `bundle_hash`. The equal-hash
+assertion still holds across the other eight arms; an implementer carrying section 49.2 forward
+unchanged would abort every cell of a mandatory arm.
 
 Additional binding clauses:
 
@@ -21430,6 +22335,12 @@ wrote results/results.jsonl (+<<MEASURED:rows_n>> rows, pool=HELD-OUT, generatio
    convenience target that does so.
 3. Do not edit a rule, axiom, guard, threshold or ER heuristic in response to a held-out failure.
    Held-out failures are results. Record them and publish them.
+   OVERRIDES Part I section 50.7 item 13: for a held-out failure, the instruction to stop, do not
+   publish, write the counterexample cell to `bench/results/<run_id>/VIOLATIONS.json`, add it as a
+   regression fixture and fix the kernel is replaced by recording and publishing the failure with the
+   frozen artifacts untouched. An implementer following Part I would fix the kernel, which under 70.6
+   forces `make refreeze` and marks every held-out row `superseded=true`, burning the sealed pool
+   while withholding the result this section requires to be published.
 4. Do not delete a results row. Supersede it.
 5. Do not modify or reorder a line in the overfit ledger. Append only.
 6. Do not report a DEV-pool number in `README.md`, in the demo, in the UI header, in a commit message
@@ -21451,7 +22362,6 @@ wrote results/results.jsonl (+<<MEASURED:rows_n>> rows, pool=HELD-OUT, generatio
     establish" listing, at minimum: single-author generator bias, that the scenario families were
     chosen by the same person who wrote the rules, that the held-out seal is self-administered, and
     that no external dataset or external tool was used.
-
 
 ============================================================
 71. CLAIMS REGISTRY, BANNED-PHRASE GATE AND LIMITATIONS
@@ -21508,6 +22418,13 @@ ASCII view of the gate:
 Implement `docs/claims.md` as the single normative registry of externally visible claims. It is a
 markdown file with a machine-parseable record grammar. It is hand-authored; its *support* fields are
 verified, never invented.
+
+OVERRIDES Part I section 53.4: the `docs/claims.toml` registry that maps README claim anchors to
+test IDs, and the `make docs-check` check over it, are replaced by `docs/claims.md` and
+`make claims-check`; support is an artifact hash plus a run manifest plus a green gate for the
+current `git_sha`, not a passing test id. `make docs-check`'s other duties (README asset staleness,
+§54.3) are unaffected. An implementer following Part I builds a TOML test-id registry the claims
+parser cannot read, and a claim that passes `docs-check` can still be unsupported here.
 
 Grammar (EBNF; the parser rejects anything else — no tolerant parsing, no key reordering, no
 optional fields except where marked):
@@ -21616,6 +22533,15 @@ docs/cv-bullets.md             (yes, this is a surface; it is the text most like
 .github/PULL_REQUEST_TEMPLATE.md
 docs/commit-message-template.txt
 ```
+
+OVERRIDES Part I section 53.5: `docs/DEMO.md`'s "expected output excerpts" are no longer the demo's
+source of truth. `demo/transcript.expected.txt`, every line prefixed with its `[CLM-]` tag (71.1.1),
+is the file `demo-verify` diffs against, replacing §54.3's diff against `docs/DEMO.md`. §54.2's
+script text is a scanned surface wherever it is copied into `docs/`, so its bare `ROBUST` header,
+its unqualified "minimum cut" and its "exact" observation set line must be rewritten to the BP-08,
+BP-11 and BP-15 replacements before being reproduced. An implementer following Part I copies the
+§54.2 script verbatim, fails claims-check on three banned patterns, and never creates the file
+G-DEMO-CLAIMS reads.
 
 71.2.2 Segmentation (deterministic, no NLP)
 
@@ -21821,6 +22747,12 @@ Placement requirements, each with its own gate:
 part hand-written frame, part GENERATED. Hand-writing a limitations file alone is forbidden: a
 limitation stated without a measured magnitude is a disclaimer, not a limitation.
 
+OVERRIDES Part I section 53.1: the required tree's `docs/LIMITATIONS.md` is replaced by a single
+`LIMITATIONS.md` at repository root. §53.2's status banner must therefore end "See LIMITATIONS.md."
+and §54.2's demo must close on the root file; no `docs/LIMITATIONS.md` may exist. An implementer
+following Part I creates the file under `docs/`, so G-FRAMING-README finds no root link and
+G-LIMITS-FRESH and G-LIMITS-NOHAND never run against the real file.
+
 71.6.1 Generated-block markers
 
 ```markdown
@@ -21927,8 +22859,22 @@ Do not do any of the following. Each is a build failure, not a style note.
 7. Do not publish the redundancy index, the decisive observation set size, or any Pareto point while
    the corresponding certificate flag is set. The API omits the field; the UI renders the reason, not
    a blank.
+   OVERRIDES Part I section 50.6: figure P10's unfiltered "declared cost vs residual reachability
+   Pareto points", and the T+9:00 Frontier tab of §54.2, are replaced by surfaces that omit every
+   point whose run carries the corresponding flag and print the flag as the reason. §50.4(9)'s
+   exact-versus-greedy cell fractions remain publishable; what is withheld is a flagged cell's own
+   `decisive_obs_set_size` and `redundancy_index_max`, which §48.6's results row still records for
+   every row — the prohibition is on publication, not on measurement. An implementer following
+   Part I ships a figure, an API field and a UI pane that expose exactly the values this item
+   forbids.
 8. Do not state a language count from a hand-maintained table. Both figures come from the polyglot
    mutation audit artifact or they are not stated.
+   OVERRIDES Part I section 53.5: the `lines` column of `POLYGLOT.md`'s hand-maintained table is
+   replaced by values generated from the polyglot mutation audit artifact and registered in
+   `docs/claims.md`; the "why this language", "tests" and "not used and why" text required by §53.5
+   and §4.6 is unchanged. An implementer following Part I hand-writes LOC figures into
+   `docs/POLYGLOT.md`, which is a scanned surface (71.2.1), and every one of them fails
+   G-CLAIM-ANCHOR.
 9. Do not describe the range with `realistic`, `production-like` or `enterprise`. Describe what it
    contains and link `docs/range/not-modeled.md`.
 10. Do not mark a claim `GREEN` whose supporting scenario appears in the TUNED set of the overfit
@@ -22031,7 +22977,6 @@ claimcheck 1 — surfaces=14 units=1,208 candidates=97 registry=63 records
    block, and the README first screen links it with the exact anchor text.
 5. `make release` refuses to produce a release artifact while any gate in 71.8 is red.
 
-
 ============================================================
 72. THE LLM NARRATION BOUNDARY
 ============================================================
@@ -22097,6 +23042,15 @@ edge into any box below `cert.json`. Enforce that in the build graph (72.12).
 72.1.1 Use one local, permissively licensed, instruction-tuned model executed by a
 vendored `llama.cpp` build against a single GGUF blob. No hosted API, no paid
 service, no token metering, no telemetry callback, no auto-download at any point.
+
+OVERRIDES Part I section 21.10: the transport committed in `config/llm.toml` —
+`provider = "ollama"`, `endpoint = "http://ollama:11434"`, `model =
+"llama3.1:8b-instruct-q4_K_M"`, reached over the compose network — is replaced by
+a vendored `llama.cpp` runtime loading the single GGUF blob pinned in
+`narration/model.lock`, and the Ollama compose service, its pinned image and its
+model tag are deleted. An implementer who builds Part I's design ships an HTTP
+client that fails the dependency allowlist gate of 72.3.2 at build time and could
+reach no endpoint anyway under the `network_mode: none` requirement of 72.1.4.
 
 72.1.2 The model blob is NOT committed to git and is NOT a build dependency.
 Record it in `narration/model.lock`:
@@ -22173,6 +23127,15 @@ on_violation       = "fallback"    # fallback | fail ; never "emit"
 on_timeout         = "fallback"
 ```
 
+OVERRIDES Part I section 21.10: the committed `config/llm.toml` and its `[llm]`
+keys `enabled`, `provider`, `endpoint`, `model`, `temperature`, `seed`,
+`max_output_chars`, `timeout_seconds` and `cache` are replaced by this
+`narration.toml` plus `narration/model.lock`; `provider`, `endpoint`,
+`temperature`, `seed` and `cache` have no successor key here, and the two budgets
+move to `narration.max_chars_total` and `narration.llm.timeout_ms`. An implementer
+who keeps `config/llm.toml` ships a tree with no `narration.llm.enabled` literal,
+so the CI lint of 72.2.3 fails on an otherwise correct build.
+
 72.2.3 A CI lint asserts the committed default of `narration.llm.enabled` is
 `false` and that the Cargo feature is not in `default = [...]`. The lint fails the
 build on any change not accompanied by a `WAIVER.md` entry.
@@ -22192,6 +23155,16 @@ reads `bundle.jsonl`, raw or parsed events, `liveness.json`, `rules.toml`,
 environment variables, the git tree, or any prior narration. There is no code path
 that opens a second input.
 
+OVERRIDES Part I section 21.10: the permitted-input list — the certificate JSON,
+the cut, the corridor list, the counterexample derivation trees, the license list,
+the blindness premium, the state timeline, the provenance subgraph and the
+degradation table — is replaced by exactly one canonical `cert.json`; the
+`state_timeline` and `provenance_subgraph` query results of section 20.9 and the
+degradation matrix of section 19 are withdrawn as narration inputs, so nothing
+narration says may rest on them. An implementer who wires those structures into
+the narrator, as Part I explicitly authorises, trips the filesystem tracer and the
+dependency allowlist of 72.3.2.
+
 72.3.2 Enforce structurally, not by review:
 
 - `spectra-narrate` is a separate binary whose `main` accepts exactly one
@@ -22202,6 +23175,15 @@ that opens a second input.
   and stdin/stdout.
 - A test harness runs the narrator under a filesystem tracer and fails if any path
   outside {the certificate, the model blob, `/tmp`} is opened.
+
+OVERRIDES Part I section 2.3.6: the requirement that any function calling a model
+live under the Python package `spectra/narration/`, enforced by `make audit-llm`
+grepping for a model client imported outside that package, is replaced by the Rust
+crate `spectra-narrate` and its `narrate-llm`-gated companion binary
+`spectra-narrate-llm`. An implementer who keeps `make audit-llm` as Part I
+specifies holds a component of `make verify` that can never go green once the
+inference code is a Rust crate, and the CI jobs G21.0 and G21.8, which key on
+deleting a `llm/` package, have no such directory to delete under this layout.
 
 72.3.3 The model sees strictly less than the certificate. The projection `P`
 produces a `NarrationDoc` in which every telemetry-derived string has already been
@@ -22291,6 +23273,16 @@ Required surface form for a GHOST claim, enforced by template:
         <source> was <basis> over the licensed window (license <license_id>).
 ```
 
+OVERRIDES Part I section 20.2: the rule that ghost nodes are returned in a
+separate list, never merged into the observed list — mirrored by
+`QueryResult.ghost_results` in section 20.8 — is replaced, for narration output
+only, by one ordered claim list in which GHOST claims sit inline, distinguished by
+the `[GHOST]` prefix and the GHOST styling contract; section 20.2's prohibition on
+a GHOST entering any observed count is unchanged and restated in 72.4.4. An
+implementer who applies the separate-list rule to the narration panel emits two
+blocks and breaks the claim-order assumptions of `narr.scope_first` and
+`narr.paraphrase_equivalence` in 72.10.
+
 72.4.4 A GHOST claim may cite the EventIds that induced its obligation, in a
 separate field `induced_by`, and MUST render them under the label "obligation
 evidence", never as evidence that the step occurred. OVERRIDES Part I: ECLIPSE §9
@@ -22334,6 +23326,14 @@ substitution:
 - every word is in `narration/lexicon.txt` (a committed closed vocabulary) or is a
   placeholder token;
 - length <= `max_tokens_claim`.
+
+OVERRIDES Part I section 21.10: the worked narration paragraph presented there as
+"the only acceptable shape of output" is replaced by one short slotted sentence
+per claim, in the shape the transcript of 72.8 shows. An implementer who treats
+that paragraph as the acceptance target builds a narrator whose every output is
+rejected here, because its spelled-out counts, its derived assertion that a lower
+bound is attained, and its connectives "because" and "so" are each independently
+fatal under this subsection, 72.5.4 and 72.6.2.
 
 72.5.4 After substitution the validator re-checks: every emitted numeral is
 byte-identical to the certificate value at its declared pointer, formatted by the
@@ -22404,6 +23404,14 @@ certificate. Templates live in `narration/templates/*.tmpl`, are committed, and 
 covered by golden files. Template expansion is `printf`-class: named slot
 substitution only. No conditionals that change what is asserted, no loops that
 aggregate, no arithmetic.
+
+OVERRIDES Part I section 21.10.4: the deterministic template renderer implemented
+in Jinja2 at `llm/templates/*.j2` is replaced by pure Rust `printf`-class
+expansion of committed templates at `narration/templates/*.tmpl`. An implementer
+who keeps the Jinja2 renderer reintroduces the conditionals and loops this
+paragraph forbids and leaves the always-present stage 0 in a Python package that
+`cargo test --workspace --no-default-features --features core` (72.12.1) never
+builds or covers.
 
 72.7.2 Stage 0 output is the baseline for the paraphrase-equivalence test (72.10):
 stage 1 may change wording, and may never change `claims[i].evidence`,
@@ -22479,6 +23487,14 @@ substring of any telemetry field in the fixture and failing on a hit.
    A model-suggested value has no pointer and is therefore unrepresentable.
 4. Output rejection: any `surface` failing 72.5.3 causes fallback to stage 0 with
    `fallback_reason = ValidatorRejected`, recorded in `generator`.
+
+   OVERRIDES Part I section 21.10.3: "on rejection, retry once at the same seed;
+   on second rejection, fall back to the deterministic template renderer and
+   record `narration: template_fallback` in the run log" is replaced by a single
+   attempt, immediate fallback to stage 0, and the typed `fallback_reason =
+   ValidatorRejected`. An implementer who writes Part I's retry loop cannot change
+   the outcome, since 72.1.5 fixes decoding to greedy at a fixed seed, and records
+   an untyped log string that 72.4.1 and the `narr.*` gates do not read.
 5. No system-prompt secrets: the system prompt is committed, public, and contains
    nothing whose disclosure matters, so prompt extraction is a non-event.
 
@@ -22532,6 +23548,15 @@ Implement all of the following as build-failing tests. Each runs with
 | `narr.empty_cert` | a certificate with an empty cut and no steps narrates scope + limitation only | the narrator invents filler |
 | `narr.all_ghost` | a certificate whose chain is entirely licensed narrates every step as GHOST | any step renders as observed |
 
+OVERRIDES Part I section 2.3.4: the requirement that every LLM-produced string be
+"excluded from every test assertion, metric and certificate hash" is replaced by
+exclusion from every metric, every certificate hash and every gate that decides a
+verdict (72.11.1(3)); the tests above do assert over narrated surface text, claim
+order, evidence sets and byte-equality of `narration.json`. An implementer obeying
+Part I writes no assertion over narrated strings and therefore ships none of
+`narr.no_causal_verbs`, `narr.ghost_marked`, `narr.scope_first` or
+`narr.injection_pairs`, losing the enforcement layer this section depends on.
+
 `narr.paraphrase_equivalence`, `narr.no_digits_pre_substitution`,
 `narr.prompt_has_no_telemetry` and `narr.injection_pairs` require the model and
 therefore run only in the nightly `narration` CI job. They are quarantined from the
@@ -22563,8 +23588,27 @@ requirements:
    blob store keyed by `(cert_hash, narration_version, generator.mode)`, and
    Postgres holds at most a pointer. Deleting all narration blobs changes no gate,
    no benchmark and no verdict.
+
+   OVERRIDES Part I section 21.10.5: the per-narration record `{llm_enabled,
+   provider, model, digest, temperature, seed, input_hash, output_hash,
+   validator_result}`, cached under `blake3(canonical input JSON)`, is replaced by
+   this blob-store key with `Generator { mode, model_id, model_blake3,
+   fallback_reason }` (72.4.1) as the only recorded provenance. An implementer who
+   keeps Part I's record has no type in which to put `provider`, `temperature`,
+   `seed` or `validator_result`, and keys the store on the input hash rather than
+   on `(cert_hash, narration_version, generator.mode)`.
+
 8. Reproduction (`make reproduce`) does not regenerate narration and no figure or
    table in `docs/` derives from it.
+
+   OVERRIDES Part I section 2.4.1: the determinism rule that the same inputs, the
+   same seed and the same version yield byte-identical outputs, enforced by `make
+   reproduce` diffing artifact hashes, does not reach narration; stage 1 is
+   excluded from every determinism claim (72.13.5), and the `seed = 7` committed
+   in Part I section 21.10 implies no guarantee about narrated text. An
+   implementer who adds `narration.json` to the artifact set `make reproduce`
+   diffs turns any hardware or BLAS difference in `llama.cpp` into a red diff that
+   reads as a kernel determinism regression.
 
 72.11.2 Frontend contract (extends the Part I §39-42 surface). The narration panel
 is labeled "Generated narration — not part of the proof", is collapsed by default,
@@ -22574,6 +23618,14 @@ EventIds or its license. GHOST sentences are visually distinct by pattern and
 label, not by color alone. The verdict header never contains narrated text. A
 screenshot test covers the panel in deterministic mode, paraphrase mode, GHOST-only
 mode and flagged-run mode.
+
+OVERRIDES Part I section 21.10.5: the mandated panel label "Generated narration —
+derived from the certificate above; not evidence." is replaced by "Generated
+narration — not part of the proof", with collapse-by-default and the `LLM
+PARAPHRASE` badge added; Part I's requirement that the certificate itself is
+always displayed next to the panel is unchanged. An implementer who ships Part I's
+literal fails the screenshot tests above, and the forbidden-string lint of Part I
+section 21.8 written against that literal never matches this panel.
 
 --------------------------------------------------------------------
 72.12 `make verify-no-llm`
@@ -22657,7 +23709,6 @@ CV bullet, any of the following:
    to ignore instructions. The defense is that attacker text is not in the prompt
    (72.9.2); never cite instruction-following as a security control.
 
-
 ============================================================
 73. POLYGLOT TIERS, LOAD-BEARING TEST AND THE MUTATION AUDIT
 ============================================================
@@ -22691,6 +23742,13 @@ every document and every interface.
 Authored executing languages: 32. Configuration and markup formats: 11. Linguist language-bar rows:
 43. The number 43 is the size of the colour bar and is never used in a prose sentence (§73.7).
 
+OVERRIDES Part I section 30.6: the audit transcript line that prints `languages declared` as 43, and
+§31.44's description of the Makefile as a dependency graph across 43 toolchains, are replaced by
+three separately counted figures — 32 authored executing languages, 11 configuration formats, 43
+Linguist bar rows — of which only the first may appear in a prose sentence. An implementer
+reproducing §30.6's exact transcript shape emits the "43 languages" claim §73.11 forbids, over a set
+that is not even this one (Part I's 43 counts JavaScript and MATLAB; this roster has neither).
+
 TIER A — CRITICAL PATH (6). Promise: *this is the product*. Deleting any of these deletes SPECTRA.
 
 | Language   | Component                                             | Consumer edge (what breaks)                    |
@@ -22701,6 +23759,16 @@ TIER A — CRITICAL PATH (6). Promise: *this is the product*. Deleting any of th
 | TypeScript | frontend, proof UX, demo pane                          | `make demo` has no UI; Playwright tier empty    |
 | SQL        | fact-base schema, recursive-CTE state view, migrations | run metadata and state view unresolvable        |
 | Bash       | make targets' shell layer, range compose driver        | no reproducible entrypoints                     |
+
+OVERRIDES Part I section 30.2: the four numbered tiers and their membership are replaced by the four
+lettered tiers of this section, which assign different members — Bash moves from the observed lab to
+the critical path; Java and C# move from observed subjects to oracle duty; Solidity, x86-64 assembly
+and YARA leave the observed lab; WebAssembly drops from the hot path to a research artifact; and
+JSON, YAML, TOML, XML and HCL leave the tier system entirely for §73.2. An implementer following
+§30.2 applies its Tier 3 rule — never import SPECTRA libraries, never read the rule table, never
+know they are being watched — to Bash, assembly, YARA and Solidity, which are no longer observed
+subjects, and applies its Tier 2 agreement-gate obligation to a WebAssembly component that no longer
+computes anything to agree about.
 
 TIER B — INDEPENDENT ORACLES AND MEASURED PERFORMANCE (6). Promise: *each of these is consumed by a
 gate or a published benchmark; none is a demonstration*. Tier B exists to make claims falsifiable,
@@ -22724,6 +23792,21 @@ Tier B honesty requirement: the C and C++ components are justified by the existe
 benchmark, not by its outcome. If the Rust scanner is faster, `docs/bench/ingest.md` says so, the C
 and C++ components remain (they are the comparison arm), and no document anywhere claims a speedup.
 Forbidden sentence: "we rewrote the hot path in C for speed."
+
+OVERRIDES Part I section 31.7: the C component — a single-producer/single-consumer lock-free
+shared-memory ring buffer plus a `ptrace`-based syscall tap, justified as a capability argument
+("stable ABI and cache-line control: this is exactly what C is for") — is replaced by the record
+framing and field scanner of the ingest hot path, justified solely by the existence of a published
+benchmark against a Rust scanner. An implementer following §31.7 and §32.6's `c/libspectra_frame/`
+builds a component with no Rust comparison arm, so the benchmark that licenses C to exist here
+cannot be run at all.
+
+OVERRIDES Part I section 31.8: the C++ component — offline pcap flow reassembly plus the interval
+tree that computes the per-source liveness windows feeding `liveness.json` — is replaced by the
+deterministic entity-key interner measured against a Rust interner on the same hot path. An
+implementer following §31.8 and §32.6's `cpp/temporal_index/` builds pcap reassembly and an interval
+index that no component in this roster owns or consumes, and no Rust interner exists to compare
+against.
 
 TIER C — HETEROGENEOUS OBSERVED ESTATE (11). Promise, stated exactly and narrowly:
 
@@ -22749,12 +23832,38 @@ contain no language-specific branch (§73.3.4).
 | Groovy      | build pipeline scripts                    | build/deploy events                        |
 | Scala       | nightly batch reconciliation job          | log4j2 pattern layout                      |
 
+OVERRIDES Part I sections 31.11, 31.14, 31.15, 31.19, 31.20, 31.23 and 32.6: Kotlin as an Android
+session-telemetry fixture generator and typed scenario DSL, Scala as a streaming reconstruction
+baseline used to quantify what batch reconstruction gains, Groovy as Gradle build logic plus the
+scenario authoring DSL the demo scenario is written in, Perl as `tools/perl/logxlate/` translating
+legacy formats into canonical NDJSON, Lua as user-supplied event transformers hosted by
+`rust/spectra-normalize` through `mlua`, Dart as a certificate console that calls the verifier, and
+Ruby as the attacker choreography runner are all replaced by observed estate services whose only job
+is to emit idiomatic telemetry. An implementer following Part I puts Perl and Lua inside the ingest
+path and lets Dart call the verifier, which §30.2's own Tier 3 rule, this tier's promise and the
+§73.3.4 language-branch grep gate all forbid.
+
 Tier C honesty clauses that must appear in `docs/polyglot/tier-c.md`:
 1. PowerShell runs as `pwsh` on Linux. It emits Windows-event-*shaped* records. It is not Windows,
    and no document may imply a Windows endpoint was observed.
+   OVERRIDES Part I section 31.34: PowerShell as the Windows-side developer bootstrap and as the
+   collector wrapper that forwards the C# identity emitter's output into the ingest pipeline on
+   Windows hosts, with Pester tests and the job `lang-powershell` on a `windows-latest` runner, is
+   replaced by an observed admin-host component running as `pwsh` on Linux whose records the ingest
+   path must not know are PowerShell's. An implementer following §31.34 turns an estate subject into
+   a SPECTRA ingest tool and declares a `windows-latest` CI job that §73.9.3's single prebuilt Linux
+   toolchain image cannot run.
 2. Objective-C is compiled with clang against GNUstep on Linux. It is not an Apple platform agent
    and no document may imply macOS or iOS telemetry.
 3. Swift is the open-source Linux toolchain. Same clause.
+   OVERRIDES Part I sections 31.21, 31.22 and 32.6: Swift as an iOS session-telemetry fixture
+   generator (app foreground/background transitions, jailbreak-check outcome, device-attestation
+   result), Objective-C as `mobile/ios-keychain-shim/` emitting keychain-shaped events because the
+   keychain APIs are Objective-C, and the `swift/macshim/` macOS endpoint shim with its
+   `objc/macshim-compat/` CoreFoundation collection path, are replaced by Linux-hosted components
+   built with the open-source Swift toolchain and with clang against GNUstep. An implementer
+   following Part I ships components whose directory names and event vocabulary assert the macOS and
+   iOS telemetry these clauses and §73.11 ban, before a single document is written.
 
 Tier C load-bearing reinforcement — **the held-out language rule**: exactly one Tier C component is
 authored *after* `rules.toml` and `axioms/` are frozen and hash-pinned (see §62's leakage protocol).
@@ -22777,16 +23886,66 @@ TIER D — RESEARCH AND FORMAL ARTIFACTS (9). Promise: narrow, and stated narrow
 | WebAssembly| hand-authored `.wat` canonical-preimage encoder        | lets the browser re-derive a certificate's content address offline; it does **not** compute or verify any verdict         |
 | YARA       | declarative labelling of generator artifact blobs      | sole pattern language for fixture technique labels used by the goal-correspondence test                                   |
 
+OVERRIDES Part I sections 31.13 and 31.26: F# emitting the canonical `artifacts/state_table.json`
+(states, legal transitions, guards, dimension tags) that Python's engine and the Rust kernel both
+load rather than hard-coding, under a regeneration gate, and Julia performing the brute-force
+minimum-cardinality hitting set over Ψ for `|A| ≤ 20` fixtures plus the cost sensitivity sweep, are
+replaced by F# owning the multiple-choice knapsack Pareto frontier (which §31.26 gave to Julia) and
+Julia owning an independent re-implementation of R's degradation statistics. An implementer
+following §31.13 and §31.26 builds a state-table generator and a Ψ-minimality brute-forcer that no
+component in this roster owns, while the F# and Julia promises declared above go unimplemented.
+
+OVERRIDES Part I sections 31.25 and 32.6: Octave producing `artifacts/analysis/q99_thresholds.json`
+for the liveness pass to consume, together with the periodicity and beaconing analysis by
+autocorrelation and Welch PSD in `matlab/liveness_ref/`, is replaced by an exact-rank quantile
+sensitivity sweep (q95/q99/q999) cross-checked downstream against the Rust liveness quantile. An
+implementer following §31.25 wires the dependency edge backwards, making the Rust liveness pass a
+consumer of Octave instead of its reference, which inverts both the §73.3.1 consumer edge and the
+§73.3.3 mutation target for this component.
+
+OVERRIDES Part I section 31.31: YARA matches becoming evidence events with stable `EventId`s that
+feed rules whose bodies require file-content facts, and appearing as evidence leaves in the
+counterexample tree, are replaced by declarative labelling of generator artifact blobs for the
+goal-correspondence test only. An implementer following §31.31 makes the kernel ground over YARA
+output and the demo display it, placing the counterexample tree behind a Tier D job that §73.9 rule
+1 says does not block a milestone.
+
 Tier D negative requirements:
 - Solidity provides **no** security property that the BLAKE3 sequence chain does not already provide
   for SPECTRA's own artifacts. It is an estate source class, not a notary. `docs/polyglot/tier-d.md`
   states this in those words. Forbidden claims: "blockchain-anchored", "immutable audit anchor",
   "tamper-proof certificates". No SPECTRA certificate, hash or verdict is ever written to a chain.
+  OVERRIDES Part I sections 31.27 and 32.6: Solidity as the control case of the tampering study —
+  the one source where SUPPRESSED is provably impossible, demoed as "one blind window on
+  `iam_audit`, zero possible blind windows on `chain_authz`" — and `solidity/anchor/`, the
+  local-chain append-only certificate anchor registry, are replaced by an estate source class that
+  anchors nothing. An implementer following Part I ships the certificate anchor registry this bullet
+  says must not exist and a demo line the claims gate rejects as tamper-proofing.
 - The Verilog/VHDL FIFOs model a lossy buffer. They do not model any real logging appliance and no
   document may name one.
+  OVERRIDES Part I sections 31.28, 31.29 and 32.6: Verilog as the security state machine in
+  synthesizable RTL (a Moore FSM with an `illegal_transition` output, `casez` generated from
+  `state_table.json`, elaborated with `yosys -p synth` and gated on hw/sw illegal-transition
+  agreement), VHDL as a hardware liveness monitor asserting `blind` on q99 inter-arrival overrun
+  against a Rust differential oracle, and §32.6's RTL model of the unit-propagation counter
+  datapath, are all replaced by a pair of independently authored simulated bounded FIFOs that
+  produce drop ground truth. An implementer following Part I builds a synthesis step, a
+  state-table-driven generator and a liveness differential oracle that no component in this roster
+  owns, and describes the result in the RTL terms §73.11 forbids.
 - The `.wat` module re-derives a content address. Part I's frontend invariant stands: the verdict is
   never computed client-side. A test asserts the `.wat` module exports exactly one function and that
   no frontend code path calls it with anything but the certificate preimage.
+  OVERRIDES Part I sections 31.30, 31.4, 32.4 and 32.7: WebAssembly as the checking half of ECLIPSE
+  compiled to `wasm32-unknown-unknown` — closure check, goal exclusion, license validation, witness
+  re-derivation and Ψ minimality running entirely in the browser — built from the
+  `eclipse-verifier-wasm`/`spectra-wasm` crates and `web/packages/wasm`, shipped as
+  `web/public/eclipse_verifier.wasm`, loaded by the standalone `verify.html` to verify a certificate
+  from `file://`, under a size budget and a three-way wasm/Rust/Go verdict agreement gate, is
+  replaced by a hand-authored `.wat` preimage encoder that computes no verdict and exports exactly
+  one function. The "frontend invariant" this bullet preserves is §32.7's rule for the React console
+  only; an implementer following §31.30 and §31.4 ships a client-side verifier and the demo's final
+  offline-verify beat, and a compiled wasm artifact that this section excludes from the roster
+  entirely.
 - Rust-to-wasm and any other compiled output is a **build target, not an authored language**. It is
   excluded from the roster, excluded from the count, and marked `linguist-generated=true`.
 
@@ -22824,15 +23983,37 @@ suite fails with `SELF_CONSUMING`.
 73.3.2 **CI job.** A named job in `.github/workflows/*.yml` that executes the component (not merely
 lints or builds it) on every change to its paths, at the cadence its tier permits (§73.6).
 
+OVERRIDES Part I section 30.4.3: the `weak_exercise` allowance — compile-only CI jobs declared as
+such in `languages.toml`, with the audit failing only when more than three exist, and §30.6's
+transcript printing `weak_exercise` as 2 / 3 allowed — is replaced by an unconditional requirement
+that the declared job execute the component. An implementer following §30.4.3 keeps up to three
+build-only components that this check marks PADDING and §73.6 then deletes.
+
 73.3.3 **Mutation.** A declared, deterministic corruption of the component's *output* which, when
 applied, turns a named downstream gate RED. The audit applies the mutation in a scratch worktree and
 records the job name and the failing assertion. A component whose mutation leaves every gate green is
 padding and is deleted.
 
+OVERRIDES Part I section 30.3.3: the mutation test that injects a known deviation into the core so
+that a `differential_oracle` fails, stored as `tests/mutation/<oracle>/mut_XX.patch` with expected
+exit codes, is replaced by a seeded corruption of the component's own output, drawn from the closed
+operator set of §73.5 and declared as `mutation.op`, `seed` and `expect_red` in `polyglot.toml`. An
+implementer following §30.3.3 writes the core patches named in §31.4, §31.6, §31.16, §31.26 and
+§31.29 — canonicalizer, kernel, blind interval, licensing, popcount ordering, interval endpoint —
+for which no operator in §73.5 and no field in §73.4 provides an encoding, so those gates cannot be
+declared here at all.
+
 73.3.4 **Demo or benchmark role.** A one-line statement of what this component does in `make demo`,
 in the degradation matrix, or in a published benchmark. Tier D components may declare
 `role = "none"` only if they additionally declare `published_artifact = "<path>"` pointing at a
 results file regenerated by `make reproduce`.
+
+OVERRIDES Part I sections 30.4.1 and 30.4.2: the two-ring scheme that assigns every non-Tier-1
+component to `DEMO_PATH` or `DEMO_ARTIFACT`, bans `CI_ONLY`, and requires that a component no demo
+output depends on be deleted with the deletion recorded in `docs/ADR/`, is replaced by a role that
+may equally be a benchmark or a published artifact, and by the deletion ledger
+`docs/polyglot/deleted.md` (§73.6). An implementer following §30.4.2 deletes benchmark-only
+components that are load-bearing here, and files the record of it in a directory no gate reads.
 
 Additional Tier C rule: the ingest path must contain no language-specific branch. A grep gate fails
 the build if any adapter identifier, filename or conditional in `ingest/` matches the name of a Tier
@@ -22902,6 +24083,14 @@ benchmark     = "docs/bench/ingest.md#scanner-comparison"
 published_artifact = "artifacts/bench/ingest/results.jsonl"
 ```
 
+OVERRIDES Part I section 32.9: the negative requirement "Do not vendor third-party source. Pin
+versions in lockfiles instead." is replaced by a required `offline_source` field per component,
+pointing at a committed archive under `vendor/`, which §73.6 resolves with the network off and §73.8
+marks `linguist-vendored=true`. An implementer who obeys §32.9 has no `vendor/` tree to resolve
+against and fails `make polyglot-audit` on every component on its first run; §33.5's offline model,
+which fetches each toolchain during `make setup` before the network is cut, does not satisfy
+`offline_source`.
+
 Required per-component fields: `id, language, tier, paths, toolchain, offline_source, entrypoint,
 promise, consumer.*, ci.*, mutation.*, role.*`. Lints:
 - `promise` must be ≥ 120 characters, must not contain "TODO", "placeholder", "various", "misc",
@@ -22911,6 +24100,16 @@ promise, consumer.*, ci.*, mutation.*, role.*`. Lints:
 - Every file in the tree whose extension maps to an executing language must be matched by exactly one
   component's `paths` — unmatched files fail `ORPHAN_SOURCE`; doubly-matched files fail
   `AMBIGUOUS_OWNERSHIP`.
+
+OVERRIDES Part I sections 30.4.4, 30.5 and 31.46 rule 7: `languages.toml` and its schema (`name`,
+`dir`, `tier (1..4)`, `reason`, `duplication_kind`, `build`, `test`, `ci_job`, `mutation_tests`,
+`demo_ring`, `produces`, `consumes`, `weak_exercise`, `loc_budget`), and the `make lang-audit` gate
+that parses it and cross-checks `.gitattributes` against it, are replaced by `polyglot.toml` with
+the fields above, lettered tiers A..D, and `make polyglot-audit` as the only manifest gate;
+`.gitattributes` is cross-checked against `polyglot.toml` (§73.8). An implementer who keeps both
+declares every component twice, with `tier = 2` and `tier = "B"` meaning unrelated things for the
+same component, and points §31.46 rule 7's cross-check at a manifest that no gate in this section
+reads.
 
 73.5 The mutation operator set
 
@@ -23033,6 +24232,13 @@ Gate: a CI step fails with `UNSUBSTITUTED_TOKEN` if any `<<AUDIT:...>>` token su
 doc, and with `UNBACKED_COUNT` if a numeral adjacent to the word "language", "languages" or "polyglot"
 appears anywhere in `README.md` or `docs/` outside the generated block.
 
+OVERRIDES Part I sections 31.46 rule 8 and 30.7.5: the README language inventory reported as a table
+with a tier column and a one-sentence reason for each entry, stated once, is replaced by the
+generated prose block above, which carries no per-entry reason column and no tier numerals. An
+implementer who writes Part I's table fails `UNBACKED_COUNT` on every row that places a tier number
+beside the word "language", and the per-language reason it carried now lives only in
+`polyglot.toml`'s `promise` field and `docs/polyglot/audit.md`.
+
 73.8 `.gitattributes` — Linguist rules and the anti-inflation ban
 
 ```gitattributes
@@ -23069,6 +24275,17 @@ golden/**            linguist-generated=true
 *.cert.json          text eol=lf
 ```
 
+OVERRIDES Part I section 32.2: the mandated top-level tree and the per-language homes fixed by
+§32.3, §32.4, §32.6 and §32.7 are replaced by the paths this block and §73.4 name — `frontend/` for
+`web/`, `rust/kernel/` and `rust/ingest/` for the `eclipse-*` crates, `ingest/` for
+`python/spectra_ingest/`, root-level `fixtures/`, `golden/`, `artifacts/`, `vendor/`,
+`third_party/`, `octave/`, `perl/`, `c/ingest_scanner/` and `wasm/preimage/` for their `data/`,
+`native/`, `polyglot/` and `analysis/` placements — together with `docs/polyglot/`, `docs/bench/`,
+`docs/research/` and `docs/naming.md` beside §32.2's `adr/`, `eclipse/`, `diagrams/` and `paper/`
+subtrees. An implementer who produces §32.2's structure exactly gets a `.gitattributes` whose
+patterns match nothing and a §73.3.4 ingest grep gate that reports green because the directory it
+scans does not exist.
+
 Hard ban: `linguist-language=` may be used **only** to correct a genuine misdetection, and every use
 requires a one-line comment stating the misdetection it corrects. Using it to relabel a file as a
 language it is not — renaming `.txt` fixtures to a source extension, declaring config as code,
@@ -23077,6 +24294,15 @@ inflation. `make polyglot-audit` re-derives the Linguist breakdown itself and fa
 `LINGUIST_OVERRIDE_UNJUSTIFIED` if any override lacks a comment, and with `BAR_INFLATION` if the
 authored-source byte count attributed to any language falls below the declared floor for a real
 component while that language still occupies a bar row.
+
+OVERRIDES Part I section 31.46: the fourteen `linguist-language=` overrides in its `.gitattributes`
+block, and rule 5's pairing of them with `linguist-detectable=true` so that those languages are
+counted, are replaced by the comment-per-override requirement above and by the exclusions in this
+block — `schemas/**/*.json → JSON`, `infra/terraform/**/*.tf → HCL` and `mk/*.mk → Makefile` are
+declaring config as code, and `fixtures/asm/**/*.asm linguist-detectable=true` is the inverse of
+`fixtures/** linguist-detectable=false` above. An implementer who commits §31.46's file fails
+`LINGUIST_OVERRIDE_UNJUSTIFIED` on thirteen uncommented lines before the inflation check is even
+reached.
 
 73.9 CI tiering, budget and blocking rules
 
@@ -23123,6 +24349,16 @@ DECISION: keep the acronym, bind it everywhere, and keep the rename cost bounded
    file extension or magic bytes in any certificate. The kernel crate is `spectra-kernel`, the binary
    is `spectra prove`, the checker is `spectra verify`, the certificate media type carries `spectra`.
    A grep gate enforces this with `ECLIPSE_IN_ARTIFACT_SURFACE`.
+   OVERRIDES Part I sections 31.5, 31.4, 32.2, 32.3, 32.4, 32.6, 34.2 and 34.6: the crates
+   `eclipse-kernel`, `eclipse-rulegen` and `eclipse-verifier-wasm`; the workspace members
+   `eclipse-core/`, `eclipse-rules/`, `eclipse-cut/`, `eclipse-liveness/` and `eclipse-cert/`; the
+   packages `python/spectra_eclipse/` and `haskell/eclipse-ref/`; the directory `docs/eclipse/`; the
+   shipped `web/public/eclipse_verifier.wasm`; and `config/defaults/eclipse.toml` with the keys
+   `eclipse.atom_limit`, `eclipse.corridor_cap` and the environment override
+   `SPECTRA__ECLIPSE__CORRIDOR_CAP`, are all replaced by `spectra`-named equivalents. An implementer
+   who builds Part I's workspace, package, config and artifact names cannot pass this grep gate or
+   §73.12.6, and renaming later is the certificate- and schema-affecting change that item 3 exists
+   to avoid.
 3. Because of (2), the name exists only in prose. If the collision causes confusion — a reviewer
    remark, a maintainer complaint, or an indexing problem — the project renames by editing
    documentation, with no certificate, schema or API change. `docs/naming.md` records the collision,
@@ -23177,7 +24413,6 @@ The following fail the build, the claims gate, or both.
    and its results appear as a separate labelled row wherever reconstruction quality is reported.
 8. The ingest language-branch grep gate is active and green.
 
-
 ============================================================
 74. OFFLINE BUILD, TOOLCHAIN MATRIX, CI BUDGET AND THE WINDOWS REALITY
 ============================================================
@@ -23227,6 +24462,14 @@ Crossing from the right column to the left mid-build is a build failure, not a f
 Build exactly four images. Do not build one image per language and do not build one image for
 everything.
 
+OVERRIDES Part I sections 32.2 and 33.7: `docker/builder.Dockerfile`, the one image containing
+every toolchain, is replaced by the four tier images below, and §33.7's "publish nothing" plus its
+completeness definition (`make doctor` and `make polyglot` printing zero mismatches and zero
+SKIPPED inside that one image) no longer hold — completeness is per tier and the images are
+published (rule 4). An implementer following Part I builds a single image that no `images.lock`
+entry, tier assignment or section 74 gate can bind to, and waits on a `make polyglot` run that can
+never report zero SKIPPED in an image which by design carries only its own tier's languages.
+
 | Image | Contents (derived from `languages.toml`) | Consumed by | Size ceiling |
 |---|---|---|---|
 | `spectra/toolchain-a` | Rust, Go, Python, Node/TypeScript, SQL client, Bash, make, git, jq, blake3 | T1 per-PR, every Tier A gate, devcontainer | 2.5 GB (illustrative, not a target) |
@@ -23244,10 +24487,25 @@ Rules:
    or a user-level cache in `$HOME`.
 3. Images are built for `linux/amd64` only. `linux/arm64` is explicitly unsupported and README
    must say so; do not emit a multi-arch manifest that implies otherwise.
+
+   OVERRIDES Part I sections 44.1 and 46.1: the arm64-container arm of the §44.1 trace-hash
+   determinism suite and `release.yml`'s multi-arch image build are removed. An implementer
+   following Part I writes a required test that cannot pass, because no arm64 toolchain image
+   exists to run it in, and publishes a manifest asserting a platform this section forbids.
+
 4. Images are published to a registry AND exported as OCI tarballs into `cas/oci/<digest>.tar`
    with a `.blake3` sidecar, so a reviewer with no registry access can `docker load` and reproduce.
 5. `make toolchain-refresh` is the ONLY target permitted to touch the network. It regenerates
    `toolchains.lock` and `images.lock`, and its diff is reviewed as a change like any other.
+
+   OVERRIDES Part I sections 33.5 and 46.2: the three network-permitted targets `setup`, `builder`
+   and `dev` are replaced by exactly one, `toolchain-refresh`; every other target, `setup`
+   included, runs under `--network=none`, and no CI step may install anything from the network
+   (74.11.1). An implementer following Part I copies the §46.2 `ci.yml` skeleton, whose
+   `setup-python`, `rust-toolchain`, `setup-go`, `pip install` and `make contract-deps` steps are
+   network installs that the egress sentinel fails; under this section every job instead declares
+   a `container:` field resolving to an `images.lock` digest, and all resolution happens at image
+   build time rather than in `make setup`.
 
 `images.lock` (canonical, sorted by key, no floats, LF endings):
 
@@ -23296,6 +24554,14 @@ integrity mechanism. An ecosystem with no row here may not be introduced.
 | Conda/mamba | **forbidden** unless a `conda-lock` file with explicit URLs and sha256 exists, and then Tier D only | `--offline` | `conda-lock.yml` |
 | System packages | apt with a pinned snapshot suite and `Packages` index sha256 | image build only | recorded in `toolchains.lock` |
 
+OVERRIDES Part I section 32.9: "do not vendor third-party source; pin versions in lockfiles
+instead" is replaced by mandatory per-ecosystem vendoring as tabulated above, and the §32.2 tree
+gains the top-level paths this section requires — `vendor/`, `ci/`, `cas/`, `languages.toml`,
+`images.lock` and `toolchains.lock` — notwithstanding §32.2's instruction to produce that tree
+exactly and invent no extra top-level directories. An implementer following §32.9 refuses to
+create `vendor/`, leaving `G-VEND-001`, `G-VEND-002` and `make build-offline` with no vendor path
+to verify.
+
 Rules:
 
 1. **Nothing over ~50 MB (illustrative, not a target) is vendored into git.** Large vendor trees
@@ -23307,6 +24573,15 @@ Rules:
 3. `toolchains.lock` records, per ecosystem: the resolver version, the lockfile path, the lockfile
    blake3, the vendor bundle blake3, and the in-image path. Gate `G-VEND-001` (T1): recompute all
    lockfile hashes and fail on mismatch.
+
+   OVERRIDES Part I sections 32.2 and 33.6: `.tool-versions` is no longer the source of truth for
+   pinned toolchain versions, and §33.6's requirement to mirror those pins into
+   `docker/builder.Dockerfile` and `.devcontainer/devcontainer.json` is dropped. The authoritative
+   registries are `languages.toml` (which languages exist), `toolchains.lock` (resolver versions
+   and lockfile hashes) and `images.lock` (image digests), all regenerated only by
+   `make toolchain-refresh`. An implementer editing `.tool-versions` per §33.6 changes nothing any
+   gate reads, and has no place to mirror a pin into a devcontainer that is a digest reference.
+
 4. Gate `G-VEND-002` (T2): for each ecosystem, delete the vendor path inside a `--network=none`
    container and assert the corresponding build FAILS. A vendoring claim nobody can break is a
    vendoring claim nobody has tested.
@@ -23412,6 +24687,12 @@ Tier assignment, normative:
 | `make reproduce` (every docs number regenerated) | T3 | full pipeline |
 | Range egress-isolation probe | T2 | requires the compose set up |
 
+OVERRIDES Part I section 44.1: the §44.1 determinism protocol — in-process repeats plus fresh
+containers per fixture, run once on x86-64 and once on an arm64 container — is replaced by the two
+determinism rows above: same-runner byte-identical replay at T1, byte-identity across two distinct
+runners at T2, on `linux/amd64` only. An implementer following §44.1 runs a repeat protocol this
+tier table does not declare and an arm64 arm that 74.1.3 forbids building an image for.
+
 Gate `G-REG-001` (T1): every `make` target referenced by a gate exists; every gate has exactly one
 tier; the sum of `budget_s` per tier is ≤ that tier's declared ceiling; any requirement sentence in
 `docs/prompt/` containing "build fails" without a resolvable gate id fails the lint.
@@ -23489,6 +24770,12 @@ seed(c) = blake3("spectra/sample/v1" || gate_id || c.key || epoch)[0..8]
 | docker layer cache | none (images are prebuilt and digest-pinned) | — | — |
 | fixture/bundle CAS | `cas-${blake3(generator_inputs)}` | exact only | main only, read-only from PRs |
 
+OVERRIDES Part I section 46.8: "do NOT cache the fixture bundles; they are generated from seeds
+in-job so the generator stays exercised" is replaced by the fixture/bundle CAS row above, keyed on
+`blake3(generator_inputs)`, written on `main` only and read-only from PRs. On a cache hit the
+seeded generator does not run, so the property §46.8 protected no longer holds; an implementer
+following §46.8 omits a row this cache table declares normative.
+
 4. PRs may read `main`'s caches and may not write them. This prevents a PR from poisoning the
    cache that a release build reads.
 5. Total cache footprint ceiling: 8 GB (illustrative, not a target), enforced by an eviction job;
@@ -23507,6 +24794,14 @@ concurrency:
   cancel-in-progress: false      # never cancel a run whose artifacts back a published number
 ```
 
+OVERRIDES Part I section 46.4: "every workflow declares `concurrency: { group: <name>-${{
+github.ref }}, cancel-in-progress: true }` except `release.yml` and `benchmark.yml`" is replaced
+by these two groups — per-ref cancellation for the T1 per-PR group only, and a single shared,
+non-cancelling `t2-main` group for every T2/T3 workflow and anything that publishes an artifact or
+mutates `ci/epoch.txt`. An implementer following §46.4 leaves the nightly `e2e.yml`,
+`security.yml`, `docs.yml` and `polyglot.yml` runs cancellable, and cancelling an epoch-advancing
+run corrupts the 74.5 stride rotation and the `coverage_debt` accounting.
+
 | Artifact class | Example | Retention | Survives expiry as |
 |---|---|---|---|
 | Certificates from gate runs | `cert-*.json` | 14 days (illustrative, not a target) | blake3 + verdict row appended to `ci/ledger/certs.tsv`, committed |
@@ -23516,6 +24811,14 @@ concurrency:
 | Quarantine evidence | failing logs of a quarantined test | until quarantine expiry + 30 days | referenced by ledger row |
 | Toolchain OCI tarballs | `cas/oci/*.tar` | not a CI artifact | committed by hash reference; blobs mirrored out-of-band |
 | Raw CI logs | — | platform default | not citable; never a source for a number |
+
+OVERRIDES Part I sections 32.2 and 32.9: "do not commit anything under `data/generated/`,
+`data/runs/`, `bench/results/`" and the git-ignored status of `bench/results/` and `data/runs/`
+are replaced by the "survives expiry as" column above — degradation matrix results that back a
+docs claim are committed under `docs/research/results/`, T3 benchmark results are committed, and
+certificate verdicts are appended to the committed `ci/ledger/certs.tsv`. An implementer following
+§32.9 keeps a `.gitignore` and linter that reject exactly the files `G-CLAIM-001` requires, so
+every docs number loses its backing file the moment the CI artifact expires.
 
 Rule: **an artifact that has expired can never be cited.** The committed ledger, not the CI
 artifact store, is the durable record. Free-tier artifact storage is finite and will silently
@@ -23546,6 +24849,13 @@ evidence       = "ci/ledger/flake/G-UI-TREE-RENDER-2026-09-18.log"
 hypothesis     = "animation frame race in the expand handler; not a kernel defect"
 owner          = "rakshit"
 ```
+
+OVERRIDES Part I section 43.7: quarantining a flaky test by moving it into `tests/quarantine/`
+with an issue link is replaced by a row in `ci/quarantine.toml` carrying an enforced `expires`, a
+measured `observed_rate`, an evidence path, a hypothesis and an owner, under the `max_open` cap,
+with the test still executing in T2/T3. An implementer following §43.7 removes the test from
+execution entirely and creates a quarantine that `G-FLAKE-003` cannot see or expire — the
+indefinite quarantine this subsection exists to prevent.
 
 4. Expiry is enforced, not advisory. Gate `G-FLAKE-003` (T0 + T1): if `today > expires` for any
    open entry, **the build fails on every tier** until the entry is fixed and removed or the test
@@ -23618,6 +24928,16 @@ endif
 guard-sandbox: ; @true
 ```
 
+   OVERRIDES Part I sections 33.1 and 33.2: targets no longer transparently re-execute themselves
+   inside the builder image, and the `SPECTRA_IN_CONTAINER` / `SPECTRA_NATIVE` protocol is
+   replaced by this guard's `IS_WSL` / `SPECTRA_DEVCONTAINER` / `CI` check, which errors out
+   instead of re-invoking Docker on the contributor's behalf. The persistent `$HOME` toolchain
+   cache volumes in the §33.2 `RUN :=` skeleton (`spectra-cargo`, `spectra-gomod`, `spectra-uv`,
+   `spectra-pnpm`) are forbidden: 74.1.2 and 74.3.3 make `$HOME` a tmpfs precisely so a user-level
+   cache cannot mask a missing vendored dependency. An implementer keeping the §33.2 skeleton gets
+   a green `build-offline` over broken vendoring, and two incompatible re-entrancy protocols in
+   one root Makefile.
+
 4. **Docker Desktop resource minimums**, declared in `docs/dev/windows.md` and asserted by
    `make doctor`. All figures illustrative, not targets:
 
@@ -23646,6 +24966,14 @@ sparseVhd=true
 silently proceeds on an under-provisioned host, because a starved run produces timeouts that look
 like defects.
 
+OVERRIDES Part I sections 33.3 and 33.7: `make doctor` is no longer "probes every toolchain,
+prints found vs pinned, exits 1 on mismatch" against the `.tool-versions` line, and §33.7's "zero
+mismatches from `make doctor` inside the builder image" is no longer the definition of image
+completeness. Toolchain drift is detected by `G-IMG-002` against `images.lock` and `G-VEND-001`
+against `toolchains.lock`; `doctor` asserts the host against the `PROFILE` row above. An
+implementer building the §33.3 target ships no host-resource check, so an under-provisioned run
+produces the timeouts that read as defects.
+
 5. **Line endings.** Committed `.gitattributes` (Gate `G-WIN-002`, T1: this file must exist and
    match the committed golden copy byte for byte):
 
@@ -23673,6 +25001,15 @@ vendor/**              linguist-vendored
 **/generated/**        linguist-generated
 ```
 
+   OVERRIDES Part I section 32.2: the `.gitattributes` described there as "text=auto eol=lf;
+   binary fixtures marked -diff" is replaced by this golden file, which `G-WIN-002` compares byte
+   for byte, so no path may be added to it locally. Its protective patterns are `tests/golden/**`,
+   `**/*.cert.json`, `**/*.expected` and `cas/**`; `data/fixtures/` and `data/golden/` are not
+   among them, so under `* text=auto eol=lf` a committed bundle at a §32.2 path is EOL-normalized
+   on the declared Windows/WSL2 host. An implementer following §32.2 either adds a rule for those
+   paths and fails `G-WIN-002`, or leaves byte-stable committed artifacts exposed to the single
+   CRLF that changes every downstream hash and silently invalidates certificates.
+
    Additional rules: `core.autocrlf` must be `false` (or `input`) in the WSL2 clone — Gate
    `G-WIN-003` (T0) reads `git config core.autocrlf` and refuses to build otherwise. Gate
    `G-WIN-004` (T1): `git ls-files --eol` reports `w/lf` for every text-classified file; a single
@@ -23695,6 +25032,15 @@ vendor/**              linguist-vendored
   "customizations": { "vscode": { "extensions": [] } }   // no marketplace fetch at create time
 }
 ```
+
+   OVERRIDES Part I section 33.8: the devcontainer's `"build": {"dockerfile":
+   "../docker/builder.Dockerfile"}` stanza, the repo mount at `/work`, the forwarded ports 8000,
+   5173, 5432 and 6379, and `postCreate.sh` running `make setup doctor` are all replaced by this
+   file: a digest reference to `spectra/toolchain-a` from `images.lock`, the workspace at `/w`,
+   `--network=none`, and `make doctor PROFILE=core` as the only create-time command. An
+   implementer following §33.8 fails `G-IMG-001`, which requires the devcontainer reference to
+   resolve to a digest in `images.lock`, and wires forwarded ports and a network-resolving
+   `make setup` into a container that has no network.
 
    Note `--network=none` is the default posture even in the devcontainer; a developer who needs
    `make toolchain-refresh` runs it deliberately outside the container.
@@ -23724,7 +25070,6 @@ vendor/**              linguist-vendored
    from the T3 budget artifact with its run manifest hash; every such number carries its source id.
 10. Do not treat a quarantined test as a passing test in any status table, badge or milestone claim.
 
-
 ============================================================
 75. NON-GOALS, THE DESCOPE LADDER AND THE MINIMUM PUBLISHABLE CORE
 ============================================================
@@ -23749,7 +25094,7 @@ Write `docs/NON-GOALS.md` containing exactly the following numbered list, verbat
 
 5. **SPECTRA does not attack any host it does not own.** No external target, no scanning, no network egress from any container in the scenario stack. There is no exploitation code path, and none is a stretch goal.
 
-6. **SPECTRA emits no probability, confidence, score, severity, risk rating or likelihood.** Verdicts are structural: `safety ∈ {ROBUST, OPTIMISTIC_ONLY, UNSAFE}`, `minimality ∈ {EXACT, SUBSET, UNVERIFIED}`. A numeric confidence field anywhere in the API, database, certificate or frontend is a build failure, not a design choice.
+6. **SPECTRA emits no probability, confidence, score, severity, risk rating or likelihood.** Verdicts are structural: `safety ∈ {ROBUST, OPTIMISTIC_ONLY, UNSAFE}`, `minimality ∈ {EXACT, SUBSET, UNVERIFIED}`. A numeric confidence field anywhere in the API, database, certificate or frontend is a build failure, not a design choice. OVERRIDES Part I section 3.7: the certificate's single `mode` field (ROBUST | OPTIMISTIC) carrying minimality as the `subset_minimal_only` entry in `flags` (sections 3.9, 2.5.2 and 3.12.7) is replaced by two independent enum fields, `safety` and `minimality`, where `minimality` has a third state `UNVERIFIED` that Part I's schema cannot encode. An implementer following section 3.7 emits a `mode`-plus-flags certificate, and the Go checker, the adversarial certificate corpus, the API and the UI verdict header built against it cannot validate the structural verdict this section requires.
 
 7. **SPECTRA invents no costs.** With no user-authored `costs.toml` the Pareto frontier is disabled, never defaulted to unit cost. Any cardinality-mode axis is labelled "control count, not cost" in every axis label, API field name and export.
 
@@ -23757,7 +25102,7 @@ Write `docs/NON-GOALS.md` containing exactly the following numbered list, verbat
 
 9. **SPECTRA is not a graph database, a SIEM, a log shipper, or a telemetry pipeline.** It does not compete with, replace or integrate into one. No connector, no agent, no forwarder.
 
-10. **SPECTRA does not analyze software supply chains, build provenance, dependencies, SBOMs, signatures or artifact integrity.** That is WARDEN's domain and the boundary is non-negotiable: no SPECTRA subsystem may ingest a package manifest, a lockfile or a build attestation, and no WARDEN code may be vendored here. A CI grep over the source tree for supply-chain vocabulary outside `docs/NON-GOALS.md` fails the build.
+10. **SPECTRA does not analyze software supply chains, build provenance, dependencies, SBOMs, signatures or artifact integrity.** That is WARDEN's domain and the boundary is non-negotiable: no SPECTRA subsystem may ingest a package manifest, a lockfile or a build attestation, and no WARDEN code may be vendored here. A CI grep over the source tree for supply-chain vocabulary outside `docs/NON-GOALS.md` fails the build. OVERRIDES Part I section 2.6: `make audit-scope`, scoped to the identifiers appearing as domain terms in `spectra/`, `rust/` and `go/` with build tooling and rule-referencing comments exempted through an allowlist file, is replaced by a grep over the whole source tree whose only exempt file is `docs/NON-GOALS.md`. An implementer who builds only the scoped, allowlisted `audit-scope` leaves the vocabulary unflagged everywhere else in the tree, and the artifacts Part I sections 53.2 and 55.7 mandate — the README's "What this is not" paragraph naming CVE, SBOM and dependency tooling, and `.github/dependabot.yml` with its `npm` and `pip` ecosystems — must be reconciled with this grep before either gate can be green.
 
 11. **SPECTRA does not model an enterprise.** The scenario stack is a handful of containers. Banned phrases outside `docs/range/not-modeled.md`: "realistic", "enterprise-grade", "production-like", "real-world environment".
 
@@ -23765,9 +25110,9 @@ Write `docs/NON-GOALS.md` containing exactly the following numbered list, verbat
 
 13. **SPECTRA does not use an LLM anywhere in the deterministic core.** Narration is an optional, removable surface over the certificate. `make verify-no-llm` proves every gate stays green with the model absent and the dependency uninstalled. A failure of that target is a failure of the project's core claim, not of an optional feature.
 
-14. **SPECTRA does not require a network at any point after clone.** No CDN font, no remote schema, no package fetch at build or test time, no telemetry, no update check, no license server.
+14. **SPECTRA does not require a network at any point after clone.** No CDN font, no remote schema, no package fetch at build or test time, no telemetry, no update check, no license server. OVERRIDES Part I sections 52.3, 52.13 and 54.1: the container-image carve-out — `make bootstrap` "installs nothing outside the repo and container images", `make release-check` green "with no network beyond image pulls", "nothing is pre-baked except container base images", and section 4.1's "no network after first pull" — is replaced by no network access of any kind after clone. An implementer following Part I builds a bootstrap that pulls images on first run, and this section's acceptance in 75.10, which is evaluated on a clean clone with the network off, can then never be demonstrated.
 
-15. **SPECTRA's kernel and checker have no service dependencies.** `spectra prove` and `spectra verify` are pure file-in/file-out binaries. If either ever needs Postgres, Redis or a running API to produce or validate a certificate, the offline-verification claim has collapsed and the change is reverted.
+15. **SPECTRA's kernel and checker have no service dependencies.** `spectra prove` and `spectra verify` are pure file-in/file-out binaries. If either ever needs Postgres, Redis or a running API to produce or validate a certificate, the offline-verification claim has collapsed and the change is reverted. OVERRIDES Part I sections 3.1, 52.5 and 54.3: prove and verify operating over a run held in the PostgreSQL event store — the normative DDL for `entity`, `event` and `transition`, M2's "stable-ID events in Postgres", and `make demo` running `bootstrap up` before `spectra prove --run r1` — is replaced by a kernel and checker with no service dependency, addressed as file in, file out. An implementer following Part I routes prove through state that reconstruct persisted to Postgres, which is an architectural fork that cannot be deferred and that this item reverts on sight.
 
 16. **SPECTRA does not support multi-tenancy, authentication, RBAC, audit-for-compliance, or any deployment posture beyond one user on one machine.** No hosted instance is offered. No SaaS. No demo server on the public internet.
 
@@ -23799,6 +25144,8 @@ The MPC is the smallest artifact set that makes SPECTRA a defensible public repo
 | C8 | Degradation matrix | degradation addendum | Completeness axis defined; per-operator seeds; ground-truth re-linking under perturbation defined; zero false ROBUST on declared suppression classes; ROBUST yield floor enforced | `make matrix` |
 | C9 | Held-out / overfit protocol | 62 | Rules frozen and hash-pinned before each scenario family; TUNED vs HELD-OUT split published; CI fails on commit-order inversion | `make leakage-gate` |
 | C10 | UI: one investigation, one counterfactual | 39-42 (re-scoped) | Four screens: control toggles + PROVE, scoped verdict header, indented counterexample tree with GHOST distinction, degradation strip. Verdict never computed client-side | `make ui-gate`, 5 Playwright specs |
+
+OVERRIDES Part I sections 3.10 and 4.4.1: the zero-false-ROBUST obligation stated as gate 5's "across the entire degradation matrix" and as `artifacts/matrix/false_robust.json` reporting zero "across every cell" is narrowed by C8 to the declared suppression classes, which is also the form placed on the NEVER CUT list in 75.5. An implementer following section 4.4.1 gates the invariant over every cell of the completeness-by-perturbation grid; an implementer following C8 scopes `make gate-invariant` to the suppression classes and reports zero false ROBUST without ever testing the delay, duplication, reordering or corruption cells.
 
 MPC completion is machine-defined, not a judgement call. Check in `mpc.toml` and gate on it:
 
@@ -23860,6 +25207,8 @@ The following are explicitly OPTIONAL. None of them blocks a milestone, none of 
 ECLIPSE stage F (redundancy index), stage G (decisive observation set), stage H (Pareto frontier); the Haskell reference admissibility checker; the Z3 test-only oracle; the live container range as a realism check; Go-side re-grounding from `bundle.jsonl`; the general graph explorer UI; the temporal property-graph store; FSM dimensions beyond identity, session, credential and privilege; the LLM narration surface; the benchmark registry and bindings; Tier C and Tier D language artifacts; cross-OS certificate-hash diffing on a third runner; the sensitivity sweep over q95/q99/q999 beyond the single mandated axis.
 
 FORBIDDEN: describing any optional item in the present tense in `README.md` before its gate is green. The README renders component status from `mpc.toml` and `ratchet.json`; hand-written status prose in the README fails the docs gate.
+
+OVERRIDES Part I section 53.2: the hand-written status banner required there in a verbatim shape ("> Status: research prototype (v0.1.0, milestone M10). Synthetic data only. Not a security product. See docs/LIMITATIONS.md.") and every other hand-written status statement in the README are replaced by tables rendered from `mpc.toml` and `ratchet.json`; that section's "exact section order" also has no slot for the first-screen elements this addendum requires — the `docs/NON-GOALS.md` link (75.1), the machine-generated language table (75.1 item 20), the generated waiver table (75.7 rule 5) and the no-weaponizable-code statement (75.9). An implementer following section 53.2 ships a README that fails the docs gate and 75.10 item 10.
 
 ------------------------------------------------------------
 75.4 SECTION RE-TIERING TABLE
@@ -23950,7 +25299,7 @@ TIER C  range-realism          PowerShell, PHP, Ruby, Perl, Lua, Kotlin,
 TIER D  analysis & reporting   R, Julia, GNU Octave
 ```
 
-Each language earns its place by passing all three legs of `make polyglot-audit`: (a) a CI job that executes it on every push or nightly, (b) a deletion-mutation proof — stubbing the artifact turns a named CI job red, and the audit records that job name, (c) an edge in the build/consumer graph. A language failing all three is deleted in the same commit that discovers the failure, with the deletion recorded in `docs/polyglot-audit.md`. OVERRIDES Part I §30: MATLAB is replaced by GNU Octave, stated as Octave and never described as MATLAB-verified. Solidity, Verilog and VHDL are removed from the target set unless a named, executing, mutation-proved job exists for each; "immutable audit anchor" duplicates the BLAKE3 chain and does not qualify.
+Each language earns its place by passing all three legs of `make polyglot-audit`: (a) a CI job that executes it on every push or nightly, (b) a deletion-mutation proof — stubbing the artifact turns a named CI job red, and the audit records that job name, (c) an edge in the build/consumer graph. A language failing all three is deleted in the same commit that discovers the failure, with the deletion recorded in `docs/polyglot-audit.md`. OVERRIDES Part I §30: MATLAB is replaced by GNU Octave, stated as Octave and never described as MATLAB-verified. Solidity, Verilog and VHDL are removed from the target set unless a named, executing, mutation-proved job exists for each; "immutable audit anchor" duplicates the BLAKE3 chain and does not qualify. OVERRIDES Part I section 52.12: the M9 deliverable list repeats the same target set — Verilog and VHDL for the hardware-attestation sensor model, Solidity for the append-only evidence-anchor experiment, MATLAB for analysis — and is overridden on exactly the terms stated here for section 30, with the tier order above also governing which of section 52.12's languages may be started. An implementer working M9 from section 52.12 alone still builds the Solidity evidence anchor and the Verilog/VHDL sensor model this rule deletes, still calls the analysis path MATLAB-verified, and starts Tier C and Tier D languages before Tier B is complete.
 
 The README reports two machine-generated figures, never one: "N languages executing code in CI" and "M configuration and markup formats". Counting JSON, YAML, TOML, XML, HTML, CSS, Dockerfile or Makefile toward a language total is forbidden.
 
@@ -23993,7 +25342,11 @@ This is the procedure Claude Code follows when a milestone overruns its declared
        before the next increment begins.
 ```
 
+OVERRIDES Part I sections 52.1.6, 0.1 (Law 5) and 0.7: "if a milestone cannot be completed as specified, stop and report" — halting, writing the BLOCKED entry, proposing options and waiting for a human before acceptance criteria move — is replaced, for a declared-budget overrun, by this fixed procedure, which descends the ladder, applies the demotion in code and docs and closes the milestone with no human decision point, recorded only in `BUILD_LOG.md`. An implementer following section 52.1.6 stops at step [1] and waits; an implementer following this flow deletes features, deletes directories and downgrades written guarantees on its own authority, which is the silent redefinition of section 52 acceptance criteria that Part I forbids.
+
 **RULE: never silently carry a stub forward.** A stub is any file that (a) exists to satisfy a directory layout, (b) has a function body of `todo!()`, `panic("unimplemented")`, `pass`, `return nil` with a TODO comment, or an empty test file, or (c) is named in `mpc.toml` `artifacts` but has no executing gate. Stubs are deleted at descope time. `make stub-scan` enumerates them and fails the build if any stub exists outside `scenarios/extension-point/` (the one documented worked stub permitted by D3).
+
+OVERRIDES Part I section 0.5: the mandated honest-stub forms (`NotImplementedYet("SPECTRA-TODO(...)")`, `Err(Unimplemented::new(...))`, `fmt.Errorf("SPECTRA-TODO(...)")`), the `make audit-stubs` inventory published in `docs/STATUS.md` and required by sections 4.5 and 4.7, and section 56.1's narrower ban on unimplemented markers only on demo-path files are replaced by whole-repo deletion: an unimplemented surface is no longer "acceptable and honest", and any stub outside `scenarios/extension-point/` fails `make stub-scan`. An implementer following section 0.5 keeps inventoried `SPECTRA-TODO(` surfaces for work this addendum makes optional, such as stage G's decisive observation set and stage H's Pareto frontier (75.3), and cannot pass 75.10 item 4.
 
 `BUILD_LOG.md` DESCOPE entry schema — fixed field order, one entry per descope, never edited after commit:
 
@@ -24100,7 +25453,7 @@ hint: file a waiver in ratchet.json with a rationale and a BUILD_LOG DESCOPE
 NEGATIVE REQUIREMENTS:
 - Do not edit a recorded `counts` value downward in place. The recorded values are append-only history; changes go through `waivers`.
 - Do not satisfy the ratchet by adding trivial assertions (`assert!(true)`, `assert_eq!(1,1)`, asserting a constant you just defined). `make assert-triviality-lint` rejects assertions whose both sides are literals or whose expression contains no call into the crate under test.
-- Do not mark a test `#[ignore]`, `t.Skip`, `@pytest.mark.skip` or `test.skip` to make a milestone green. Skipped tests are counted separately as `tests_skipped` and any nonzero value must be justified in the same waiver mechanism.
+- Do not mark a test `#[ignore]`, `t.Skip`, `@pytest.mark.skip` or `test.skip` to make a milestone green. Skipped tests are counted separately as `tests_skipped` and any nonzero value must be justified in the same waiver mechanism. OVERRIDES Part I sections 52.3 and 56.1: "zero test cases skipped" as an M0 acceptance condition and as a hard failure of `make test -- --strict` is replaced by a counted `tests_skipped` field that may be nonzero when a waiver carries a rationale satisfying rule 4 above. An implementer following Part I wires `--strict` to fail on any skipped test, which makes this waiver path unreachable and the `tests_skipped` field dead.
 
 ------------------------------------------------------------
 75.8 THE ADVERSARIAL SELF-REVIEW OBLIGATION
@@ -24208,6 +25561,10 @@ Enforce it, do not merely assert it. `make weaponization-scan` fails the build o
 
 **Remaining posture files**, each required before the repository is made public: `LIMITATIONS.md` (linked from the README's first screen, partly generated from measured data), `docs/NON-GOALS.md` (75.1), `docs/claims.md` (every externally visible claim bound to the gate or bench artifact that supports it), `docs/checker-scope.md` (what a passing checker does **not** establish), `docs/polyglot-audit.md` (mutation-proof table, not a rationale table), `docs/adversarial-review.md` (75.8), `CONTRIBUTING.md` stating that the repository accepts issues but that the milestone plan is fixed, and `CITATION.cff`.
 
+OVERRIDES Part I section 53.4: `docs/claims.toml`, the machine-parsed list of claim-anchor-to-test-ID pairs read by `make docs-check`, is replaced by `docs/claims.md`, the registry binding every externally visible claim to the gate or bench artifact that supports it, read by `make claims-gate` and `make banned-phrase-gate`. An implementer who builds `claims.toml` leaves both of this section's gates with no file to read, and ratchet rule 1 in 75.7 then locks in whichever gate names were recorded first.
+
+OVERRIDES Part I sections 3.12, 4.5 and 4.7: `docs/LIMITS.md`, required there to hold all nine limit statements verbatim and to be the file the UI footer and `spectra --about` render from, is replaced by `LIMITATIONS.md` as the single limits document — the file this section requires before the repository is made public, links from the README's first screen, and places on the NEVER CUT list in 75.5. An implementer following section 4.5 ships `docs/LIMITS.md`, which no gate in this section looks for, and the nine "may never claim" statements then live outside the document every Part II gate reads.
+
 **Forbidden in every externally visible artifact** — README, repository description, paper abstract, UI strings, demo script, commit-message templates, and any CV or portfolio text generated from this repository: "formally verified", "guaranteed", "prevents", "would have stopped", "state of the art", "enterprise-grade", "production-ready", "realistic" (outside `docs/range/not-modeled.md`), "AI-powered", "detects attacks", and any bare "minimum cut" not qualified by "over the declared control catalog". `make banned-phrase-gate` greps for these and fails on a hit outside a registered entry in `docs/claims.md`.
 
 ------------------------------------------------------------
@@ -24228,7 +25585,6 @@ This section is satisfied when all of the following are true simultaneously on a
 10. The README's status table, language table and waiver table are machine-generated; no hand-written status prose survives the docs gate.
 
 Every numeral appearing in this section's examples — budgets, elapsed days, test counts, assertion counts, corpus sizes, milestone identifiers — is illustrative, not a target. CI writes the measured values; a run that copies an illustrative value into a result artifact fails the docs gate.
-
 
 ============================================================
 76. THE ATTACK HYPOTHESIS OBJECT AND THE DEGRADED-RUN CONTRACT
@@ -24387,6 +25743,8 @@ NEGATIVE TYPE REQUIREMENTS, enforced by `make lint-no-scores` (a schema + AST li
                          "obligation_trigger":{"$ref":"#/$defs/obligation_trigger"}}}]}}}}}
 ```
 
+OVERRIDES Part I section 17.1.3: the 16-byte BLAKE3-128 `event_id` rendered as 32 hex digits, and the `^ev:[0-9a-f]{32}$` pattern in 18.7's finding-provenance schema and the 32-hex worked record in 19.3, are replaced by the 16-hex-digit form `^ev:[0-9a-f]{16}$` above, which is normative for the wire. An implementer emitting 32-hex ids produces stages that fail this schema outright, so no hypothesis export validates and 76.5.1's re-resolution against `bundle.jsonl` never runs.
+
 `"number"` is forbidden anywhere in every SPECTRA schema; a schema lint (`make lint-schema-nofloat`) greps the compiled schema bundle for `"type": "number"` and fails.
 
 76.4 IDENTITY AND HASH
@@ -24406,7 +25764,7 @@ HypothesisId = blake3(canon(h))
 ```
 
 Rules:
-1. Identity is the **instance set**, not the stage list. Two derivations differing only in tree shape or traversal order are one hypothesis. Enumeration deduplicates on `HypothesisId` before ranking.
+1. Identity is the **instance set**, not the stage list. Two derivations differing only in tree shape or traversal order are one hypothesis. Enumeration deduplicates on `HypothesisId` before ranking. OVERRIDES Part I section 19.5.1: the definition of a hypothesis as a *minimal* connected sub-DAG, and the step-5 prune of "any candidate that is a strict superset of another candidate with the same leaf set (non-minimal)", are replaced by deduplication on `HypothesisId` alone, with no minimality condition on the instance set. An implementer who keeps 19.5.1's minimality prune returns a strictly smaller set than this section's enumerator even on runs that never reach the cap.
 2. `rank_key`, `stages`, `severed_by`, `degraded` and `realizability` are NOT hashed. Re-ranking or re-binding a cut does not change identity.
 3. Cut-dependent views are addressed as `HypothesisId @ CutHash`, never folded into the id.
 4. A property test asserts id stability under randomized rule-firing order, randomized enumeration seed and randomized `HashMap` capacity hints. `make test-hypothesis-determinism`.
@@ -24414,6 +25772,8 @@ Rules:
 76.5 EVIDENCE BINDING (THE RULE THAT MAKES THE OBJECT HONEST)
 
 Every stage is exactly one of OBSERVED or GHOST. There is no third state and no partial state.
+
+OVERRIDES Part I section 17.4: the three-valued `observed` status OBSERVED / LICENSED / UNDETERMINED — carried by 17.4.2's rule that an UNDETERMINED absence yields nothing in P_min and a licensed instance in P_max, by 17.4.3's `absence_undetermined` counter and `uses_undetermined_absence` run flag, by 18.7's schema enum and its SQL `CHECK (observed IN ('OBSERVED','LICENSED','UNDETERMINED'))`, and by 19.6.1's U(h) count of UNDETERMINED-supported edges — is replaced by the two-variant `StageEvidence` of 76.2, in which a stage is OBSERVED or GHOST and nothing else. An implementer who keeps the third value has no variant to serialize it into and will either drop those instances from every hypothesis, losing derivations Part I places in P_max, or record them as GHOST, which asserts a `LicenseId` implied by `liveness.json` that an UNDETERMINED absence need not have.
 
 1. An OBSERVED stage carries at least one `EventId` that exists in `bundle.jsonl` under the hashed bundle. The checker (ECLIPSE §5) re-resolves every one; a dangling EventId is a certificate rejection, not a warning.
 2. A GHOST stage carries **zero** EventIds in its `events` position. It carries a `LicenseId` that must be implied by `liveness.json`.
@@ -24441,6 +25801,8 @@ order_stages(instances, H):
 
 Both assertions abort the process with exit code 70 and a dump of the offending instance ids. They are not flags and not recoverable: time-indexed monotone grounding (ECLIPSE §3) makes them unreachable, so reaching them means the grounder is broken and no artifact from that run may be published.
 
+OVERRIDES Part I section 19.2: the OBSERVES relation, which alone among the edge relations carries no tick condition and is defined as an edge from a later observation to the earlier GHOST it forces — the shape 18.3's R7 and 25.4's obligation construct by design — is replaced by an unconditional `t_lo(parent) <= t_lo(s)` invariant over every stage's `parents`. An implementer who follows 19.2 and records an obligation's triggering stage as a parent of the forced earlier stage gets exit 70 and a published-nothing run rather than a modelled backward-in-time edge, and must therefore not carry the OBSERVES edge into `parents`.
+
 76.7 RELATIONSHIP TO CORRIDORS AND TO THE CUT
 
 ```
@@ -24449,10 +25811,12 @@ corridor_of(h) = { minimal threshold literal x_{k,ℓ} per control k
 ```
 Minimal means: if a hypothesis is blocked at level 2 and at level 3 of the same control, only `x_{k,2}` enters, since `x_{k,3} → x_{k,2}`. `CorridorId = blake3("SPECTRA-CORR-v1" || u64le(mask) || controls_hash)`.
 
+OVERRIDES Part I section 19.5.2: the corridor clause as the raw union of `blockers` over a hypothesis — the same mask 25.6E computes as `corridor_mask(tree)` and 25.7 stores verbatim in the certificate's `psi` — is replaced by the threshold-minimal literal set above, and `CorridorId` is taken over that reduced mask. An implementer who unions raw blocker masks gets a different mask and therefore a different corridor identity for any hypothesis blocked at two levels of the same control, so 19.8.2(f)'s equality of the derived corridor set against the stored Ψ fails even though the sever test `S & mask != 0` still agrees under implication closure.
+
 1. The map hypothesis → corridor is many-to-one and total. Every enumerated hypothesis has a corridor; every corridor in Ψ was induced by at least one witness tree.
 2. A cut `S` **severs** h iff `S & corridor_mask(h) != 0`. `Stage.severed_by = blockers & S`; the **biting stage** is the lowest `ord` with `severed_by != 0`. The UI names it; the API returns its `ord`.
 3. OVERRIDES Part I: 22-25 present cut search without any statement about what a cut means for a displayed chain. The binding is now one-directional and explicit: a HypothesisSet is always served **with respect to a named cut** (possibly the empty cut) and the response carries `cut_hash`. A hypothesis rendered without a `cut_hash` is a malformed response.
-4. Forbidden inference: "S severs every hypothesis we enumerated" may **not** be rendered as "S severs the attack". The safety verdict comes from the fixpoint test under S over the whole program, never from the enumerated set. UI copy for the set is fixed at: "`<n>` of the enumerated hypotheses are severed at the stage shown. The verdict above comes from the fixpoint over the full program, not from this list."
+4. Forbidden inference: "S severs every hypothesis we enumerated" may **not** be rendered as "S severs the attack". The safety verdict comes from the fixpoint test under S over the whole program, never from the enumerated set. UI copy for the set is fixed at: "`<n>` of the enumerated hypotheses are severed at the stage shown. The verdict above comes from the fixpoint over the full program, not from this list." OVERRIDES Part I section 19.4.2: the per-hypothesis label "a hypothesis containing one or more GHOSTs is `OPTIMISTIC-ONLY` unless the ECLIPSE run was performed on `P_max` and returned ROBUST", printed on the hypothesis header line in 19.9's worked output, is replaced by a run-level typed verdict that carries its scope (76.14.2); `Hypothesis` has no verdict field and 76.19.11 forbids adding one. An implementer who renders that label per hypothesis is deriving a verdict from `ghost_stage_count` in the client without a scope binding, and fails `verdict-scope-required.spec.ts` and the reducer test in 76.12.5.
 
 76.8 RANKING: THE EXPLICIT FORMULA AND THE PROBABILITY BAN
 
@@ -24467,6 +25831,8 @@ rank_key(h) = ( h.ghost_stage_count,          # fewer licensed steps first
                 first_u64_of(h.id) )          # total order, always breaks remaining ties
 ```
 
+OVERRIDES Part I section 19.6.1: the 7-tuple rank(h) = ( G, U, L, S, E, D, T ) — ghost nodes, count of UNDETERMINED-supported edges, seconds of licensed blindness relied upon, summed per-source `source_rank` from `sources.toml`, edge count, temporal span in seconds, and a blake3_128 of the canonical edge id list — is replaced by the 6-tuple above: U and S are dropped, licensed blindness is counted as distinct licenses rather than seconds, the span is in ticks, and the final tiebreak is the first u64 of the `HypothesisId`. An implementer following 19.6.1 produces a different total order on the same set, ordering by seconds of blindness and by evidence quality where this section orders by license count and drops evidence quality entirely, which also leaves `source_rank` in `sources.toml` with no consumer.
+
 1. The tuple is published verbatim in `docs/ranking.md`, in the OpenAPI description of the field, and in a UI tooltip that is also rendered as static text below the list. If the formula changes, `enumerator_version` increments and every prior certificate keeps its recorded version.
 2. The ordinal shown to users is the 1-based position plus its tie class. Label is fixed: "rank (ordering rule, not a probability)". Banned labels: score, confidence, likelihood, certainty, plausibility, priority, severity, "most likely", "best explanation", star ratings, bar lengths proportional to rank, percentage.
 3. Banned rendering: any visual encoding whose length, area, opacity or color intensity is a function of rank. A rank is an ordinal; a bar is a magnitude. Playwright test `hypothesis-no-magnitude-encoding.spec.ts` asserts no element in the hypothesis rail has a width, height or opacity that varies with rank.
@@ -24480,12 +25846,14 @@ Enumeration and exactness. The k-best enumerator is Lawler-style over the AND/OR
 ```
 `k_max` is a declared constant (8), not a measurement. When the enumerator hits it, set D8 and 76.9 applies.
 
+OVERRIDES Part I section 19.5.1: expansion of the AND/OR structure into candidate DAGs by choosing one alternative per OR node, capped at `max_hypotheses` (default 256) with the certificate flag `hypothesis_enumeration_capped`, is replaced by the Lawler-style k-best enumerator above with `k_max` = 8, whose cap sets the monotone degradation code D8 HYPO_RANK_TRUNCATED. An implementer who keeps the 256 cap and the flag enumerates up to thirty-two times as many hypotheses and reports the cap as certificate metadata, where 76.13 makes it a run-level degraded state that suppresses set-cardinality claims and counts as a failure in the ROBUST-yield metric of section 62.
+
 76.9 COMPETING HYPOTHESES: A SET, NEVER A WINNER
 
 1. The API, the UI and every export return a `HypothesisSet`. There is no endpoint, field or component that returns one hypothesis as "the" reconstruction.
 2. If `rank_class_1_size > 1`, all members of the tie class are displayed at the same visual level, in id order, with the fixed caption "`<n>` hypotheses are tied at rank 1 under the ordering rule; the ordering rule does not distinguish them."
 3. If `enumeration_complete == false`, the set header reads "at least `<k>` hypotheses; enumeration was truncated at k_max" and the phrase "all hypotheses" is unconstructible: the string table has no entry for it and the banned-phrase gate covers "the attack chain was", "the attacker did", "what actually happened".
-4. Narration (the LLM boundary) receives the whole set or nothing. A narrator prompt containing exactly one hypothesis is a build failure of the narration harness. Every narrated sentence about a stage carries either its EventIds or the literal token `GHOST`.
+4. Narration (the LLM boundary) receives the whole set or nothing. A narrator prompt containing exactly one hypothesis is a build failure of the narration harness. Every narrated sentence about a stage carries either its EventIds or the literal token `GHOST`. OVERRIDES Part I section 19.10: "an LLM may narrate an already-computed hypothesis" in the singular, and 21.10's exhaustive list of permitted narrator inputs — certificate JSON, cut, corridor list, counterexample derivation trees, license list, blindness premium, state timeline, provenance subgraph, degradation table, and no hypothesis set — are replaced by this rule: the narrator receives the whole `HypothesisSet` or nothing. Item 5 below does not cover this, being scoped to 39-42 and the demo script, so an implementer building the narrator from 21.10's closed list has no lawful way to pass the set at all, and one building from 19.10 passes exactly one hypothesis, which is a build failure of the narration harness.
 5. OVERRIDES Part I: any place in 39-42 or in the demo script that speaks of "the reconstruction" in the singular is replaced by "the hypothesis set". The banned-phrase gate enforces it outside `docs/limitations/`.
 
 76.10 REALIZABILITY GATE BEFORE DISPLAY
@@ -24527,6 +25895,8 @@ GET  /v1/runs/{run_id}/hypotheses/{hypothesis_id}?cut={cut_hash}
 GET  /v1/runs/{run_id}/hypotheses/{hypothesis_id}/stages?limit=200&cursor=
 GET  /v1/runs/{run_id}/hypotheses/{hypothesis_id}/export?format=json|jsonl|dot
 ```
+
+OVERRIDES Part I section 19.7.1: the path `GET /api/v1/runs/{id}/hypotheses`, and with it the `/api/v1` prefix Part I uses for every HTTP surface (20.14, 24.9, 25.11), is replaced by the `/v1` prefix on the four routes above. An implementer who mounts these under `/api/v1` serves paths the generated TypeScript client never calls, because 76.11.5 generates that client from this OpenAPI document and gates the build on drift.
 
 ```json
 { "run_id": "run_01J...", "goal": "fact:41207", "program": "P_MAX",
