@@ -68,6 +68,28 @@ at its implementation site)
       cannot decide - is a warning at T1 and a failure above it.  Raising it as
       a failure everywhere would turn the tree red on the first record ever
       registered, which is how a gate gets switched off.
+    * A PATH surface (`README.md#anchor`) is matched on the FILE, not on the
+      `#anchor` fragment.  Nothing in 71.1 or 71.2 says how to compute an
+      anchor from a document and heading slugs are renderer-specific, so
+      enforcing this tool's own derivation would report a clean registry as
+      SURFACE_UNDECLARED whenever a heading was reworded.  Keyed surfaces
+      (`ui:`, `cli:`, `demo:`, `paper:`, `release:`, `meta:`) stay exact.  See
+      `surface_declared`.
+    * A warned finding (71.3's per-PR `warn` states) is returned by
+      `run_checks` carrying `severity="warn"`, not withheld from it.  It does
+      not move the exit code; it is reported, because a state the contract
+      says to report must not be invisible to the API consumers call.
+    * `G-CLAIM-NUMSRC` runs for every QUANT record whose artifact exists and
+      decodes, rather than declaring one blanket "not implementable".  The
+      per-record gaps (absent artifact, undecodable artifact, a `note` whose
+      rounding-rule syntax is unspecified) are skipped by name.
+    * `G-CLAIM-NOERASE` reports erasure and reuse only.  A record present in
+      the registry but matching no surface is ORPHAN under
+      `G-CLAIM-REGISTERED`; reporting it again here made a never-erased id
+      look erased.
+    * `docs/banned.toml`'s state is always accounted for: absent or
+      present-and-parseable is a skip naming the built-in table as the list
+      that actually ran, and present-but-unparseable is a finding.
     * `G-CLAIM-PLACEHOLDER` scans the fifteen surface globs, not the whole
       tree.  The broader reading fails on `ci/gates.toml`'s 196 honest
       "illustrative, not a target" budget comments, and a gate that fights the
@@ -77,6 +99,7 @@ at its implementation site)
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import difflib
 import hashlib
 import json
@@ -144,6 +167,20 @@ class Finding:
     whoever built the message rather than in the finding.
     """
 
+    severity: str = "error"
+    """``"error"`` or ``"warn"``.
+
+    DECIDED: section 71.3's state table makes MISSING_ARTIFACT `warn` per-PR and
+    FAIL nightly, so the tool needs a warning channel.  An earlier shape kept
+    warnings out of `run_checks`' return value entirely, which meant the only
+    way a consumer could see a warned defect was to call `analyse` and read a
+    second list - and the default caller saw nothing at all.  A gate state the
+    contract says to REPORT must not be invisible to the reported API.  The
+    severity therefore rides on the finding, where a consumer can route on it,
+    and the exit code is computed from the severity rather than from which list
+    a finding landed in.
+    """
+
     def __post_init__(self) -> None:
         head = self.message.split(" ", 1)[0]
         object.__setattr__(self, "kind", head if head in FINDING_KINDS else "")
@@ -189,11 +226,25 @@ class Report:
             "surfaces": list(self.surfaces),
             "missing_surfaces": list(self.missing_surfaces),
             "findings": [
-                {"check": f.check, "kind": f.kind, "path": f.path, "line": f.line, "message": f.message}
+                {
+                    "check": f.check,
+                    "kind": f.kind,
+                    "severity": f.severity,
+                    "path": f.path,
+                    "line": f.line,
+                    "message": f.message,
+                }
                 for f in self.findings
             ],
             "warnings": [
-                {"check": f.check, "kind": f.kind, "path": f.path, "line": f.line, "message": f.message}
+                {
+                    "check": f.check,
+                    "kind": f.kind,
+                    "severity": f.severity,
+                    "path": f.path,
+                    "line": f.line,
+                    "message": f.message,
+                }
                 for f in self.warnings
             ],
             "skipped": [{"check": s.check, "reason": s.reason} for s in self.skipped],
@@ -319,7 +370,6 @@ FINDING_KINDS: tuple[str, ...] = (
     "FRAMING_MISSING",
     "FRAMING_OUT_OF_ORDER",
     "ID_ERASED",
-    "ID_NOT_RETIRED",
     "ID_REUSED",
     "NUMBER_NOT_IN_ARTIFACT",
     "NUMERAL_OUTSIDE_GENERATED_BLOCK",
@@ -366,6 +416,12 @@ class BannedPattern:
     in the pattern itself, where the mechanical form is deliberately narrower
     than the prose - so the narrowing is visible in the report instead of being
     an undocumented silent gap.
+
+    `use_only` applies the use/mention test described at `is_mention`: the row
+    fires on a phrase the document *asserts*, not on one it quotes, names as a
+    string, or forbids.  It defaults to True because every row on this table
+    bans a claim, and a claim is something a sentence makes rather than
+    something it mentions.
     """
 
     id: str
@@ -376,10 +432,167 @@ class BannedPattern:
     not_paths: tuple[str, ...] = ()
     requires: tuple[str, ...] = ()
     narrowed: str = ""
+    use_only: bool = True
 
     def regexes(self) -> tuple[re.Pattern[str], ...]:
         flags = re.IGNORECASE if self.ignore_case else 0
         return tuple(re.compile(p, flags) for p in self.patterns)
+
+
+# --------------------------------------------------------------------------
+# The use / mention test
+# --------------------------------------------------------------------------
+#
+# DECIDED (use vs mention).  Every row of the banned table bans a CLAIM.  A
+# claim is asserted, and a sentence that quotes a phrase, names it as a string,
+# or forbids it is not asserting it.  Without this distinction the gate fires
+# on exactly the documents that are most careful:
+#
+#   * `.github/PULL_REQUEST_TEMPLATE.md`'s checklist line, for listing what it
+#     forbids ("No banned phrase, no score, no confidence, no severity"),
+#   * `README.md`'s scope paragraph, for saying SPECTRA "emits no probability,
+#     score, severity or likelihood of any kind",
+#   * `docs/range/not-modeled.md`, for the sentence "do not call the range
+#     enterprise-grade",
+#   * `docs/adr/0009-*.md`, for naming the banned vocabulary it is introducing
+#     the gate to ban,
+#   * `docs/plan/CONFLICTS*.md`, which quote the specification verbatim as the
+#     evidence for each conflict they report.
+#
+# A gate that fails a file for naming what it bans is not enforcing honesty; it
+# is punishing the act of writing the prohibition down, and it teaches readers
+# that its findings are noise.
+#
+# The test has two mechanical halves, neither of which is an English judgement:
+#
+#   1. The match lies inside a quotation or a backtick code span.  A phrase in
+#      quotes is reported speech; a phrase in backticks is a string literal or
+#      an identifier.  Neither is the sentence's own assertion.
+#   2. A prohibition or metalinguistic marker occurs EARLIER IN THE SAME UNIT
+#      than the match: "banned", "forbidden", "do not say", "may not", "the
+#      words", "vocabulary", a `BP-##` citation, and so on.
+#
+# Half 2 requires the marker to precede the match on purpose.  "SPECTRA is
+# production-ready, and we do not claim otherwise" must still fail, and it
+# does, because its negation comes after the phrase.  The residual hole is a
+# sentence that opens with an unrelated prohibition and then makes a claim
+# ("nothing is forbidden here, and SPECTRA is production-ready"); that is
+# reported as the narrowing it is, under G-CLAIM-BANNED/USE-MENTION, rather
+# than papered over.
+
+#: Markers that make a unit metalinguistic: it is talking ABOUT a phrase.
+#: Matched case-insensitively, and only where they start before the match.
+MENTION_MARKERS: tuple[str, ...] = (
+    # Speech-act prohibitions.
+    r"\bban(?:s|ned|ning)?\b",
+    r"\bforbid(?:s|den|ding)?\b",
+    r"\bprohibit(?:s|ed|ing|ion|ions)?\b",
+    r"\bdisallow(?:s|ed|ing)?\b",
+    r"\bunwaivable\b",
+    r"\billegal\b",
+    r"\bnot\s+(?:sayable|permitted|allowed|licensed|acceptable)\b",
+    r"\bno\s+longer\b",
+    r"\bmay\s+not\b",
+    r"\bmust\s+not\b",
+    r"\bnever\s+(?:say|says|use|uses|claim|claims|print|prints|emit|emits|"
+    r"describe|describes|write|writes|state|states|as)\b",
+    r"\bdo(?:es)?\s+not\s+(?:say|use|claim|print|emit|describe|call|state|imply)\b",
+    r"\bdo\s+not\b",
+    r"\bstop\s+saying\b",
+    r"\b(?:emit|emits|emitted|print|prints|report|reports|produce|produces|"
+    r"output|outputs|make|makes|carry|carries|contain|contains)\s+no\b",
+    r"\bno\s+(?:banned|score|scores|scoring|probability|confidence|severity|"
+    r"risk|likelihood|priority|dollar|percentage|verdict|guarantee|claim)\b",
+    r"\bno\s+(?:metric|field|column|key|string|literal|label|output|value|"
+    r"number|name|word|phrase|sentence|adjective)s?\b",
+    r"\bnegative\s+requirements?\b",
+    r"\blint(?:s|er|ers|ing)?\b",
+    r"\bdeleted\s+from\s+the\s+project\b",
+    r"\breplaced\s+by\b",
+    r"\bcarve[- ]?outs?\b",
+    # Metalinguistic markers: the unit is discussing wording.
+    r"\bvocabular(?:y|ies)\b",
+    r"\bwording\b",
+    r"\bphras(?:e|es|ing)\b",
+    r"\bthe\s+words?\b",
+    r"\bword\s?list\b",
+    r"\bsub\s?strings?\b",
+    r"\bbanned_substrings\b",
+    r"\bverbatim\b",
+    r"\bspelling\b",
+    r"\bsynonyms?\b",
+    r"\blookarounds?\b",
+    r"\bregexe?s?\b",
+    # A unit that cites the banned table, or the gate, is discussing the ban.
+    r"\bBP-\d{2}\b",
+    r"\bG-CLAIM-BANNED\b",
+    r"\bG-UI-BANNED\b",
+    r"\bG-CLI-BANNED\b",
+    r"\bno-?score[- ]lint\b",
+    r"\blint-no-scores\b",
+)
+
+_MENTION_MARKER_RE = re.compile("|".join(MENTION_MARKERS), re.IGNORECASE)
+
+#: Spans in which a phrase is named rather than asserted.  The single-quote
+#: form is guarded on both ends so that the apostrophe in "Part I's" cannot
+#: open a span and swallow half a sentence.
+_QUOTED_SPAN_RES: tuple[re.Pattern[str], ...] = (
+    re.compile(r"`+[^`]*`+"),
+    re.compile(r'"[^"\n]*"'),
+    re.compile("“[^”\n]*”"),
+    re.compile(r"(?<![A-Za-z0-9])'[^'\n]*'(?![A-Za-z0-9])"),
+    re.compile("(?<![A-Za-z0-9])‘[^’\n]*’"),
+)
+
+
+#: Marks whose unpaired form means the unit is a FRAGMENT of a quotation.
+#: Segmentation cuts a paragraph at sentence boundaries, so a quotation running
+#: across two sentences arrives here split, with its opening mark on one unit
+#: and its closing mark on the next.  Both halves are reported speech, and
+#: neither can be told from the other without carrying quote state between
+#: units, so a unit holding an unpaired mark is treated as quoted throughout.
+#: Without this, §25.11's UI header - the very string the specification quotes
+#: to show what BP-08 and BP-11 forbid - is read as an assertion by whichever
+#: half of it lands in the second unit.
+_UNPAIRED_MARKS: tuple[str, ...] = ('"', "`", "“", "”")
+
+
+def quoted_spans(text: str) -> list[tuple[int, int]]:
+    """Half-open spans of `text` that are quotations or backtick code spans."""
+    spans: list[tuple[int, int]] = []
+    for rx in _QUOTED_SPAN_RES:
+        spans.extend((m.start(), m.end()) for m in rx.finditer(text))
+    for i, ch in enumerate(text):
+        if ch not in _UNPAIRED_MARKS:
+            continue
+        if any(lo <= i < hi for lo, hi in spans):
+            continue
+        return [(0, len(text))]
+    return spans
+
+
+def is_mention(text: str, start: int, end: int, spans: Sequence[tuple[int, int]]) -> bool:
+    """True when the match at [start, end) is mentioned rather than asserted.
+
+    `spans` is `quoted_spans(text)`, hoisted out so one unit is scanned once
+    however many patterns are tested against it.
+    """
+    for lo, hi in spans:
+        if lo <= start and end <= hi:
+            return True
+    marker = _MENTION_MARKER_RE.search(text)
+    return marker is not None and marker.start() < start
+
+
+#: The left guard on BP-08's verdict token.  It excludes the identifier forms
+#: (`NON_ROBUST`, `ROBUST(` already bound) and the named-class forms that a
+#: specification cannot avoid writing when it states the rule that PRODUCES the
+#: verdict: `non-ROBUST`, `false ROBUST`, `zero-false-ROBUST`, "an unflagged
+#: ROBUST verdict".  None of those is a verdict being reported to a reader.
+_BARE_VERDICT_GUARD = (
+    r"(?<![A-Za-z0-9_(\-])(?<!\bfalse )(?<!\bnon )(?<!\bzero )(?<!\bunflagged )"
+)
 
 
 # The table is hand-authored here rather than generated from CLAIMS.md's
@@ -397,9 +610,41 @@ BANNED_PATTERNS: tuple[BannedPattern, ...] = (
         ),
     ),
     BannedPattern(
+        # DECIDED (narrowing): the bare `\bguarantee[sd]?\b` cannot tell the
+        # ASSERTION apart from the NOUN.  The mandated replacement -
+        # "establishes, relative to rules@<hash> and catalog@<hash>," - is a
+        # verb phrase, which says what the row is aimed at: SPECTRA guaranteeing
+        # something.  The noun names a property of some OTHER artifact, and this
+        # tree is full of honest ones: "the determinism guarantee", "9.3's
+        # no-collision guarantee", "an `ln n + 1` guarantee", "tamper-detection
+        # guarantees", "bracketing guarantees".  Banning those bans the
+        # vocabulary a specification needs in order to describe what it does not
+        # have.  So the row fires on the assertive senses only: SPECTRA (or one
+        # of its parts, or a first-person subject) as the guarantor, a guarantee
+        # OF a security outcome, and `guaranteed` as a bare quality adjective.
         id="BP-02",
-        patterns=(r"\bguarantee[sd]?\b",),
+        patterns=(
+            r"\b(?:SPECTRA|ECLIPSE|we|it|this|the\s+(?:kernel|checker|tool|engine|"
+            r"system|platform|certificate|proof|cut|verdict|reconstruction|"
+            r"reconstructor|project|product))\s+guarantees?\b",
+            r"\bguarantee[sd]?\s+(?:that\s+)?(?:the\s+|a\s+|an\s+)?(?:attack|attacks|"
+            r"breach|breaches|compromise|security|safety|soundness|correctness|"
+            r"completeness|detection|prevention|coverage|protection)\b",
+            r"\bguaranteed\s+(?:secure|safe|correct|sound|complete|robust|accurate|"
+            r"minimal|exhaustive|reliable)\b",
+        ),
         replacement="establishes, relative to rules@<hash> and catalog@<hash>,",
+        narrowed=(
+            "the noun sense is not matched - 'the determinism guarantee', "
+            "'tamper-detection guarantees', 'an `ln n + 1` guarantee' name a "
+            "property of some other artifact and are not a claim SPECTRA makes.  "
+            "The row fires on SPECTRA (or a part of it, or a first-person subject) "
+            "as the guarantor, on a guarantee of a security outcome, and on "
+            "'guaranteed' as a bare quality adjective.  An assertion with a "
+            "subject outside that list - 'the shipped catalog guarantees safety' "
+            "would be caught by the second form, 'the adapter guarantees it' would "
+            "not - escapes"
+        ),
     ),
     BannedPattern(
         id="BP-03",
@@ -450,7 +695,22 @@ BANNED_PATTERNS: tuple[BannedPattern, ...] = (
         # from the spec's `[A-Za-z(]` to also exclude digits and underscore, so
         # an identifier such as NON_ROBUST is not a hit.
         id="BP-08",
-        patterns=(r"(?<![A-Za-z0-9_(])ROBUST(?!\()",),
+        patterns=(
+            # The token announced as a verdict: after a verdict label, ...
+            r"(?i:\bverdict|\bmode|\bstatus|\bsafety|\bresult|\boutcome|\bstate)"
+            r"\s*[:=]\s*[\"'`]*" + _BARE_VERDICT_GUARD + r"ROBUST(?!\()",
+            # ... after a verb that reports it, ...
+            r"(?i:\breturns?|\breturned|\bprints?|\bprinted|\breports?|\breported"
+            r"|\bemits?|\bemitted|\byields?|\bshows?|\bdisplays?|\bis|\bwas|\bare"
+            r"|\bwere|\bsays?|\bsaid)\s+[\"'`]*" + _BARE_VERDICT_GUARD + r"ROBUST(?!\()",
+            # ... or as a delimited field of a rendered result line, which is the
+            # shape of the header the specification calls out by name:
+            # "Minimum cut {...} - ROBUST - 6 corridors - blake3:3f9a...".
+            r"[\u2014\u2013|\[]\s*" + _BARE_VERDICT_GUARD + r"ROBUST(?!\()",
+            _BARE_VERDICT_GUARD + r"ROBUST(?!\()\s*[\u2014\u2013|\]]",
+            # ... or standing alone as the whole string.
+            r"^[\s\W]*" + _BARE_VERDICT_GUARD + r"ROBUST(?!\()[\s\W]*$",
+        ),
         replacement=(
             "ROBUST(rules@<hash8>, catalog@<hash8>, licenses@<hash8>, non-adaptive) - "
             "identically for OPTIMISTIC_ONLY and UNSAFE"
@@ -458,7 +718,16 @@ BANNED_PATTERNS: tuple[BannedPattern, ...] = (
         ignore_case=False,
         narrowed=(
             "only the ROBUST token is matched; OPTIMISTIC_ONLY and UNSAFE are named "
-            "in the replacement but not given as patterns"
+            "in the replacement but not given as patterns.  The row is further "
+            "narrowed to the token IN A VERDICT POSITION - after a verdict label, "
+            "after a verb that reports it, as a delimited field of a rendered "
+            "result line, or standing alone.  The bare `ROBUST` not followed by "
+            "`(` also matches the token used as a NAME in the verdict algebra - "
+            "`non-ROBUST`, `false-ROBUST`, 'blocks ROBUST', '{ROBUST, "
+            "OPTIMISTIC_ONLY, UNSAFE}', 'the ROBUST downgrade' - and a "
+            "specification cannot state the rule that produces the verdict "
+            "without naming the verdict.  A rendered verdict introduced by a "
+            "label outside the list escapes"
         ),
     ),
     BannedPattern(
@@ -537,21 +806,96 @@ BANNED_PATTERNS: tuple[BannedPattern, ...] = (
         ),
     ),
     BannedPattern(
+        # DECIDED (narrowing): the banned thing is A SCALAR PRESENTED AS A
+        # SPECTRA OUTPUT - "report the set, not a scalar" is the replacement, and
+        # the gate that enforces the same rule in code is G-NO-SCORES, which is
+        # specified over SCHEMA FIELDS.  The five bare words are not that.  Taken
+        # bare they fail:
+        #   * `.github/PULL_REQUEST_TEMPLATE.md`, for the checklist line "No
+        #     banned phrase, no score, no confidence, no severity" - the file is
+        #     flagged for naming what it forbids;
+        #   * `README.md`, for "it emits no probability, score, severity or
+        #     likelihood of any kind", which is the disclaimer the row exists to
+        #     produce;
+        #   * `docs/plan/DECISIONS.md` 27 times, for using "severity" as the
+        #     triage axis of a specification-conflict queue - a property of a
+        #     DECISION, not of a SPECTRA result;
+        #   * every honest statistical use of "confidence interval", which Part I
+        #     mandates on every reported mean and which is not a verdict score.
+        # So the row is narrowed to the scalar-output shapes: a named score, a
+        # scalar bound to a numeral, a numeric field, and the "numeric/overall/
+        # aggregate <word>" constructions.  A bare noun in prose no longer fires.
         id="BP-16",
         patterns=(
-            r"\bconfidence\b",
-            r"\bprobability\b",
-            r"\brisk score\b",
-            r"\bseverity\b",
-            r"\blikelihood\b",
+            # A named score: "risk score", "confidence_score", "threat-scoring".
+            r"\b(?:risk|confidence|severity|threat|priority|trust|suspicion|belief|"
+            r"certainty|plausibility)[-_ ]scor(?:e|es|ed|ing)\b",
+            r"\bscor(?:e|es|ed|ing)\s+(?:of\s+)?(?:risk|severity|confidence|threat)\b",
+            # A field or key bound to a number: `confidence: 0.92`, severity=3.
+            r"\b(?:confidence|probability|likelihood|severity|risk|priority)\s*[:=]\s*-?\d",
+            # A numeral qualified by the word: "0.92 confidence", "80% likelihood".
+            r"\b\d+(?:\.\d+)?\s*%?\s+(?:confidence|probability|likelihood)\b"
+            r"(?!\s+(?:interval|intervals|band|bands|region|regions|bound|bounds))",
+            # The scalar named as a reported quantity.
+            r"\b(?:confidence|probability|likelihood|severity|risk|threat)\s+"
+            r"(?:score|rating|level|band|value|metric|number|percentage|figure|"
+            r"index|weight)s?\b",
+            r"\b(?:numeric|numerical|overall|aggregate|aggregated|computed|derived|"
+            r"final|scalar|invented)\s+"
+            r"(?:confidence|probability|likelihood|severity|risk|score)\b",
         ),
         replacement="delete; report the set, not a scalar",
+        narrowed=(
+            "the five bare words are not matched.  The row fires on a scalar "
+            "presented as an output - a named score, a field bound to a numeral, "
+            "a numeral qualified by the word, or a 'numeric/overall/aggregate' "
+            "construction - and not on the English words in prose, so "
+            "'confidence interval' (a statistic Part I mandates) and 'severity' "
+            "as a triage axis for specification conflicts both pass.  A scalar "
+            "introduced under some other noun entirely is not mechanically "
+            "recognisable and is left to G-NO-SCORES, which reads the schemas"
+        ),
     ),
     BannedPattern(
+        # DECIDED (narrowing): the row's stated reason is "these words hide
+        # unproven steps", which is the HEDGE sense - "just run make", "simply
+        # add the adapter", "obviously correct".  Bare, the four words also match
+        # the ordinary senses that carry no hedge at all, and this tree uses them
+        # constantly and honestly: "not just code", "not just those needed to
+        # force the current cut", "take just `{cert_id}`", "the file it had just
+        # written" (temporal), "Part II simply does not address the point",
+        # "they simply never join a component", "not obviously the same address".
+        # None of those minimises a step; each means MERELY, ONLY or EVIDENTLY.
+        # So `just` and `simply` fire only in front of a verb of doing, which is
+        # where the hedge lives, and `obviously` is excluded after a negation,
+        # where "not obviously X" asserts the opposite of the hedge.
         id="BP-17",
-        patterns=(r"\bsimply\b", r"\bjust\b", r"\beasily\b", r"\bobviously\b"),
+        patterns=(
+            # The lookbehinds drop the relative and comparative frames - "an
+            # implementer who just wires these in", "not just code", "rather
+            # than simply dropping it" - in which the adverb means MERELY.
+            r"(?<!\bnot )(?<!\bwho )(?<!\bthan )(?<!\bnor )(?<!\bbut )"
+            r"\b(?:just|simply)\s+(?:run|runs|add|adds|use|uses|install|installs|"
+            r"edit|edits|set|sets|call|calls|type|copy|copies|drop|drops|point|"
+            r"points|open|opens|change|changes|replace|replaces|delete|deletes|"
+            r"remove|removes|write|writes|clone|clones|build|builds|import|"
+            r"imports|enable|enables|disable|disables|apply|applies|rerun|"
+            r"re-run|swap|swaps|plug|plugs|make|makes)\b",
+            r"(?<!\bnot )(?<!\bwho )(?<!\bthan )\b(?:just|simply)\s+works?\b",
+            r"\b(?:just|simply)\s+a\s+matter\s+of\b",
+            r"\beasily\b",
+            r"(?<!\bnot )(?<!\bless )(?<!\bnone )\bobviously\b",
+        ),
         replacement="delete",
         only_paths=("docs/",),
+        narrowed=(
+            "`just` and `simply` are matched only in front of a verb of doing, "
+            "which is the hedge sense the row's reason names; the MERELY / ONLY "
+            "sense ('not just code', 'take just `{cert_id}`') and the temporal "
+            "sense ('the file it had just written') are not matched, and "
+            "`obviously` is not matched after a negation.  A hedge in front of a "
+            "verb outside the list escapes"
+        ),
     ),
 )
 
@@ -1724,8 +2068,12 @@ class Context:
         Section 71.3 makes MISSING_ARTIFACT `warn` per-PR and FAIL nightly and
         release, while the pseudocode has no warning channel at all.  The tier
         is the missing input, so it is an explicit option with T1 as default.
+
+        The finding is stamped `severity="warn"` rather than being hidden: it
+        is still returned by `run_checks`, it is still in the report, and it
+        simply does not move the exit code at T1.
         """
-        self.warnings.append(finding)
+        self.warnings.append(dataclasses.replace(finding, severity="warn"))
 
     def skip(self, check: str, reason: str) -> None:
         self.dynamic_skips.append(Skip(check, one_line(reason)))
@@ -1927,6 +2275,7 @@ def check_banned(ctx: Context) -> list[Finding]:
     for unit in ctx.units:
         if under_any(unit.path, EXEMPT_PATHS):
             continue
+        spans: list[tuple[int, int]] | None = None
         for pattern, regexes in compiled:
             if pattern.only_paths and not under_any(unit.path, pattern.only_paths):
                 continue
@@ -1934,30 +2283,46 @@ def check_banned(ctx: Context) -> list[Finding]:
                 continue
             if not _requires_ok(pattern, unit.text):
                 continue
+            hit = None
             for rx in regexes:
-                hit = rx.search(unit.text)
-                if not hit:
-                    continue
-                findings.append(
-                    Finding(
-                        "G-CLAIM-BANNED",
-                        unit.path,
-                        unit.line,
-                        one_line(
-                            f"BANNED {pattern.id} {excerpt(hit.group(0), 40)} in "
-                            f"{excerpt(unit.text)} | replace with: {pattern.replacement} | "
-                            "(this finding is unwaivable)"
-                        ),
-                    )
+                # Every occurrence is examined, not only the first.  A unit that
+                # quotes the phrase and then also asserts it must still fail, and
+                # `search` would stop at the quotation and call the unit clean.
+                for candidate in rx.finditer(unit.text):
+                    if pattern.use_only:
+                        if spans is None:
+                            spans = quoted_spans(unit.text)
+                        if is_mention(unit.text, candidate.start(), candidate.end(), spans):
+                            continue
+                    hit = candidate
+                    break
+                if hit is not None:
+                    break
+            if hit is None:
+                continue
+            findings.append(
+                Finding(
+                    "G-CLAIM-BANNED",
+                    unit.path,
+                    unit.line,
+                    one_line(
+                        f"BANNED {pattern.id} {excerpt(hit.group(0), 40)} in "
+                        f"{excerpt(unit.text)} | replace with: {pattern.replacement} | "
+                        "(this finding is unwaivable)"
+                    ),
                 )
-                break
+            )
 
-    if not (ctx.root / BANNED_TOML_PATH).is_file():
+    findings.extend(_check_banned_table_file(ctx))
+    if any(p.use_only for p in BANNED_PATTERNS):
         ctx.skip(
-            "G-CLAIM-BANNED",
-            f"{BANNED_TOML_PATH} does not exist; the seventeen patterns are read from the "
-            "table built into tools/claims_check.py, which is the same list CLAIMS.md "
-            "declares but is not the machine-readable file the gate is specified to read",
+            "G-CLAIM-BANNED/USE-MENTION",
+            "narrowed: a row fires on a phrase the unit asserts, not on one it "
+            "quotes, writes inside backticks, or forbids.  A prohibition marker "
+            "counts only where it starts before the match, so 'SPECTRA is "
+            "production-ready, and we do not claim otherwise' still fails; a unit "
+            "that opens with an unrelated prohibition and then makes the claim "
+            "does not, and that is the gap this narrowing buys",
         )
     for pattern in BANNED_PATTERNS:
         if pattern.narrowed:
@@ -1966,6 +2331,71 @@ def check_banned(ctx: Context) -> list[Finding]:
                 f"narrowed: {pattern.narrowed}",
             )
     return findings
+
+
+def _check_banned_table_file(ctx: Context) -> list[Finding]:
+    """Account for `docs/banned.toml`, which 71.4 makes the normative list.
+
+    The seventeen patterns this tool enforces are hand-authored above, for the
+    reason given there.  That is a fork of a file the specification calls
+    normative, so its state is reported rather than assumed:
+
+      * absent  -> a skip naming the built-in table as what actually ran;
+      * present but unparseable -> a PARSE_ERROR finding.  The normative list
+        being unreadable is not a detail to swallow: whoever edited it believes
+        they changed the gate, and they did not;
+      * present and parseable -> a skip saying so, because the file is read for
+        its shape here and is still not the list that was enforced.
+
+    DECIDED: an earlier shape skipped only the absent case and said nothing at
+    all once the file existed, so the moment the normative list appeared the
+    tool went quiet about ignoring it.  A check that silently does nothing is
+    the defect this tool exists to catch.
+    """
+    rel = BANNED_TOML_PATH
+    if not (ctx.root / rel).is_file():
+        ctx.skip(
+            "G-CLAIM-BANNED",
+            f"{rel} does not exist; the seventeen patterns are read from the "
+            "table built into tools/claims_check.py, which is the same list CLAIMS.md "
+            "declares but is not the machine-readable file the gate is specified to read",
+        )
+        return []
+    text, err = read_text(ctx.root, rel)
+    if text is None:
+        return [
+            Finding(
+                "G-CLAIM-BANNED",
+                rel,
+                0,
+                one_line(
+                    f"PARSE_ERROR {rel} is the normative banned list and cannot be read: {err} | "
+                    "the patterns enforced on this run are the table built into "
+                    "tools/claims_check.py"
+                ),
+            )
+        ]
+    try:
+        tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        return [
+            Finding(
+                "G-CLAIM-BANNED",
+                rel,
+                0,
+                one_line(
+                    f"PARSE_ERROR {rel} is the normative banned list and is not valid TOML: "
+                    f"{exc} | the patterns enforced on this run are the table built into "
+                    "tools/claims_check.py, so an edit to this file changed nothing"
+                ),
+            )
+        ]
+    ctx.skip(
+        "G-CLAIM-BANNED",
+        f"{rel} exists and parses, but the patterns enforced on this run are still the table "
+        "built into tools/claims_check.py; the two are not compared",
+    )
+    return []
 
 
 def check_anchor(ctx: Context) -> list[Finding]:
@@ -2031,15 +2461,15 @@ def check_registered(ctx: Context) -> list[Finding]:
             )
             continue
         matched.add(cid)
-        if unit.surface_ref not in rec.surfaces:
+        if not any(surface_declared(unit.surface_ref, s) for s in rec.surfaces):
             findings.append(
                 Finding(
                     "G-CLAIM-REGISTERED",
                     unit.path,
                     unit.line,
                     one_line(
-                        f"SURFACE_UNDECLARED {cid} appears on {unit.surface_ref}, which the "
-                        f"record does not list (declared: {', '.join(rec.surfaces)})"
+                        f"SURFACE_UNDECLARED {cid} appears in {surface_file(unit.surface_ref)}, "
+                        f"which the record does not list (declared: {', '.join(rec.surfaces)})"
                     ),
                 )
             )
@@ -2059,6 +2489,12 @@ def check_registered(ctx: Context) -> list[Finding]:
             )
 
     ctx.matched_surface_ids = matched
+    if any("#" in s for rec in records.values() for s in rec.surfaces):
+        ctx.skip(
+            "G-CLAIM-REGISTERED",
+            "the `#anchor` half of a path surface is checked for grammar only, not resolved "
+            "to a location in the document: see surface_declared()",
+        )
     for cid in sorted(records):
         if cid not in matched:
             rec = records[cid]
@@ -2076,24 +2512,6 @@ def check_registered(ctx: Context) -> list[Finding]:
     return findings
 
 
-def matched_records(ctx: Context) -> set[str]:
-    """The claim ids that an anchored candidate actually carries, text-identical.
-
-    Shared by G-CLAIM-REGISTERED (which reports the rest as ORPHAN) and by
-    G-CLAIM-NOERASE (which needs to know whether an id has been taken off every
-    surface without being retired).
-    """
-    out: set[str] = set()
-    for unit in ctx.candidates:
-        cid = unit.anchor
-        if cid is None:
-            continue
-        rec = ctx.registry.records.get(cid)
-        if rec is not None and normalise(rec.text) == normalise(unit.text):
-            out.add(cid)
-    return out
-
-
 def _inline_diff(registered: str, surface: str) -> str:
     """A unified diff flattened onto one line, for a `Finding.message`."""
     diff = difflib.unified_diff(
@@ -2108,9 +2526,51 @@ def _inline_diff(registered: str, surface: str) -> str:
     return body or f"registered {excerpt(registered)} != surface {excerpt(surface)}"
 
 
+def surface_file(surface_ref: str) -> str:
+    """The file half of a path surface; the whole reference for a keyed one.
+
+    `README.md#verification` -> `README.md`; `paper:abstract` -> `paper:abstract`.
+    A keyed surface (`ui:`, `cli:`, `demo:`, `paper:`, `release:`, `meta:`) has
+    no file half, and its key is its whole identity.
+    """
+    head = surface_ref.split("#", 1)[0]
+    return surface_ref if ":" in head else head
+
+
+def surface_declared(unit_ref: str, declared: str) -> bool:
+    """Does `declared` (a record surface) cover a unit seen at `unit_ref`?
+
+    DECIDED (granularity): a PATH surface matches on the FILE, not on the
+    `#anchor` fragment.  The grammar fixes the written form `README.md#anchor`,
+    but neither 71.1 nor 71.2 says how to compute an anchor from a document,
+    and markdown heading slugs are renderer-specific.  Enforcing this tool's
+    own invented slug derivation as a hard failure means a correctly anchored,
+    byte-identical, correctly registered claim is reported SURFACE_UNDECLARED
+    because someone reworded a heading - a false positive on a clean registry,
+    which is how a gate gets switched off.  Matching on the file still catches
+    what the rule is for: the claim turning up in a document the record never
+    declared.  The fragment is validated for grammar by the registry parser and
+    the residual gap is declared as a skip, not left silent.
+
+    A KEYED surface (`ui:`, `cli:`, `demo:`, `paper:`, `release:`, `meta:`) is
+    matched exactly: its key is an identity, not a location, and nothing about
+    it is renderer-derived.
+    """
+    if unit_ref == declared:
+        return True
+    unit_file = surface_file(unit_ref)
+    declared_file = surface_file(declared)
+    if ":" in unit_file or ":" in declared_file:
+        return False
+    return unit_file == declared_file
+
+
 def is_headline(surface_ref: str) -> bool:
     """True when a surface reference is a headline surface (71.1.1 item 3)."""
-    return any(path_matches(surface_ref, pat) for pat in HEADLINE_SURFACE_PATTERNS)
+    return any(
+        path_matches(surface_ref, pat) or path_matches(surface_file(surface_ref), surface_file(pat))
+        for pat in HEADLINE_SURFACE_PATTERNS
+    )
 
 
 def check_support(ctx: Context) -> list[Finding]:
@@ -2174,21 +2634,93 @@ def support_state(ctx: Context, rec: Record) -> tuple[str, str]:
     return "NOT_MEASURED", "the support resolver is not implemented; see the skipped checks"
 
 
+NUMBER_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_.])\d[\d,_]*(?:\.\d+)?")
+
+
+def _numeric_tokens(text: str) -> list[str]:
+    """Every numeral in `text`, normalised for comparison.
+
+    Digit-group separators are dropped and a trailing fractional zero run is
+    trimmed, so `1,024`, `1024` and `1024.0` compare equal.  Nothing else is
+    normalised: a rounding relation between two different numbers is exactly
+    what 71.3 condition 6 refuses to assume.
+    """
+    out: list[str] = []
+    for raw in NUMBER_TOKEN_RE.findall(text):
+        token = raw.replace(",", "").replace("_", "")
+        if "." in token:
+            token = token.rstrip("0").rstrip(".")
+        out.append(token or "0")
+    return out
+
+
 def check_numsrc(ctx: Context) -> list[Finding]:
     """G-CLAIM-NUMSRC: every numeral in a QUANT claim occurs in its artifact.
 
-    Not implementable: no support artifact exists anywhere in this tree, and
-    the rounding-rule mini-language that `note` is supposed to carry is named
-    but never given a syntax, so a re-applied rounding rule cannot be parsed.
+    Section 71.3 condition 6.  This runs for every QUANT record whose
+    `support.artifact` exists and decodes as text: the numerals of `text` are
+    compared, as normalised tokens, against the numerals the artifact contains.
+
+    DECIDED: an earlier shape of this check returned nothing at all and
+    declared one blanket skip, on the grounds that "no support artifact exists
+    anywhere in this tree".  That is a property of today's tree, not of the
+    check, and a gate that reports nothing the moment its input DOES appear is
+    the exact defect this tool exists to catch.  The parts that genuinely
+    cannot be decided are skipped per record, with the record named:
+
+      * an artifact that does not exist (that state is G-CLAIM-SUPPORT's
+        MISSING_ARTIFACT, and reporting it twice would double-count it);
+      * an artifact that is not UTF-8 text, which this tool will not parse;
+      * a record carrying a `note`, because `note` is where 71.3 puts the
+        rounding rule the linter is meant to re-apply and no syntax for it is
+        ever given.  Re-applying an unparseable rule is guessing; ignoring it
+        would report a correctly rounded number as a fabrication.
     """
-    quant = sorted(cid for cid, r in ctx.registry.records.items() if r.kind == "QUANT")
-    if quant:
-        ctx.skip(
-            "G-CLAIM-NUMSRC",
-            f"{len(quant)} QUANT record(s) are unchecked ({', '.join(quant)}): no support "
-            "artifact exists and the rounding-rule syntax for `note` is unspecified",
-        )
-    return []
+    findings: list[Finding] = []
+    for cid in sorted(ctx.registry.records):
+        rec = ctx.registry.records[cid]
+        if rec.kind != "QUANT":
+            continue
+        if not ctx.exists(rec.artifact):
+            ctx.skip(
+                "G-CLAIM-NUMSRC",
+                f"{cid} is unchecked: support.artifact {rec.artifact} does not exist "
+                "(reported by G-CLAIM-SUPPORT as MISSING_ARTIFACT)",
+            )
+            continue
+        if rec.note:
+            ctx.skip(
+                "G-CLAIM-NUMSRC",
+                f"{cid} is unchecked: it carries a `note`, which is where 71.3 puts the "
+                "rounding rule the linter must re-apply, and the rule's syntax is unspecified",
+            )
+            continue
+        artifact_text, err = read_text(ctx.root, rec.artifact)
+        if artifact_text is None:
+            ctx.skip(
+                "G-CLAIM-NUMSRC",
+                f"{cid} is unchecked: support.artifact {rec.artifact} is not readable text "
+                f"({err})",
+            )
+            continue
+        present = set(_numeric_tokens(artifact_text))
+        claimed = _numeric_tokens(strip_non_claim_tokens(normalise(rec.text)))
+        for token in claimed:
+            if token in present:
+                continue
+            findings.append(
+                Finding(
+                    "G-CLAIM-NUMSRC",
+                    ctx.registry.path,
+                    rec.line,
+                    one_line(
+                        f"NUMBER_NOT_IN_ARTIFACT {cid} states {token}, which does not occur in "
+                        f"support.artifact {rec.artifact} | a number in prose that is not in its "
+                        "artifact is a fabrication"
+                    ),
+                )
+            )
+    return findings
 
 
 def check_allowcap(ctx: Context) -> list[Finding]:
@@ -2233,7 +2765,6 @@ def check_noerase(ctx: Context) -> list[Finding]:
             if status == "RETIRED":
                 ever_retired.add(cid)
 
-    matched = matched_records(ctx)
     for cid in sorted(historical):
         rec = ctx.registry.records.get(cid)
         if rec is None:
@@ -2262,18 +2793,6 @@ def check_noerase(ctx: Context) -> list[Finding]:
                 )
             )
             continue
-        if cid not in matched and rec.status != "RETIRED":
-            findings.append(
-                Finding(
-                    "G-CLAIM-NOERASE",
-                    ctx.registry.path,
-                    rec.line,
-                    one_line(
-                        f"ID_NOT_RETIRED {cid} has been removed from every surface but its "
-                        f"status is {rec.status}; retirement is recorded, deletion is not permitted"
-                    ),
-                )
-            )
     return findings
 
 
@@ -2817,11 +3336,6 @@ CHECKS: dict[str, CheckFn] = {
 #: These are reported on every run.  A gate that is partly implemented reports
 #: its gap from inside its check function instead (see `Context.skip`).
 SKIPPED_CHECKS: dict[str, str] = {
-    "G-CLAIM-NUMSRC": (
-        "not implementable: no support artifact exists anywhere in the tree, and the "
-        "rounding-rule mini-language that section 71.3 condition 6 requires the checker to "
-        "re-apply from a record's `note` is named but never given a syntax"
-    ),
     "G-CLAIM-001": (
         "roll-up id with no distinct finding kind: its artifact half needs artifacts/, which "
         "does not exist; see G-CLAIM-ANCHOR, G-CLAIM-REGISTERED and G-CLAIM-NUMSRC"
@@ -2889,8 +3403,15 @@ def run_checks(root: Path) -> list[Finding]:
     This is the public API.  It reads the repository and returns; it writes
     nothing, and it never raises on a malformed input file - an unreadable or
     unparseable surface is reported as a finding like any other defect.
+
+    Warned findings (section 71.3's `warn` states at T1) are returned here too,
+    carrying `severity="warn"`.  They do not fail the build - `main` derives
+    the exit code from the severity - but they are reported, because a gate
+    state the contract says to report must not vanish from the API the
+    contract's consumers call.
     """
-    return analyse(Path(root)).findings
+    report = analyse(Path(root))
+    return sorted(set(report.findings) | set(report.warnings))
 
 
 # --------------------------------------------------------------------------

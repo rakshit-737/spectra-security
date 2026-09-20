@@ -126,18 +126,33 @@ is not waivable, and it has no allowlist. Exempt paths are this file, `docs/bann
 `docs/NON-GOALS.md` and `docs/descope-ladder.md`.
 
 `docs/banned.toml` is the machine-readable form of this table and does not exist yet. Until it does,
-this table is documentation, not enforcement.
+this table is documentation, and the list actually enforced is the one built into
+`tools/claims_check.py`, which reports that substitution as a skip on every run.
+
+**Every row bans a claim, and a claim is asserted.** A row therefore fires on a phrase the
+sentence *uses*, not on one it quotes, writes inside backticks, or forbids. Mechanically: a match
+inside a quotation or a backtick code span is a mention, and so is a match preceded, in the same
+sentence, by a prohibition or metalinguistic marker (`banned`, `forbidden`, `do not say`,
+`may not`, `the words`, `vocabulary`, a `BP-##` citation). The marker must start *before* the
+match, so "SPECTRA is production-ready, and we do not claim otherwise" still fails. Without this
+rule the gate fails the pull-request template for listing what it forbids, the README for its
+"emits no probability, score, severity or likelihood of any kind" disclaimer,
+`docs/range/not-modeled.md` for "do not call the range enterprise-grade", and
+`docs/plan/CONFLICTS*.md` for quoting the specification as evidence — a gate that punishes
+writing the prohibition down is a gate nobody keeps. The residual gap (a sentence that opens with
+an unrelated prohibition and then makes the claim) is reported on every run under
+`G-CLAIM-BANNED/USE-MENTION`.
 
 | id | banned pattern (case-insensitive) | why it is false | mandated replacement |
 |----|-----------------------------------|-----------------|----------------------|
 | BP-01 | `prov\w*\s+(that\s+)?the attack would have been prevented` | The kernel reasons about derivability in its model; reality is not in scope. | "proves that, in SPECTRA's model of this bundle, the goal atom is not derivable under this cut" |
-| BP-02 | `\bguarantee[sd]?\b` | No guarantee survives an unmodelled technique, an entity-resolution error or a shared rule-table mistake. | "establishes, relative to rules@<hash> and catalog@<hash>," |
+| BP-02 | `guarantee[sd]?` in the assertive sense only: SPECTRA, one of its parts or a first-person subject as the guarantor; a guarantee *of* a security outcome; or `guaranteed` as a bare quality adjective. The noun sense is not matched — "the determinism guarantee", "tamper-detection guarantees", "an `ln n + 1` guarantee" name a property of some other artifact and are not a claim SPECTRA makes. | No guarantee survives an unmodelled technique, an entity-resolution error or a shared rule-table mistake. | "establishes, relative to rules@<hash> and catalog@<hash>," |
 | BP-03 | `detects? all\b`, `\bcatches every\b`, `\bzero false negatives?\b` | Perfectly suppressed events with no obligation and no blind window are permanently invisible. | "detects the declared suppression classes; class frequencies and the undetected share are in LIMITATIONS.md" |
 | BP-04 | `\bAI[- ]powered\b`, `\bAI[- ]driven\b`, `\bintelligent\b` | The deterministic core contains no model; the optional narrator only describes a certificate and is excluded from every gate. | "deterministic; an optional local model narrates the certificate and changes no result (`make verify-no-llm`)" |
 | BP-05 | `real[- ]time threat detection`, `\breal[- ]time\b` | SPECTRA is a batch reconstructor over a finished bundle. Nothing streams. | "post-hoc reconstruction over a recorded telemetry bundle" |
 | BP-06 | `enterprise[- ]grade`, `production[- ](ready\|like)`, `battle[- ]tested`, `industry[- ]standard` | Unvalidatable. The range is a handful of containers on one laptop. | "a laboratory range; what it does not model is enumerated in docs/range/not-modeled.md" |
 | BP-07 | `military[- ]grade`, `bank[- ]grade`, `unbreakable`, `bulletproof` | Meaningless. | delete the sentence |
-| BP-08 | a bare verdict token, i.e. `ROBUST` not followed by `(` | A bare verdict token is the only thing a reader remembers, and it drops the scope the kernel requires. | `ROBUST(rules@<hash8>, catalog@<hash8>, licenses@<hash8>, non-adaptive)`, identically for the optimistic-only and unsafe tokens |
+| BP-08 | a bare verdict token in a verdict position: `ROBUST` not followed by `(` (case-sensitive, so the English word "robust" is not matched) and standing after a verdict label, after a verb that reports it, as a delimited field of a rendered result line, or alone. The token named as a class — `non-ROBUST`, `false ROBUST`, "blocks ROBUST", "the ROBUST downgrade", "{ROBUST, OPTIMISTIC_ONLY, UNSAFE}" — is not matched: a specification cannot state the rule that produces the verdict without naming the verdict. | A bare verdict token is the only thing a reader remembers, and it drops the scope the kernel requires. | `ROBUST(rules@<hash8>, catalog@<hash8>, licenses@<hash8>, non-adaptive)`, identically for the optimistic-only and unsafe tokens |
 | BP-09 | `which control would have prevented`, `would have stopped`, `what[- ]if control replay` | A counterfactual about reality, explicitly disclaimed by the kernel. | the normative framing strings in `docs/framing.toml`; the interaction is named IN-MODEL CONTROL CUT |
 | BP-10 | `formally verified`, `\bproof of security\b` | It is not formal verification of any real system. | "carries a machine-checkable certificate over the model" |
 | BP-11 | `minimum cut` not followed by `over the declared catalog` | Minimality is relative to the catalog and may be relative to the licensed hypothesis set. | "cardinality-minimal cut over the declared catalog (minimality: EXACT, SUBSET or UNVERIFIED)" |
@@ -145,8 +160,8 @@ this table is documentation, not enforcement.
 | BP-13 | `state[- ]of[- ]the[- ]art`, `\bnovel\b`, `\bfirst\b` in the README or the abstract without a citation-backed record | No baseline survey exists offline. | "related work is discussed in paper/related.tex; no priority claim is made" |
 | BP-14 | a bare polyglot language count | Counting markup as languages is padding. | the two machine-generated figures from the polyglot mutation audit: languages executing code in CI, and configuration formats |
 | BP-15 | `\bexact\b` applied to the redundancy index or the observation set | Both are computed over a cappable corridor set or a greedy cover. | "exact when the corridor set is complete; otherwise suppressed" |
-| BP-16 | `\bconfidence\b`, `\bprobability\b`, `\brisk score\b`, `\bseverity\b`, `\blikelihood\b` | Probabilities and scores are forbidden anywhere in the project. | delete; report the set, not a scalar |
-| BP-17 | `\bsimply\b`, `\bjust\b`, `\beasily\b`, `\bobviously\b` in docs | House style is hedge-free; these words hide unproven steps. | delete |
+| BP-16 | a scalar presented as an output: a named score (`risk score`, `confidence_score`, `threat-scoring`); the word bound to a numeral (`confidence: 0.92`, `severity=3`, `80% likelihood`); the word in front of `score`, `rating`, `level`, `band`, `value`, `metric`, `index` or `weight`; or `numeric`, `overall`, `aggregate`, `computed`, `final` or `scalar` in front of the word. The bare English words are not matched, so `confidence interval` — a statistic Part I mandates on every reported mean — and `severity` as the triage axis of the specification-conflict queue both pass. Field names in code are the business of G-NO-SCORES, which reads the schemas. | Probabilities and scores are forbidden anywhere in the project. | delete; report the set, not a scalar |
+| BP-17 | `\beasily\b`, `obviously` where not preceded by a negation, and `just` or `simply` in front of a verb of doing (`simply run`, `just add`, `just install`) — in docs. The *merely* / *only* / *evidently* senses are not matched: "not just code", "take just `{cert_id}`", "Part II simply does not address the point", "not obviously the same address". | House style is hedge-free; these words hide unproven steps. | delete |
 
 ### Runtime enforcement, once it exists
 

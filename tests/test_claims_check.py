@@ -70,7 +70,14 @@ _KIND_ATTRS = (
     "rule",
     "check",
 )
-_GATE_ATTRS = ("gate", "gate_id", "gates", "gate_ids")
+#: ``check`` is in this list as well as in ``_KIND_ATTRS``: the contract fixes
+#: that a finding carries its gate id, not what the attribute holding it is
+#: called, and a tool that keys its gates by id in a ``CHECKS`` table naturally
+#: calls the field ``check``.  Without it ``gate_of`` returns "" for such a
+#: tool and ``tags_of`` silently degrades to kind-only, which makes a
+#: gate-scoped filter (``"G-LIMITS" in tags_of(f)``) match nothing and a test
+#: that filters that way pass vacuously.
+_GATE_ATTRS = ("gate", "gate_id", "gates", "gate_ids", "check")
 _PATH_ATTRS = (
     "path",
     "file",
