@@ -1,0 +1,159 @@
+# mpc.toml — the Minimum Publishable Core.
+#
+# CI reads this file; prose does not override it. Part II section 75.2.
+#
+# The MPC is the smallest artifact set that makes SPECTRA a defensible public repository and a
+# submittable workshop paper. Nothing outside the MPC may be started while any MPC row is red.
+# `make mpc-status` exits non-zero when any component is not green AND the working tree contains new
+# files under a path whose owning section is not CORE. That is the enforcement of "finish the core
+# first"; it is not advice.
+#
+# STATUS VALUES. Part II section 75.2 defines the enum as red | green | waived. Every component here
+# is "not started", a value outside that enum, because none of the ten gates exists: a component
+# cannot be red when nothing has run to make it red. "not started" means the gate named below is not
+# implemented and `make mpc-status` is not implemented either.
+# TODO(M0): when the first gate lands, decide whether "not started" becomes a fourth enum member in
+# the schema or whether components move directly to "red". Preference: keep "not started" as a
+# distinct pre-red value, because collapsing it into "red" makes an unwritten gate look like a
+# failing gate, and those are not the same fact. Record the decision in docs/adr/.
+#
+# FIELDS. Part II section 75.2's example additionally carries `blocks` (which components this one
+# blocks) and `descope_rung` (its rung on the ladder of section 75.5, where NEVER means it may not
+# be cut). Those fields are ABSENT below except where noted in comments, because the specification
+# states them only for C5 and C10 and inventing the other eight would be fabrication.
+# TODO(M0, blocking `make mpc-status`): fill in `blocks` and `descope_rung` for all ten components.
+# The blocking graph is a real dependency claim and must be authored deliberately, not inferred.
+#
+# ARTIFACT PATHS. The `artifacts` list on each component is a declaration of intent. No path below
+# exists. Treat the whole column as a TODO.
+#
+# Section 75.2 negative requirements, restated so they are read before this file is edited:
+#   - Do not add an eleventh MPC component. An addition requires deleting one, recorded in
+#     BUILD_LOG.md.
+#   - Do not mark a component green on the strength of a passing test written after seeing the
+#     implementation's output. Green requires the gate, and the gate requires a mutation test.
+#   - Do not ship a component whose gate is `true` or whose test file contains zero assertions.
+
+schema_version = 1
+
+[[component]]
+id        = "C1"
+name      = "Seeded synthetic generator"
+gate      = "make gen-determinism"
+artifacts = ["python/spectra_gen/", "config/scenarios/", "data/generated/"]
+status    = "not started"
+# Done means: pure function (seed, scenario_id, degradation_spec) -> bundle.jsonl +
+# ground_truth.json, byte-identical across two runners. Owner sections 26-29, re-scoped.
+
+[[component]]
+id        = "C2"
+name      = "Ingest and canonical record schema"
+gate      = "make ingest-gate"
+artifacts = ["python/spectra_ingest/", "sql/", "config/schema/"]
+status    = "not started"
+# Done means: every raw record parsed or quarantined with a reason code; zero silent drops;
+# hardening limits enforced. Owner: the Part II ingest section.
+# Note: section 75.2 titles this row "canonical event schema". Part II section 57 binds the
+# ingested, pre-parse-digested line to the concept RECORD, not EVENT, and `make lint-vocab` check V5
+# treats the collision as a naming error. The row is titled with the canonical concept.
+
+[[component]]
+id        = "C3"
+name      = "Entity resolution and quality contract"
+gate      = "make er-eval"
+artifacts = ["python/spectra_resolve/", "config/thresholds/resolve.toml"]
+status    = "not started"
+# Done means: deterministic; precision and recall published against C1 ground truth across the
+# matrix; the er_ambiguous flag wired into the certificate; a flagged run cannot be ROBUST.
+# Owner sections 9-12 plus the Part II entity-resolution section.
+
+[[component]]
+id        = "C4"
+name      = "Rule table, guard language and codegen"
+gate      = "make guard-gate"
+artifacts = ["config/rules/detection/", "config/controls/controls.toml", "tools/codegen/"]
+status    = "not started"
+# Done means: one canonical AST, one AST hash, both backends assert the equal hash; non-threshold
+# level predicates rejected by lint. Owner section 22 plus the Part II guard section.
+
+[[component]]
+id        = "C5"
+name      = "ECLIPSE kernel, stages A through E"
+gate      = "make kernel-gate"
+artifacts = ["rust/kernel/", "out/cert/*.json"]
+status    = "not started"
+# Done means: liveness, semi-naive grounding with provenance, silent envelope, Dowling-Gallier
+# fixpoint under cut, hitting-set loop with a deterministic step budget. Owner section 25.
+# Section 75.2 states, for this component: blocks = ["C6", "C7", "C8", "C10"], descope_rung =
+# "NEVER" (may not be cut).
+# Two path corrections applied to section 75.2's example, both required by higher-priority rules:
+#   - the crate path is rust/kernel/, not crates/eclipse-kernel/: Part II section 73.10 forbids the
+#     string `eclipse` in any crate, module or directory name, and Part I section 32.2 places the
+#     cargo workspace under rust/.
+#   - TODO(decision: out/ is not a directory Part I section 32.2 lists, and that section forbids
+#     inventing top-level directories; section 32.2 places run artifacts under data/runs/. Part II
+#     overrides Part I, so section 75.2's out/cert/ is recorded as written. Resolve at M5 by either
+#     adding out/ to the section 32.2 tree in the commit that creates it, or by moving certificates
+#     to data/runs/ and correcting section 75.2's reference.
+
+[[component]]
+id        = "C6"
+name      = "Independent Go checker"
+gate      = "make verify-gate"
+artifacts = ["go/verify/", "data/golden/"]
+status    = "not started"
+# Done means: closure, goal-unreachability, license implication, witness re-derivation, and
+# no-smaller-cut checks; rejects every member of the adversarial certificate corpus.
+# Owner section 25 plus the Part II certificate section.
+# Section 75.2 names a SECOND gate for this row: `make cert-corpus`.
+# TODO(M6, decision: `gate` is a single string in section 75.2's example but C6 and C10 each name
+# two gates. Either make `gate` a list in the schema, or require both names in one target. A target
+# that is an alias for another target is forbidden by Part I section 33.9, so a wrapper target is
+# not an acceptable answer.
+
+[[component]]
+id        = "C7"
+name      = "One end-to-end scenario"
+gate      = "make e2e"
+artifacts = ["tests/e2e/", "config/scenarios/"]
+status    = "not started"
+# Done means: one HELD-OUT scenario runs clone -> generate -> ingest -> resolve -> prove -> verify
+# with no manual step. Owner sections 5-8.
+
+[[component]]
+id        = "C8"
+name      = "Degradation matrix"
+gate      = "make matrix"
+artifacts = ["bench/", "config/bench/degradation.toml"]
+status    = "not started"
+# Done means: completeness axis defined; per-operator seeds; ground-truth re-linking under
+# perturbation defined; zero false ROBUST on declared suppression classes; ROBUST yield floor
+# enforced. Owner: the Part II degradation section.
+
+[[component]]
+id        = "C9"
+name      = "Held-out and overfit protocol"
+gate      = "make leakage-gate"
+artifacts = ["docs/prereg/", "tests/leakage/"]
+status    = "not started"
+# Done means: rules frozen and hash-pinned before each scenario family; the TUNED vs HELD-OUT split
+# published; CI fails on commit-order inversion. Owner section 62.
+
+[[component]]
+id        = "C10"
+name      = "UI: one investigation, one counterfactual"
+gate      = "make ui-gate"
+artifacts = ["web/src/screens/Prove.tsx", "web/tests/e2e/"]
+status    = "not started"
+# Done means: four screens — control toggles plus PROVE, scoped verdict header, indented
+# counterexample tree with the GHOST distinction, degradation strip. The verdict is never computed
+# client-side. Owner sections 39-42, re-scoped.
+# Section 75.2 states, for this component: blocks = [], descope_rung = "D9" (may be thinned to a CLI
+# transcript, never deleted), and names 5 Playwright specs alongside `make ui-gate`.
+
+# ---------------------------------------------------------------------------
+# PUBLISHABLE
+#
+# No. Ten of ten components are not started. No gate exists. `make mpc-status` does not exist.
+# Nothing in this repository has been measured, and no component has been demonstrated.
+# ---------------------------------------------------------------------------
