@@ -1,0 +1,65 @@
+# SPECTRA - .tool-versions (asdf / mise format)
+#
+# Status: session one. This file is the thing being delivered. Every toolchain
+# it names is "not started" as far as source in this repository goes.
+#
+# Scope: Tier A only (Part II section 73.1) - Rust, Go, Python, TypeScript,
+# SQL, Bash. Tier B, C and D toolchains are NOT pinned here. They live in
+# spectra/toolchain-b, -c and -d and are reached through those images
+# (Part II section 74.1); pinning them on the host would invite a local install
+# that never matches the image and would break the "no per-language image, no
+# host resolver" posture.
+#
+# THE BINDING RULE. Every line below must match the toolchain baked into
+# spectra/toolchain-a at the digest recorded in images.lock. This file is the
+# convenience copy for a developer working in WSL2 outside the container; the
+# image is the authority. `make doctor` compares found-vs-pinned and exits
+# nonzero on any mismatch (Part I section 33, target table). If a version here
+# and the image disagree, the image wins and this file is the bug.
+#
+# No line may ever read `latest`, `stable`, `nightly`, or carry a range
+# operator (`^`, `~`, `*`, `>=`) - Part II section 74.11.2.
+#
+# Versions below are the pins stated in Part I section 33.6. They are pins,
+# not measurements, and nothing here is a claim that any of them has been run.
+
+# --- Python: generator, ingest orchestration, ER, API services -------------
+# Must match spectra/toolchain-a at the images.lock digest.
+# Members under python/ pin requires-python = "==3.12.*"; uv.lock is committed.
+python 3.12.7
+
+# --- Rust: proof kernel, grounder, fixpoint, cut solver --------------------
+# Must match spectra/toolchain-a at the images.lock digest.
+# rust-toolchain.toml is the in-tree authority for channel, components and the
+# wasm32-unknown-unknown target; this line exists so `mise install` on a bare
+# WSL2 host lands on the same compiler.
+rust 1.82.0
+
+# --- Go: the independent `spectra verify` checker --------------------------
+# Must match spectra/toolchain-a at the images.lock digest.
+golang 1.23.2
+
+# --- TypeScript toolchain: frontend, proof UX, demo pane -------------------
+# Must match spectra/toolchain-a at the images.lock digest.
+nodejs 20.17.0
+# Must match spectra/toolchain-a at the images.lock digest; also pinned by the
+# root package.json `packageManager` field, and the two must agree.
+pnpm 9.12.0
+
+# --- SQL: fact-base schema, recursive-CTE state view, migrations -----------
+# Must match spectra/toolchain-a at the images.lock digest. This pin is the
+# psql client used by migrations and the state view; the server version is
+# pinned separately by digest in docker/compose.core.yml.
+postgres 16.4
+
+# --- Bash: the shell layer under every make target -------------------------
+# NOT pinned here. Bash 5 is provided by spectra/toolchain-a and by the WSL2
+# distribution image pinned in docs/dev/wsl.md. asdf/mise shimming the shell
+# that runs the shims is a loop nobody should build.
+# `make doctor` asserts bash >= 5 and must match spectra/toolchain-a at the
+# images.lock digest.
+#
+# TODO(decision): make, git, jq and blake3 are also Tier A dependencies and are
+# likewise unpinned here for the same reason - they come from the image. If a
+# host-side version skew is ever observed, the fix is a `make doctor` assertion
+# naming the tool, not a new line in this file.
