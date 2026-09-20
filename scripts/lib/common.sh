@@ -95,8 +95,8 @@ spectra_not_implemented() {
 # ---------------------------------------------------------------------------
 # Presence only. Version comparison against the pinned set is NOT implemented here: the pins live
 # in .tool-versions (Part I section 33.6) and the image digests live in images.lock (Part II
-# section 74.1), and neither file exists yet. make doctor says so out loud rather than printing a
-# comparison it cannot make.
+# section 74.1), which does not exist yet; the comparison itself is unwritten. make doctor says so
+# out loud rather than printing a comparison it cannot make.
 
 # spectra_have <command>
 # True when the command resolves on PATH.
