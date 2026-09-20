@@ -139,3 +139,51 @@ increment protocol in section 0 of the specification already requires one concer
 single skeleton file is one concern, so the two are compatible.
 
 ---
+
+## INC-0003  fix: dotfiles committed without their leading dot
+
+date: 2026-09-20
+status: DONE
+concern: single
+
+### What went wrong
+
+The script that committed the skeleton normalised each authored path with
+`path.lstrip("./")`. `str.lstrip` strips a CHARACTER SET, not a prefix, so every leading dot was
+removed along with any leading slash. `.gitignore` was written and committed as `gitignore`,
+`.github/workflows/t1.yml` as `github/workflows/t1.yml`, and so on for seven paths.
+
+The fault was not visible in the commit output, which reported success for every file, and not
+visible in a filesystem existence check, because the authoring agents had also written the correct
+dotted files to disk themselves. The repository therefore held both: a tracked `gitignore` with no
+effect, and an untracked `.gitignore` that git never saw.
+
+A second, unrelated fault surfaced in the same investigation: the CI authoring agent wrote nine
+files to disk but returned only one in its result array, so eight `.github/` files and
+`.pre-commit-config.yaml` were never committed at all.
+
+### How it was found
+
+`git status` showed `.gitignore`, `.gitattributes`, `.github/` and others as untracked while the
+commit log claimed they had been added. `git cat-file -e HEAD:.gitignore` failed for all seven.
+
+### Fix
+
+Forward-only, because the bad commits were already pushed. Five dotless files had byte-identical
+dotted copies on disk and were replaced. `npmrc` and `devcontainer/` had no dotted copy and were
+renamed with `git mv`. The nine never-committed files were added. `.opencode/` was added to
+`.gitignore`.
+
+### Lesson recorded
+
+Two checks were reported as passing that did not prove what they appeared to prove:
+
+- a commit loop reporting success per file proves the commit command returned zero, not that the
+  intended path was committed;
+- a filesystem existence check proves a file exists, not that git tracks it.
+
+Any future tooling that writes files and commits them must verify with `git cat-file -e HEAD:<path>`
+for the exact intended path, and the skeleton gate must assert that the working tree is clean with
+no unexpected untracked files.
+
+---
