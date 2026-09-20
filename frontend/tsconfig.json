@@ -1,0 +1,28 @@
+// SPECTRA console - TypeScript configuration.
+// Spec: Part I 32.7, 39; Part I 33.3 (typecheck runs tsc --noEmit, zero errors).
+// Status: not started - there is nothing but a comment under src/.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": []
+  },
+  "include": ["src"]
+}
+// TODO(decision: target and lib chosen, not specified). Part I 39 pins no
+// ECMAScript target; ES2022 with the DOM libs is the obvious choice for a
+// browser app on the pinned Node 20.17.0 line. Change both fields together.
