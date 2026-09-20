@@ -38,7 +38,11 @@ Optional sections may follow Consequences (`## Alternatives considered`, `## Ref
 ## 2. Numbering and file names
 
 - Four digits, zero padded, monotonically increasing: 0001, 0002, and onward.
-- File name is `NNNN-kebab-case-title.md`, lowercase ASCII, hyphen separated.
+- File name is `NNNN-kebab-case-title.md`, lowercase ASCII, hyphen separated. The slug may shorten
+  the title: `0007-polyglot-tiers-and-the-mutation-audit.md` holds the record titled "The language
+  surface is kept and made falsifiable by the mutation audit". A file is not renamed to track a
+  correction made to its index row; the record's own H1 is the title, and the file name is not
+  evidence of it.
 - Numbers are never reused, never renumbered, and gaps are never backfilled. A number that was
   allocated and abandoned stays abandoned.
 - `0000-template.md` is the template. It is not a decision.
@@ -140,7 +144,7 @@ visible numeral.
 | [0009](0009-public-repository-from-day-one.md) | The repository is public from the first commit | Accepted | Public while pre-alpha, and the honesty obligations that creates. |
 | [0010](0010-correct-the-conflict-count-in-adr-0006.md) | Correct the conflict count recorded in ADR-0006 | Accepted | `docs/plan/CONFLICTS.md` totals 453 rows, not the 353 ADR-0006 cites; its decision restated in force. |
 | [0011](0011-correct-the-stale-artifact-named-in-adr-0003.md) | Correct the stale artifact named in ADR-0003 | Accepted | `spectra.toml` agrees; `go/verify/go.mod`'s header comment is stale. Naming restated in force. |
-| [0012](0012-correct-the-tier-cadence-in-adr-0007.md) | Correct the tier cadence in ADR-0007 | Accepted | Tiers B, C and D run nightly in T2, not per change; the mutation audit restated in force. |
+| [0012](0012-correct-the-tier-cadence-in-adr-0007.md) | Correct the CI cadence recorded in ADR-0007 | Accepted | Tiers B, C and D run nightly in T2, not per change; the mutation audit restated in force. |
 
 Add the index row in the same change that adds the record. An ADR file with no index row, or an
 index row with no file, is an error.
