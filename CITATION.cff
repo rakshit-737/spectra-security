@@ -1,0 +1,43 @@
+# Citation metadata for SPECTRA.
+#
+# This describes an UNRELEASED WORK IN PROGRESS. There is no release, no tag and
+# no archived artifact, so this file deliberately carries:
+#   - no `version`        (nothing has been versioned)
+#   - no `date-released`  (nothing has been released)
+#   - no `doi` / `identifiers` (nothing has been deposited or archived)
+# Add those fields in the same commit that creates the first tag, and not before.
+#
+# TODO(decision: citation-author) The author entry records a given name only,
+# because the citable form of the author's name has not been confirmed. Add
+# `family-names:` and, if one exists, `orcid:` before the first release.
+# TODO(decision: repo-url) github.com/rakshit-737/spectra-security is a placeholder path.
+# Change it here, in CONTRIBUTING.md, in CODE_OF_CONDUCT.md and in the Go module
+# path together.
+
+cff-version: 1.2.0
+message: >-
+  SPECTRA is an unreleased work in progress. If you refer to it, please cite the
+  repository and the commit SHA you looked at; there is no release, no DOI and no
+  published result to cite yet.
+title: "SPECTRA: Security State Reconstruction, Causal Analysis and Attack Replay"
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/rakshit-737/spectra-security"
+abstract: >-
+  A deterministic, offline, local-first research platform that reconstructs
+  security state from synthetic telemetry, emits evidence-licensed cut proofs
+  over a declared control catalog, and replays scenarios under alternative
+  control configurations. It proves properties of its own model -- a hand-written
+  rule table, an entity resolution pass, a declared control catalog and the
+  telemetry actually ingested -- and not properties of any real system. Work in
+  progress: no component is complete and no result has been measured.
+keywords:
+  - security-state
+  - causal-analysis
+  - attack-replay
+  - minimal-cut
+  - provenance
+  - reproducible-research
+  - offline-first
+authors:
+  - given-names: Rakshit
