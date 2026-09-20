@@ -1,0 +1,22 @@
+# spectra-wasm - wasm surface for offline in-browser replay.
+# Spec: Part I 32.4, 33.3 (target wasm), 33.5, 42 (the verdict is never computed
+# client-side).
+# Status: not started.
+
+[package]
+name = "spectra-wasm"
+description = "SPECTRA wasm surface for offline in-browser replay. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet.
+# TODO(crate-type): a wasm artifact needs [lib] crate-type = ["cdylib", "rlib"];
+# it is not declared while the crate is empty. Add it with the first export.
