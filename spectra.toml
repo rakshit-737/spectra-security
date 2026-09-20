@@ -77,9 +77,8 @@ tagline = "Reconstruct the state. Prove the cut. Price the blindness."
 # Part I section 1.4, verbatim. It describes intent, not an achieved result.
 
 repository = "https://github.com/rakshit-737/spectra-security"
-# TODO(decision): PLACEHOLDER. The owner segment is unconfirmed. It must match
-# the Go module path below and the `repository` field of CITATION.cff before
-# anything is published. Change all three together.
+# Fixed by docs/adr/0003. Changing it changes this value, the Go module path
+# below, go/verify/go.mod and CITATION.cff together.
 
 # ---------------------------------------------------------------------------
 # [names] - the naming surface, fixed so that nothing has to guess it
@@ -98,8 +97,8 @@ verify_command = "spectra verify"
 python_package = "spectra"
 rust_crate_prefix = "spectra-"
 go_module      = "github.com/rakshit-737/spectra-security/go/verify"
-# TODO(decision): PLACEHOLDER owner segment, as above. It must match
-# `repository` and the module line in go/verify/go.mod.
+# Owner segment fixed by docs/adr/0003, as above. It must match `repository`
+# and the module line in go/verify/go.mod.
 
 # ---------------------------------------------------------------------------
 # [runtime] - the supported set, stated exactly (Part II section 74.11.7)
