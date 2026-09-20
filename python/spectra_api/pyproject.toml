@@ -1,0 +1,24 @@
+# spectra_api - FastAPI app, routers, dependency wiring, OpenAPI.
+# Spec: Part I 32.3, 35-38; Part II 69.13 (only this layer may touch Postgres or
+# Redis).
+# Status: not started.
+
+[project]
+name = "spectra-api"
+version = "0.0.0"
+description = "SPECTRA HTTP API service. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them (Part II 74.2).
+# TODO(conflict: import-linter paths). Part I 35 writes the engine contract
+# against services/api/spectra/engines/**; this workspace uses Part I 32.3's
+# python/spectra_api layout. Re-path .importlinter when it is written.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): see python/spectra_core/pyproject.toml.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_api"]
