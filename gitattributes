@@ -1,0 +1,244 @@
+# SPECTRA - .gitattributes
+#
+# Status: session one. This file is the thing being delivered.
+#
+# Two specification fragments are merged here and both are normative:
+#   Part II section 73.8    - Linguist rules and the anti-inflation ban
+#   Part II section 74.10.5 - line endings, gate G-WIN-002 (this file must
+#                             match the committed golden copy byte for byte)
+#
+# ANTI-INFLATION STATEMENT (Part II section 73.8, hard ban).
+# Nothing in this file is miscategorised to add a row to, or grow a row in, the
+# GitHub language bar. `linguist-language=` appears exactly once below and only
+# to correct a genuine misdetection, with a one-line comment saying which.
+# Renaming fixtures to a source extension, declaring configuration as code,
+# tagging generated output as authored, or splitting one component across
+# extensions to add a bar row is inflation and fails `make polyglot-audit` with
+# LINGUIST_OVERRIDE_UNJUSTIFIED or BAR_INFLATION. Generated code, vendored
+# code, fixtures and compiled wasm are counted at zero, on purpose.
+
+# ===========================================================================
+# 1. Baseline: normalise every text file to LF in the working tree and the index
+# ===========================================================================
+* text=auto eol=lf
+
+# ===========================================================================
+# 2. Explicit LF for every text type the repository will contain
+#    (Part II section 74.10.5; the roster is Part II sections 73.1-73.2.)
+#    Declared ahead of the source directories existing: a file that appears
+#    later must not be able to arrive with CRLF.
+# ===========================================================================
+
+# -- Tier A: critical path -------------------------------------------------
+*.py         text eol=lf diff=python
+*.pyi        text eol=lf diff=python
+*.rs         text eol=lf diff=rust
+*.go         text eol=lf diff=golang
+*.ts         text eol=lf
+*.tsx        text eol=lf
+*.js         text eol=lf
+*.jsx        text eol=lf
+*.mjs        text eol=lf
+*.cjs        text eol=lf
+*.sql        text eol=lf
+*.sh         text eol=lf
+*.bash       text eol=lf
+*.bats       text eol=lf
+
+# -- Tier B: oracles and measured performance ------------------------------
+*.hs         text eol=lf diff=haskell
+*.lhs        text eol=lf diff=haskell
+*.cabal      text eol=lf
+*.c          text eol=lf diff=cpp
+*.h          text eol=lf diff=cpp
+*.cc         text eol=lf diff=cpp
+*.cpp        text eol=lf diff=cpp
+*.hpp        text eol=lf diff=cpp
+*.java       text eol=lf diff=java
+*.cs         text eol=lf diff=csharp
+*.s          text eol=lf
+*.S          text eol=lf
+*.asm        text eol=lf
+*.inc        text eol=lf
+
+# -- Tier C: heterogeneous observed estate ---------------------------------
+*.php        text eol=lf diff=php
+*.rb         text eol=lf diff=ruby
+*.rake       text eol=lf diff=ruby
+Gemfile      text eol=lf diff=ruby
+*.pl         text eol=lf diff=perl
+*.pm         text eol=lf diff=perl
+*.t          text eol=lf diff=perl
+*.lua        text eol=lf
+*.kt         text eol=lf diff=java
+*.kts        text eol=lf diff=java
+*.swift      text eol=lf diff=swift
+*.m          text eol=lf diff=objc
+*.mm         text eol=lf diff=objc
+*.dart       text eol=lf
+*.ps1        text eol=lf
+*.psm1       text eol=lf
+*.psd1       text eol=lf
+*.groovy     text eol=lf diff=java
+*.gradle     text eol=lf diff=java
+*.scala      text eol=lf diff=java
+*.sbt        text eol=lf diff=java
+
+# -- Tier D: research and formal artifacts ---------------------------------
+*.R          text eol=lf
+*.r          text eol=lf
+*.Rmd        text eol=lf
+*.jl         text eol=lf
+*.fs         text eol=lf
+*.fsx        text eol=lf
+*.fsproj     text eol=lf
+*.sol        text eol=lf
+*.v          text eol=lf
+*.sv         text eol=lf
+*.svh        text eol=lf
+*.vhd        text eol=lf
+*.vhdl       text eol=lf
+*.wat        text eol=lf
+*.yar        text eol=lf
+*.yara       text eol=lf
+# GNU Octave, not MATLAB (Part II section 73.1; docs/polyglot/octave-not-matlab.md).
+# The .m extension above is claimed by Objective-C, which is the other Linux-only
+# component that uses it. TODO(decision): if Linguist misattributes octave sources,
+# the correction is a single commented linguist-language= line added to section 6
+# below and nowhere else; do not rename Octave files to win a bar row.
+
+# -- Configuration and markup formats (Part II section 73.2; 11 of them).
+#    These colour the bar. They are NEVER counted in a prose language figure;
+#    a build that counts them fails with COUNT_CONTAMINATED.
+*.json       text eol=lf
+*.jsonc      text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.toml       text eol=lf
+*.xml        text eol=lf
+*.html       text eol=lf diff=html
+*.css        text eol=lf diff=css
+*.scss       text eol=lf diff=css
+Dockerfile   text eol=lf
+*.Dockerfile text eol=lf
+Makefile     text eol=lf
+*.mk         text eol=lf
+CMakeLists.txt text eol=lf
+*.cmake      text eol=lf
+*.tf         text eol=lf
+*.hcl        text eol=lf
+
+# -- Documentation, licences, plain text -----------------------------------
+*.md         text eol=lf diff=markdown
+*.rst        text eol=lf
+*.txt        text eol=lf
+*.tex        text eol=lf
+*.bib        text eol=lf
+*.d2         text eol=lf
+*.puml       text eol=lf
+*.svg        text eol=lf
+*.csv        text eol=lf
+*.tsv        text eol=lf
+*.ini        text eol=lf
+*.cfg        text eol=lf
+*.conf       text eol=lf
+*.properties text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+.editorconfig   text eol=lf
+.dockerignore   text eol=lf
+.tool-versions  text eol=lf
+.env.example    text eol=lf
+LICENSE      text eol=lf
+NOTICE       text eol=lf
+
+# The only CRLF exception in the repository (Part II section 74.10.5).
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+
+# ===========================================================================
+# 3. Vendored trees are never counted (Part II section 73.8)
+# ===========================================================================
+vendor/**             linguist-vendored=true
+third_party/**        linguist-vendored=true
+**/node_modules/**    linguist-vendored=true
+
+# ===========================================================================
+# 4. Generated code is never counted (Part II section 73.8)
+#    Includes guard-AST codegen output and every wasm build product.
+#    Rust-to-wasm is a build target, not an authored language
+#    (Part II section 73.1, Tier D negative requirements).
+# ===========================================================================
+rust/kernel/src/guards_generated.rs   linguist-generated=true
+rust/sim/src/guards_generated.rs      linguist-generated=true
+frontend/src/api/generated/**         linguist-generated=true
+**/generated/**                       linguist-generated=true
+**/*.wasm                             linguist-generated=true binary
+artifacts/**                          linguist-generated=true
+
+# ===========================================================================
+# 5. Documentation and fixtures are not the product (Part II section 73.8)
+# ===========================================================================
+docs/**              linguist-documentation=true
+fixtures/**          linguist-detectable=false
+# The committed fixture tree also lives at data/fixtures/ (Part I section 32.2).
+# gitattributes patterns containing a slash are root-anchored, so the line above
+# does not reach it. This line does.
+data/fixtures/**     linguist-detectable=false
+
+# ===========================================================================
+# 6. The single permitted linguist-language= override (Part II section 73.8)
+# ===========================================================================
+# Misdetection corrected: Linguist classifies .wat as plain text, but
+# wasm/preimage/ holds hand-authored WebAssembly text format, which is authored
+# source. The compiled .wasm in section 4 stays generated and uncounted.
+wasm/preimage/*.wat  linguist-language=WebAssembly
+
+# ===========================================================================
+# 7. Data-shaped artifacts that must never colour the bar (Part II section 73.8)
+# ===========================================================================
+*.jsonl              linguist-generated=true
+*.pcap               binary
+golden/**            linguist-generated=true
+data/golden/**       linguist-generated=true
+tests/golden/**      linguist-generated=true
+
+# ===========================================================================
+# 8. Byte-exact artifacts: never normalise, never diff (Part II section 74.10.5)
+#    These lines come LAST because the last matching pattern wins, and byte
+#    identity outranks line-ending normalisation for anything that is hashed.
+#
+#    TODO(decision): Part II section 73.8 lists `*.cert.json text eol=lf` and
+#    `*.golden text eol=lf`, while Part II section 74.10.5 lists
+#    `**/*.cert.json -text` and `tests/golden/** -text -diff`. Both are Part II.
+#    Resolved in favour of -text, because a certificate or golden file is
+#    compared byte-for-byte and gate G-WIN-004 already proves every
+#    text-classified file is w/lf, so normalisation buys nothing and can only
+#    corrupt a hash. To reverse: delete this block and keep the section 73.8
+#    spellings that open it.
+# ===========================================================================
+*.golden               text eol=lf
+*.cert.json            text eol=lf
+tests/golden/**        -text -diff
+data/golden/**         -text -diff
+**/*.cert.json         -text
+**/*.expected          -text
+cas/**                 -text -diff filter=
+
+*.tar.zst    binary
+*.tar        binary
+*.zst        binary
+*.gz         binary
+*.png        binary
+*.jpg        binary
+*.ico        binary
+*.pdf        binary
+*.woff       binary
+*.woff2      binary
+*.jar        binary
+*.so         binary
+*.a          binary
+*.o          binary
+*.dll        binary
+*.dylib      binary
+*.blake3     binary
