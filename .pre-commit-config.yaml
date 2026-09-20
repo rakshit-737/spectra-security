@@ -1,8 +1,9 @@
 # T0 - the local pre-commit tier.
 #
-# STATUS: not started. One hook runs (`skeleton-verify`). The other three are
-# declared and parked on the `manual` stage because their make targets are not
-# written yet. See "WHAT `manual` MEANS HERE" below; it does not mean optional.
+# STATUS: not started. Two hooks run (`skeleton-verify` and `guard-sandbox`).
+# The other two are declared and parked on the `manual` stage because their make
+# targets are not written yet. See "WHAT `manual` MEANS HERE" below; it does not
+# mean optional.
 #
 # Authority: ci/gates.toml (section 74.4). Every hook below corresponds to a gate
 # row there, and a hook here that does not is not a gate. This file declares
@@ -97,9 +98,10 @@ repos:
           gate result; the authoritative run is in .github/workflows/t1.yml.
 
       # ----------------------------------------------------------------------
-      # NOT IMPLEMENTED - parked on the manual stage.
+      # ENABLED.
       # Gate: G-WIN-001 (T0, section 74.10.2)
-      # Enabled at: M0 (skeleton and toolchain), with ci/guard.mk.
+      # Implemented inline in the Makefile (lines 51-61); moving it to
+      # ci/guard.mk is an M0 refactor and does not change what it checks.
       # Refuses to build when the repository is on a Windows drive mount
       # (/mnt/...) or outside WSL2, the devcontainer and CI. Working from /mnt/c
       # produces case-insensitive path collisions, wrong file modes and far
@@ -108,15 +110,14 @@ repos:
       # it belongs before the commit rather than after the push.
       # ----------------------------------------------------------------------
       - id: guard-sandbox
-        name: "T0 guard-sandbox / G-WIN-001 (NOT IMPLEMENTED)"
+        name: "T0 guard-sandbox / G-WIN-001"
         entry: make guard-sandbox
         language: system
         pass_filenames: false
         always_run: true
-        stages: [manual]
         description: >-
-          NOT IMPLEMENTED. `manual` here means the target does not exist yet, not
-          that the check is optional. Enabled at M0.
+          Asserts the sandbox guard at Makefile lines 51-61 passed: Linux, inside
+          WSL2, the devcontainer or CI, and not on a /mnt drive mount.
 
       # ----------------------------------------------------------------------
       # NOT IMPLEMENTED - parked on the manual stage.
