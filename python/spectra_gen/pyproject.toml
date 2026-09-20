@@ -1,0 +1,20 @@
+# spectra_gen - seeded synthetic telemetry generator and degradation engine.
+# Spec: Part I 32.3, 26-29; Part II 61 (degradation), 75.2 C1.
+# Status: not started.
+
+[project]
+name = "spectra-gen"
+version = "0.0.0"
+description = "SPECTRA seeded generator and degradation engine. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them (Part II 74.2).
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): see python/spectra_core/pyproject.toml.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_gen"]
