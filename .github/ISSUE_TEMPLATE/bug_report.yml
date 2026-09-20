@@ -1,0 +1,158 @@
+# Bug report form.
+#
+# STATUS: not started. There is nothing to report a bug against yet: the only
+# implemented gate is the skeleton gate. This form is committed now so that the
+# first report that does arrive is already shaped by the two rules that govern
+# this repository - every requirement has a gate id, and no number appears
+# without the artifact it came from.
+#
+# The form asks for a gate id and does not make it optional. Section 74.0: a
+# requirement with no gate id is not a requirement. A report that cannot name
+# the gate it believes is wrong is a report about a hope, not about a defect.
+# "none / I do not know" is an accepted answer; leaving it blank is not.
+
+name: Bug report
+description: Report a defect in SPECTRA, a gate, a build target or a published artifact.
+title: "[bug] "
+labels:
+  - "bug"
+  - "triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, two things that save everyone time:
+
+        - **Security findings do not go here.** Follow `SECURITY.md`.
+        - **Do not paste numbers without their source.** A timing, a size, a rate
+          or a count is only meaningful with the artifact and run manifest hash
+          it came from. If you have the artifact, attach it. If you do not, say
+          so plainly rather than rounding from memory.
+
+  - type: input
+    id: gate_id
+    attributes:
+      label: Gate id
+      description: >-
+        The id from `ci/gates.toml` for the gate you believe is wrong, missing or
+        mis-tiered. If the defect is not about a gate, write "none". If you think
+        there should be a gate and there is not, write "missing" and describe it
+        below - that is a useful report.
+      placeholder: "G-OFF-001 / none / missing"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      description: Which tier the gate is assigned to in `ci/gates.toml`.
+      options:
+        - "T0 - pre-commit, local, never authoritative"
+        - "T1 - every push and pull request"
+        - "T2 - nightly, main only"
+        - "T3 - weekly, main only"
+        - "not applicable / no gate"
+    validations:
+      required: true
+
+  - type: input
+    id: make_target
+    attributes:
+      label: Make target
+      description: The `make` target that reproduces it, exactly as you ran it.
+      placeholder: "make build-offline"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and which spec section says so
+      description: >-
+        Quote or cite the section. "It should be faster" is not a defect report.
+        "Section 74.3 requires --network=none and the job sets a proxy instead"
+        is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Paste the exact output, including the exit code.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction from a clean clone
+      description: >-
+        The commands, in order, starting from `git clone`. If you cannot
+        reproduce it from a clean clone, say that; an intermittent failure is
+        itself a defect under the zero-flake policy (74.8) and is not fixed by
+        retrying.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where you ran it
+      description: >-
+        Section 74.10: every target runs inside WSL2, the devcontainer or CI.
+        `cmd.exe` and PowerShell are not supported and a Makefile guard refuses.
+      options:
+        - "WSL2 on Windows 11"
+        - "devcontainer"
+        - "Linux amd64, natively"
+        - "GitHub Actions runner"
+        - "something else (describe below)"
+    validations:
+      required: true
+
+  - type: input
+    id: repo_path
+    attributes:
+      label: Absolute path of the repository checkout
+      description: >-
+        Section 74.10.2: the repository must live inside the WSL2 filesystem. A
+        path under `/mnt/c/...` produces case-insensitive collisions, wrong file
+        modes and far slower I/O, all of which corrupt determinism gates, and
+        `G-WIN-001` refuses to build from there.
+      placeholder: "/home/you/src/spectra"
+    validations:
+      required: true
+
+  - type: textarea
+    id: artifact
+    attributes:
+      label: Artifact and run manifest hash
+      description: >-
+        If the report concerns a gate result or a published number, name the
+        artifact file and its run manifest hash. Section 74.7: an artifact that
+        has expired can never be cited, and raw CI logs are never a source for a
+        number. If you have neither, write "none".
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: honesty
+    attributes:
+      label: Before submitting
+      options:
+        - label: >-
+            Every number in this report comes from an artifact I can point to, or
+            is explicitly marked as not measured.
+          required: true
+        - label: >-
+            I have not attributed a verdict, a capability or a result to SPECTRA
+            that no gate in `ci/gates.toml` has produced.
+          required: true
+        - label: >-
+            This is not a security finding. (Security findings follow
+            `SECURITY.md` instead.)
+          required: true
