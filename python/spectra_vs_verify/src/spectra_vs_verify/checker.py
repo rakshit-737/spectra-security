@@ -1608,12 +1608,39 @@ def _o15_minimality(state: _State) -> ObligationResult:
 # ---------------------------------------------------------------------------
 
 
+def _side_pairs_hook(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Duplicate keys reject; the key-FORM rule is not applied to a side artifact.
+
+    WHY THE TWO HOOKS DIFFER, stated rather than quietly relaxed. The encoding law says
+    object keys are ASCII `[a-z0-9_]+`, and the certificate body obeys it: every one of its
+    members is a fixed name and `_pairs_hook` enforces the rule there. Two SIDE artifacts
+    cannot obey it, because their own field tables declare MAP-KEYED members whose keys are
+    values rather than names:
+
+      * the source profile's `order_statistics`, whose keys are "exactly the levels in
+        liveness.toml", i.e. `"95/100"`, which carries a solidus;
+      * `liveness.json`'s `blind_volume_ns_by_reason`, whose keys are reason codes such as
+        `B_GAP_EXCEEDS_THRESHOLD`, which are upper case.
+
+    Rejecting those two artifacts would make every certificate that pins a real profile
+    uncheckable, so the form rule is enforced where the law and the field table agree and
+    is not enforced where they contradict each other. Duplicate keys are still a rejection
+    everywhere, because a duplicate makes the parsed value depend on parser order.
+    """
+    seen: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in seen:
+            raise Rejected("E-CANON-DUPKEY", f"duplicate object key {key!r}")
+        seen[key] = value
+    return seen
+
+
 def _parse_side_json(path: Path, label: str) -> dict[str, Any]:
     octets = _read_octets(path)
     try:
         value = json.loads(
             octets.decode("utf-8"),
-            object_pairs_hook=_pairs_hook,
+            object_pairs_hook=_side_pairs_hook,
             parse_float=_floats_are_forbidden,
             parse_constant=_reject_constant,
         )

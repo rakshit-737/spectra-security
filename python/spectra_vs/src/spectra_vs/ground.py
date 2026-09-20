@@ -52,6 +52,7 @@ loader rejects any rule that would express a deletion.
 
 from __future__ import annotations
 
+import bisect
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -304,8 +305,12 @@ class Engine:
             return False
         self._facts[key] = fact
         bucket = self._by_pred.setdefault((fact.predicate, len(fact.args)), [])
-        bucket.append(fact)
-        bucket.sort(key=lambda f: canon.byte_order_key(str(f.fact_key)))
+        # Inserted in place rather than appended and re-sorted. The bucket is an invariant
+        # (ascending by fact key), and re-sorting a list that is already sorted except for
+        # its last element costs O(n log n) per insertion, which is O(n^2 log n) over a
+        # predicate the generator emits thousands of times. The resulting order is
+        # identical; only the cost of maintaining it changes.
+        bisect.insort(bucket, fact, key=lambda f: canon.byte_order_key(str(f.fact_key)))
         self._delta.append(fact)
         return True
 
