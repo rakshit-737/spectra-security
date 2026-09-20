@@ -54,6 +54,13 @@ Implement `docs/claims.md` as the single normative registry of externally visibl
 markdown file with a machine-parseable record grammar. It is hand-authored; its *support* fields are
 verified, never invented.
 
+OVERRIDES Part I section 53.4: the `docs/claims.toml` registry that maps README claim anchors to
+test IDs, and the `make docs-check` check over it, are replaced by `docs/claims.md` and
+`make claims-check`; support is an artifact hash plus a run manifest plus a green gate for the
+current `git_sha`, not a passing test id. `make docs-check`'s other duties (README asset staleness,
+§54.3) are unaffected. An implementer following Part I builds a TOML test-id registry the claims
+parser cannot read, and a claim that passes `docs-check` can still be unsupported here.
+
 Grammar (EBNF; the parser rejects anything else — no tolerant parsing, no key reordering, no
 optional fields except where marked):
 
@@ -161,6 +168,15 @@ docs/cv-bullets.md             (yes, this is a surface; it is the text most like
 .github/PULL_REQUEST_TEMPLATE.md
 docs/commit-message-template.txt
 ```
+
+OVERRIDES Part I section 53.5: `docs/DEMO.md`'s "expected output excerpts" are no longer the demo's
+source of truth. `demo/transcript.expected.txt`, every line prefixed with its `[CLM-]` tag (71.1.1),
+is the file `demo-verify` diffs against, replacing §54.3's diff against `docs/DEMO.md`. §54.2's
+script text is a scanned surface wherever it is copied into `docs/`, so its bare `ROBUST` header,
+its unqualified "minimum cut" and its "exact" observation set line must be rewritten to the BP-08,
+BP-11 and BP-15 replacements before being reproduced. An implementer following Part I copies the
+§54.2 script verbatim, fails claims-check on three banned patterns, and never creates the file
+G-DEMO-CLAIMS reads.
 
 71.2.2 Segmentation (deterministic, no NLP)
 
@@ -366,6 +382,12 @@ Placement requirements, each with its own gate:
 part hand-written frame, part GENERATED. Hand-writing a limitations file alone is forbidden: a
 limitation stated without a measured magnitude is a disclaimer, not a limitation.
 
+OVERRIDES Part I section 53.1: the required tree's `docs/LIMITATIONS.md` is replaced by a single
+`LIMITATIONS.md` at repository root. §53.2's status banner must therefore end "See LIMITATIONS.md."
+and §54.2's demo must close on the root file; no `docs/LIMITATIONS.md` may exist. An implementer
+following Part I creates the file under `docs/`, so G-FRAMING-README finds no root link and
+G-LIMITS-FRESH and G-LIMITS-NOHAND never run against the real file.
+
 71.6.1 Generated-block markers
 
 ```markdown
@@ -472,8 +494,22 @@ Do not do any of the following. Each is a build failure, not a style note.
 7. Do not publish the redundancy index, the decisive observation set size, or any Pareto point while
    the corresponding certificate flag is set. The API omits the field; the UI renders the reason, not
    a blank.
+   OVERRIDES Part I section 50.6: figure P10's unfiltered "declared cost vs residual reachability
+   Pareto points", and the T+9:00 Frontier tab of §54.2, are replaced by surfaces that omit every
+   point whose run carries the corresponding flag and print the flag as the reason. §50.4(9)'s
+   exact-versus-greedy cell fractions remain publishable; what is withheld is a flagged cell's own
+   `decisive_obs_set_size` and `redundancy_index_max`, which §48.6's results row still records for
+   every row — the prohibition is on publication, not on measurement. An implementer following
+   Part I ships a figure, an API field and a UI pane that expose exactly the values this item
+   forbids.
 8. Do not state a language count from a hand-maintained table. Both figures come from the polyglot
    mutation audit artifact or they are not stated.
+   OVERRIDES Part I section 53.5: the `lines` column of `POLYGLOT.md`'s hand-maintained table is
+   replaced by values generated from the polyglot mutation audit artifact and registered in
+   `docs/claims.md`; the "why this language", "tests" and "not used and why" text required by §53.5
+   and §4.6 is unchanged. An implementer following Part I hand-writes LOC figures into
+   `docs/POLYGLOT.md`, which is a scanned surface (71.2.1), and every one of them fails
+   G-CLAIM-ANCHOR.
 9. Do not describe the range with `realistic`, `production-like` or `enterprise`. Describe what it
    contains and link `docs/range/not-modeled.md`.
 10. Do not mark a claim `GREEN` whose supporting scenario appears in the TUNED set of the overfit
