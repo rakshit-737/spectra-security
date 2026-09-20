@@ -1,0 +1,124 @@
+# config/bench/degradation.toml
+#
+# The degradation matrix definition. ZERO cells are configured.
+#
+# OWNERSHIP. Part II section 61.0: "This section owns the second declared research axis in full.
+# No other section may define a perturbation operator, a completeness number, a matrix cell, or a
+# ground-truth link." That includes this file. This file REFERENCES section 61's artifacts; it does
+# not define operators, it does not define completeness, and it must never grow a second operator
+# catalog.
+#
+# THE COMPLETENESS AXIS IS OWNED BY SECTION 61. Part II section 61.6 defines four separate
+# quantities, all measured after the fact, all reported PER DIMENSION and PER SOURCE:
+#
+#   1. record_retention(src)        exact (numerator, denominator) pair, never a bare percentage
+#   2. record_retention(dim)        summed over the sources relevant to that dimension
+#   3. source_coverage              fraction of declared sources that delivered any line
+#   4. step_witness_coverage(dim)   fraction of causal steps with a surviving, parse-accepted,
+#                                   identity-bearing witness
+#
+# Quantity 4 is the one that matters for reconstruction and is NOT derivable from 1-3. Publishing 1
+# without 4 is misrepresentation. Any code path, API field, chart axis, docs table or README
+# sentence that reduces these to one aggregate number fails the build; `make completeness-lint`
+# greps for the banned identifiers completeness_pct, completeness_score, overall_completeness and
+# data_quality. Part I's phrase "100% to 30% completeness" as a single scalar is withdrawn
+# everywhere in the repository. Do not reintroduce it here.
+#
+# Due: M7. Status: not started.
+
+schema_version = 1
+
+# ---------------------------------------------------------------------------
+# Operator reference list.
+#
+# This is a REFERENCE, not a definition. The authoritative operator catalog is
+# `perturb/operators.toml` (Part II section 61.4), which declares each operator's params, streams,
+# fates, observability class and min_tests, and which is hashed into every cell identity. The lint
+# `op-registry-complete` fails the build if the perturber's operator enum and that registry
+# disagree.
+#
+# TODO(gate: this list must be checked for equality against perturb/operators.toml). No such check
+# exists. Until it does, this list can drift silently. Add the check at M7 in the same commit that
+# creates perturb/operators.toml, or delete this list and reference the registry by hash only.
+#
+# Names and composition order are from Part II section 61.4.0. Operators compose in this fixed class
+# order regardless of authoring order in a plan; within a class, plan order applies. The final emit
+# order is fixed by step 9 and by nothing after it; the ledger is written after step 9.
+# ---------------------------------------------------------------------------
+operators = [
+  "SOURCE-SILENCE",   # 1  a source stops producing entirely over a window
+  "DELETE",           # 2  remove records
+  "STRIP-IDENTITY",   # 3  remove or blank the fields entity resolution depends on
+  "CORRUPT",          # 4  field-level, typed mutation
+  "BACKDATE",         # 5  rewrite recorded timestamps
+  "CHAIN-FORGE",      # 6  fabricate records with a locally valid hash chain
+  "DUPLICATE",        # 7  re-emit a record
+  "DELAY",            # 8  move a record later in the delivered stream, timestamp unchanged
+  "REORDER",          # 9  permute delivered order
+]
+
+# TODO(conflict: two closed operator sets are stated in Part II and they disagree).
+# Part II section 57.6 lists the closed enum `Operator` as exactly six members:
+#   delete delay duplicate reorder corrupt suppress
+# Part II section 61.0 retires "suppress" as ambiguous and replaces it with three distinct,
+# separately parameterized, separately seeded operators: DELETE, SOURCE-SILENCE and STRIP-IDENTITY;
+# section 61.4 then catalogs nine operators, adding BACKDATE and CHAIN-FORGE.
+# Section 57 declares itself normative over every other section; section 61 declares itself the sole
+# owner of perturbation operators.
+# RESOLUTION TAKEN HERE: follow section 61, because section 61 retires "suppress" explicitly and
+# section 57's row still carries the retired word. The nine names above are used.
+# TO CHANGE: edit Table C in section 57 and the [[concept]] row for `degradation_operator` in
+# docs/vocab.toml in one commit, then update this list. Do not resolve it by writing code that
+# accepts both sets.
+
+# ---------------------------------------------------------------------------
+# Matrix cells.
+#
+# A cell is identified by the BLAKE3 of the canonical JSON of its full input (Part II section
+# 61.9.1) and is defined by a perturbation plan, a seed and a sampling count. Plans are authored
+# files under `plans/` (Part II section 61.2), validated by
+# `schemas/degradation-plan.schema.json`, and referenced by hash.
+#
+# ZERO cells are configured. There are no plans, no seeds, no sampling counts and no results.
+# Nothing below is a placeholder to be filled with a plausible number: a cell is added only when
+# its plan exists, its schema validates it and its seed is recorded.
+# ---------------------------------------------------------------------------
+
+# (no [[cell]] entries)
+
+# ---------------------------------------------------------------------------
+# Results table.
+#
+# Part II section 61.11 defines the per-cell metrics and section 61.12 the gates over them. No
+# metric has been measured. The table is emitted here with every row marked "not measured" so that
+# no reader mistakes an absent number for a good one.
+# ---------------------------------------------------------------------------
+#
+#   quantity                            value
+#   ----------------------------------  -----------
+#   cells defined                       0
+#   seeds per cell                      not measured
+#   record_retention(src)               not measured
+#   record_retention(dim)               not measured
+#   source_coverage                     not measured
+#   step_witness_coverage(dim)          not measured
+#   false ROBUST verdicts               not measured
+#   ROBUST yield                        not measured
+#   realized vs target deviation        not measured
+#
+# The zero-false-ROBUST invariant is the headline result of this axis and it is NOT ESTABLISHED.
+# No count has been taken. Do not state or imply otherwise anywhere in the repository.
+
+# ---------------------------------------------------------------------------
+# Negative requirements
+# ---------------------------------------------------------------------------
+#
+# - Do not define an operator here. Section 61 owns the catalog.
+# - Do not define a completeness number here. Section 61.6 owns the definitions.
+# - Do not aggregate the four completeness quantities into one scalar, ever, anywhere.
+# - Do not label a plot axis or a table column with the TARGET retention when the REALIZED value was
+#   used, or the reverse. Part II section 61.6.
+# - Do not author a probability or fraction as an IEEE float. Fractions are decimal strings
+#   converted to exact rationals at load time. Part II section 61.2, lint plan-lint-floats.
+# - Do not add a cell without a seed.
+# - Do not report a matrix number that `make bench` did not regenerate from scratch.
