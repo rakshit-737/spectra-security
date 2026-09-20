@@ -71,7 +71,10 @@ defaults:
 jobs:
 
   # ENABLED.
-  # The only implemented gate in this repository.
+  # The only gate this directory runs. It is not the only implemented gate in
+  # the repository: G-WIN-001 (T0) is implemented too, as the sandbox guard at
+  # Makefile lines 51-61, and is enforced locally by .pre-commit-config.yaml
+  # rather than here.
   # It gates the skeleton and nothing else: it does not build, exercise or
   # verify any part of the platform, because no part of the platform exists.
   skeleton:
