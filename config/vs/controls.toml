@@ -1,0 +1,93 @@
+# config/vs/controls.toml
+#
+# The vertical slice's control catalog: the universe the cut search ranges over.
+#
+# READ THIS BEFORE EDITING. Threshold literals are DERIVED from this file, never authored:
+# for a control with `levels` of length n, the derived literals are `control >= 1` through
+# `control >= n-1`. There is no literal for level 0, because "at least the weakest setting"
+# asserts nothing. The canonical order over literals is control_id bytes ascending, then
+# level ascending, compared as raw bytes under LC_ALL=C and never by locale collation;
+# `rank` is the 0-based position in that order.
+#
+# BIT POSITIONS ARE NOT IN THIS FILE. They live in config/vs/catalog-bits.lock, which is
+# append-only: a (control_id, level) keeps its position forever, removal writes a
+# tombstone, and a position is never reused. Deriving a bit from this file would renumber
+# every bit whenever a control was appended, and a renumber invalidates every archived
+# certificate. `rank` orders, ties and prints; `bit` only ever sets or tests a mask.
+#
+# THIS IS A DESIGN, NOT A MEASUREMENT. The five controls, their levels and their
+# provenance describe a simulated scenario family produced by a seeded synthetic
+# generator. No number here was observed, no control here was deployed anywhere, and
+# nothing in this file may be read as evidence about a real system.
+#
+# NAMING. control_id matches ^[a-z][a-z0-9_]{2,47}$ and is rendered on the wire as
+# "ctl:<id>". dimensions are drawn from the closed set of exactly ten: identity, session,
+# credential, privilege, process, network, api, service, resource, trust.
+
+schema = "spectra.vs.controls/1"
+
+# Five controls, nine threshold literals. The admissible-cut lattice is therefore
+# 3 * 3 * 2 * 3 * 3 = 162 upward-closed cuts, which is small enough for the exhaustive
+# minimality probe and for the antitonicity property test to walk it entirely.
+
+[[control]]
+id = "egress_seg"
+title = "Egress segmentation between the resource zone and the public network"
+levels = ["unsegmented", "allowlist_egress", "brokered_egress"]
+dimensions = ["network", "resource"]
+provenance = """
+Corresponds to the network position of the resource service in the simulated scenario:
+whether a bulk read can leave the resource zone directly, only to an allowlisted
+destination, or only through a broker that terminates and re-originates the transfer.
+Modelled, not deployed. The generator emits res_access records regardless; this control
+decides whether the modelled step is admitted, not whether a record exists.
+"""
+
+[[control]]
+id = "priv_approval"
+title = "Approval required before a privileged role is assumed"
+levels = ["none", "async_ticket", "sync_two_person"]
+dimensions = ["privilege", "identity"]
+provenance = """
+Corresponds to the approval gate in front of role assumption at the simulated identity
+provider. Level 1 requires a ticket recorded before the assumption; level 2 requires a
+second present principal. This is the control the blindness premium is about in the
+degraded cell: it is in the robust cut not because an escalation was seen, but because
+for the length of one blind window nobody could have seen one.
+"""
+
+[[control]]
+id = "rate_limit"
+title = "Per-principal request quota at the gateway"
+levels = ["none", "per_principal_quota"]
+dimensions = ["api", "service"]
+provenance = """
+Corresponds to a quota enforced by the simulated gateway on requests attributable to one
+principal. One threshold only: the scenario models the quota as present or absent, and a
+graded version would need a second modelled service behaviour the generator does not
+produce. Stated as a narrowing rather than as a claim that graded quotas do not exist.
+"""
+
+[[control]]
+id = "session_binding"
+title = "Binding of a session to the device and network it was established from"
+levels = ["none", "device_bound", "device_and_network_bound"]
+dimensions = ["session", "credential"]
+provenance = """
+Corresponds to whether the simulated identity provider binds an issued session to the
+requesting device, and at level 2 additionally to the network it was established from, so
+that presenting it from elsewhere is not admitted. Modelled at the identity provider; no
+endpoint sensor exists in this scenario family, which is why edr_host emits nothing.
+"""
+
+[[control]]
+id = "token_expiry"
+title = "Lifetime of a refresh token at the identity provider"
+levels = ["long_lived", "short_lived", "single_use"]
+dimensions = ["credential", "session"]
+provenance = """
+Corresponds to the refresh-token lifetime configured at the simulated identity provider:
+long-lived, short-lived, or single-use with rotation on every exchange. Level 0 is the
+weakest setting and is what the scenario runs at by default, so every literal derived from
+this control is available to a cut.
+"""
