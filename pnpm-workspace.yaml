@@ -1,0 +1,13 @@
+# SPECTRA - pnpm workspace.
+# Spec: Part I 32.7, 33.4.
+# Status: not started. One package, and it contains no framework code.
+#
+# TODO(conflict: directory name). Part I 32.2/32.7 spell the TypeScript tree
+# web/ with apps/console, packages/ui, packages/graph, packages/api-client,
+# packages/wasm and e2e. This skeleton delivers a single frontend/ package.
+# Reconcile before the second package is added: either rename frontend/ to
+# web/apps/console and list web/apps/*, web/packages/*, web/e2e here, or record
+# the departure in an ADR.
+
+packages:
+  - "frontend"
