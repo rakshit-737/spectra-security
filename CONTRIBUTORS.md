@@ -35,15 +35,15 @@ merely assisted, and the commit history reflects that.
 ## What this division does not mean
 
 It does not mean the content is unreviewed, and it does not mean it is correct. The audit in
-`docs/plan/CONFLICTS.md` found 353 disagreements inside the specification that Claude itself
+`docs/plan/CONFLICTS.md` found 453 disagreements inside the specification that Claude itself
 wrote — 213 of them silent contradictions between its two parts. That is the honest state of the
 artifact: substantial, internally inconsistent in known and catalogued ways, and not yet
 implemented.
 
-The gates described in `ci/gates.toml` exist precisely because neither a human nor an agent should
-be trusted on assertion. Nothing in this repository is claimed to work until a named gate proves
-it, and no number appears in any document unless the artifact that produced it is recorded
-alongside.
+The gates declared in `ci/gates.toml` — declared, not yet implemented — are written down precisely
+because neither a human nor an agent should be trusted on assertion. Nothing in this repository is
+claimed to work until a named gate proves it, and no number may appear in any document unless the
+artifact that produced it is recorded alongside.
 
 ## Adding yourself
 
