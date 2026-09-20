@@ -27,6 +27,15 @@
 # ARTIFACT PATHS. The `artifacts` list on each component is a declaration of intent. No path below
 # exists. Treat the whole column as a TODO.
 #
+# GATE NAMES. None of the ten `gate` values below has a row in ci/gates.toml. Part II section 74.4
+# and ci/gates.toml itself state that every gate is a row in that registry and that there is no
+# other place a gate may be declared: a Makefile target that claims to gate something without a row
+# there is a defect, not a gate. The `gate` field below therefore records the target name each
+# component is INTENDED to carry. None of those ten names is a registered gate today.
+# TODO(M0, blocking `make mpc-status`): for each of the ten, either add a `[[gate]]` row to
+# ci/gates.toml with an id and exactly one tier, or replace the name here with the registered gate
+# id that will cover the component.
+#
 # Section 75.2 negative requirements, restated so they are read before this file is edited:
 #   - Do not add an eleventh MPC component. An addition requires deleting one, recorded in
 #     BUILD_LOG.md.
@@ -150,6 +159,9 @@ status    = "not started"
 # client-side. Owner sections 39-42, re-scoped.
 # Section 75.2 states, for this component: blocks = [], descope_rung = "D9" (may be thinned to a CLI
 # transcript, never deleted), and names 5 Playwright specs alongside `make ui-gate`.
+# CONFLICT, recorded not resolved: section 75.2's gloss on D9 is the D12 demotion.
+# docs/descope-ladder.md D9 is UI polish only — the four screens stay; thinning the four screens to
+# a CLI transcript is D12, the last rung. Resolve by correcting 75.2's parenthetical.
 
 # ---------------------------------------------------------------------------
 # PUBLISHABLE
