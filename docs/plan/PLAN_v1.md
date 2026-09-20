@@ -255,6 +255,33 @@ Development is on Windows 11. **Every make target runs inside WSL2 or the devcon
 `LC_ALL=C`, LF enforced by `.gitattributes`. The offline claim is a T1 gate: `make build-offline`
 builds from a clean clone with networking disabled.
 
+### What is actually installed, as of 2026-09-21
+
+| Toolchain | State | Consequence |
+|---|---|---|
+| Python 3.14 | present | the reference slice is built in it |
+| Node 24 | present | unused so far |
+| Java 25 | present | unused so far |
+| Rust (`cargo`, `rustc`) | **absent** | the kernel cannot be compiled |
+| Go | **absent** | the independent checker cannot be compiled |
+| Docker | **absent** | the range cannot run; the devcontainer cannot start |
+| `make` | **absent** | no target has ever been executed |
+| WSL distribution | **none installed** | the host guard cannot be satisfied |
+
+Three consequences, recorded because they change what any status in this plan can mean.
+
+**`make` has never run in this repository.** Every statement made about the Makefile — that 57
+targets exit non-zero through a shared macro, that four do real work, that the host guard aborts at
+parse time — comes from reading the file, not from executing it. Those claims are unverified.
+
+**M0 cannot close.** Its gate is `make m0-verify`. No amount of working Python changes that, and
+the milestone table must keep saying `not started` however much of the slice runs.
+
+**The kernel and checker are Python.** ADR-0013 records the decision and its cost: two Python
+modules written in one session do not give the checker the independence the specification's design
+provides, so no certificate may be described as independently verified until the Go checker exists.
+`rust/` and `go/` keep their roots and remain the specified home of the real implementations.
+
 ---
 
 ## 9. Decisions
