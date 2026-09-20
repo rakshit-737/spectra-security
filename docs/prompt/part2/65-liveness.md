@@ -74,6 +74,14 @@ drawn from a declared calibration seed band that is disjoint from every analysis
 OVERRIDES Part I: ECLIPSE §2 input list gains a fifth mandatory input, `profile.json`, and ECLIPSE
 §5 `Cert.hashes` gains the field `profile`.
 
+OVERRIDES Part I section 25.10: the content-addressed liveness cache key
+`liveness/<H(bundle, liveness_params)>` is replaced by `liveness/<H(bundle, liveness_params,
+profile_id)>`, because the profile now determines every threshold and is a determining input on the
+same footing as the bundle. An implementer following Part I would serve a second run its
+predecessor's verdicts whenever only the profile changed — a different calibration seed band, or a
+source that is CALIBRATED in one profile and INSUFFICIENT in the other — defeating gates B1..B6 on a
+warm cache while `--no-cache` still reproduced correct output.
+
 ### 65.2.2 Gap population
 
 For each source `s` and each declared regime `r`:
@@ -185,6 +193,15 @@ pub enum ThresholdProvenance {
 pub fn classify(t: Option<&Threshold>, o: &WindowObservation, cfg: &LivenessCfg) -> Verdict;
 ```
 
+OVERRIDES Part I section 17.1.4: interval-valued evaluation against the per-source skew envelope —
+a record asserting `t_evt` treated as having occurred anywhere in `[t_evt + lo_s, t_evt + hi_s]`,
+with every window and sequence operator evaluating over intervals rather than points and emitting
+`order_indeterminate` when two intervals overlap — does not apply to the liveness stage. Brackets
+are compared, the breakpoint grid of 65.5.3 is built, and `max_observed_gap_ns` is measured on point
+timestamps in the canonical order, and the only outcomes are the verdicts of 65.5.2. An implementer
+following Part I would emit `order_indeterminate` from a stage whose verdict lattice cannot
+represent it, and would compute bracket and gap values that no other implementation reproduces.
+
 `liveness::classify` takes no bundle handle, no fact base, no `&[u64]` sample. A build gate
 (`make lint-liveness-deps`) asserts the `spectra-liveness` crate's dependency closure excludes the
 ingest and grounding crates.
@@ -264,6 +281,14 @@ its reason are written into `liveness.json` and the certificate.
   the decisive observation set and the redundancy index are **degenerate** under F2 and are
   structurally suppressed from the certificate, the API response and the UI. Emitting them under F2
   fails the schema lint.
+
+  OVERRIDES Part I sections 25.6, 25.7, 25.8, 25.11 and 19.7.3: the blindness premium, the decisive
+  observation set and the redundancy index cease to be unconditional stage outputs, certificate
+  fields, checker re-derivations and API endpoints; under F2 they are absent, `redundancy_witnesses`
+  is not carried, the decisive observation set is not produced for AMBIGUOUS sets, and emitting any
+  of them fails the schema lint. An implementer following Part I builds a certificate and
+  `GET /api/v1/eclipse/premium`, `/decisive` and `/redundancy` responses that always carry these
+  fields, and the build fails the schema lint the first time it is run with `--no-profile`.
 - F3 exists so that a synthetic emitter with a declared fixed period is not penalized for lacking a
   calibration run. It is not a licence to invent a rate for a source whose rate is unknown. The
   scenario spec field is `sources.<id>.nominal_period_ns`; absent the field, F3 is unavailable and
@@ -315,6 +340,15 @@ R11 otherwise                                    -> LIVE       L_CALIBRATED_OK
   SUPPRESSED window carries `witness: [event_of_seq_i, event_of_seq_j]` and a missing-`seq` count;
   a BLIND window carries a reason code only. SUPPRESSED sets `tamper_suspected(s)` when the missing
   range intersects any corridor-relevant interval.
+
+  OVERRIDES Part I sections 25.5, 25.7 and 19.8.1: `License.witness: Vec<EventId>` and the rule that
+  every edge dereferences either to concrete `EventId`s or to the licenses that dereference to the
+  witness events establishing blindness no longer hold for BLIND intervals, which publish a reason
+  code and nothing else; witness events survive only on SUPPRESSED intervals, and the schema in 65.7
+  carries no `license_id` on any interval. An implementer following Part I would populate
+  `cert.licenses_used[].witness`, `dependency_edge` license objects and
+  `finding_provenance.licenses[].license_id` for BLIND licenses out of fields that `liveness.json`
+  does not contain, and checker obligations 25.8(c)/(d) and 19.8.2(c) would have nothing to resolve.
 - A window may be SUPPRESSED on one source and LIVE on another. Licensing of a silent rule instance
   requires **all** of `producing_sources(tau)` to be non-LIVE over the interval, unchanged from
   ECLIPSE §4C.
@@ -346,6 +380,14 @@ consistency pass.**
 1. Build the difference-constraint graph over event timestamps from happens-before edges declared by
    the rule table plus per-source `seq` monotonicity. Run Bellman-Ford with a deterministic edge
    order (canonical `(src_event, dst_event)` lexicographic) and a step budget, never a wall clock.
+
+   OVERRIDES Part I section 17.1.5: the edge set drawn from every pair with a causally forced
+   ordering (same session, same file descriptor, same TCP flow, same chained sequence) is replaced
+   by the happens-before edges declared by the rule table plus per-source `seq` monotonicity. An
+   implementer following Part I builds a different graph, hence different negative cycles, a
+   different correction set `C` and a different `tamper_suspected` set, and the Go checker of 65.6.2
+   rejects the resulting certificates with no diagnostic pointing at the edge-set definition.
+
 2. **No negative cycle** -> every license is `TEMPORALLY_CONSISTENT`. Proceed.
 3. **Negative cycle found** -> the timestamp set is mutually inconsistent. It does *not* identify
    which timestamp is wrong. Compute the deterministic minimal correction set `C`: the
@@ -355,6 +397,15 @@ consistency pass.**
 4. Every license whose interval endpoints depend on an event incident to `C` is marked
    `TEMPORALLY_DISPUTED`. **It is retained in `P_max` with full force.** Fail-open on the license is
    fail-closed on the verdict (EDR clause 2).
+
+   OVERRIDES Part I section 17.1.5: marking every record in the cycle `BACKDATED`, excluding those
+   records from licensing ECLIPSE silent instances, and publishing a voided license set in
+   `liveness.json` are all replaced by the `TEMPORALLY_DISPUTED` marking, full retention in `P_max`,
+   and the `tamper_sensitivity` reporting of step 6. An implementer following Part I strips
+   licensing power at record granularity before the license-level protocol ever runs, reproducing
+   the exact attack this section closes: tampered timestamps shrink `P_max` and move the verdict
+   toward ROBUST.
+
 5. Set `tamper_suspected` on every source contributing an event in `C`.
 6. Compute, for reporting only, the counterfactual `P_max' = P_max \ {disputed licenses}` and its
    verdict. If `verdict(P_max') != verdict(P_max)`, set `verdict_tamper_sensitive = true` and record
