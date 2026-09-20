@@ -10,9 +10,6 @@
 # TODO(decision: citation-author) The author entry records a given name only,
 # because the citable form of the author's name has not been confirmed. Add
 # `family-names:` and, if one exists, `orcid:` before the first release.
-# TODO(decision: repo-url) github.com/rakshit-737/spectra-security is a placeholder path.
-# Change it here, in CONTRIBUTING.md, in CODE_OF_CONDUCT.md and in the Go module
-# path together.
 
 cff-version: 1.2.0
 message: >-
