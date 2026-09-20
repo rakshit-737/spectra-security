@@ -1,0 +1,57 @@
+# config/vs/catalog-bits.lock
+# APPEND-ONLY. A (control_id, level) keeps its pos forever; removal sets
+# state = "tombstone" and the pos is never reused.
+
+[[bit]]
+pos = 0
+control_id = "egress_seg"
+level = 1
+state = "live"
+
+[[bit]]
+pos = 1
+control_id = "egress_seg"
+level = 2
+state = "live"
+
+[[bit]]
+pos = 2
+control_id = "priv_approval"
+level = 1
+state = "live"
+
+[[bit]]
+pos = 3
+control_id = "priv_approval"
+level = 2
+state = "live"
+
+[[bit]]
+pos = 4
+control_id = "rate_limit"
+level = 1
+state = "live"
+
+[[bit]]
+pos = 5
+control_id = "session_binding"
+level = 1
+state = "live"
+
+[[bit]]
+pos = 6
+control_id = "session_binding"
+level = 2
+state = "live"
+
+[[bit]]
+pos = 7
+control_id = "token_expiry"
+level = 1
+state = "live"
+
+[[bit]]
+pos = 8
+control_id = "token_expiry"
+level = 2
+state = "live"
