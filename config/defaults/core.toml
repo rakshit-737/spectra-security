@@ -1,0 +1,146 @@
+# config/defaults/core.toml
+#
+# Precedence level 2. See config/README.md section 2.
+#
+# Scope (Part I section 34.2): ids, hashing, canonical JSON settings.
+#
+# This file contains ONLY settings the specification defines today. Every other key that belongs
+# in this file is present as a commented TODO naming the section that must define it. A commented
+# key is not a default; the loader must fail closed on a missing required key, never substitute one.
+#
+# FROZEN KEYS (Part I section 34.6): core.hash_algorithm and core.canonical_json may be set at
+# precedence levels 1-4 only. Overriding them from the environment or the CLI is a fatal config
+# error, not a warning.
+#
+# Status: not started. No loader reads this file yet.
+
+schema_version = 1
+
+# ---------------------------------------------------------------------------
+# Identifiers and digests. Part II section 57.3.
+# ---------------------------------------------------------------------------
+[core]
+
+# DIGEST(kind, payload) = BLAKE3-256( domain_prefix || kind || kind_separator || payload )
+hash_algorithm = "blake3-256"
+
+# The ASCII domain-separation prefix. Part II section 57.3 rule 1.
+domain_prefix = "spectra/v1/"
+
+# ASCII unit separator, 0x1F. It may never appear inside a digest `kind`.
+# Part II section 57.3 rule 1.
+kind_separator = 0x1f
+
+# An h256 identifier renders all 32 output octets as lowercase hex.
+# An h128 identifier renders the FIRST 16 octets only, lowercase hex.
+# Truncation is a prefix. Never a fold, never an XOR. Part II section 57.3 rule 2.
+h256_octets = 32
+h128_octets = 16
+hex_case = "lower"
+
+# On the wire every identifier is the ASCII string of the section 57.2 grammar: never a byte array,
+# never base64, never an integer. Part II section 57.3 rule 5.
+id_wire_form = "ascii"
+
+# In SQL every identifier is `text` constrained by a DOMAIN. Never bytea, never uuid.
+# Part II section 57.3 rule 6.
+id_sql_form = "text_domain"
+
+# ---------------------------------------------------------------------------
+# Canonical byte encoding of digest payloads. Part II section 57.3 rules 3 and 4.
+# ---------------------------------------------------------------------------
+[core.payload_encoding]
+
+# Payloads are built only from: ASCII identifiers as written; unsigned integers as fixed-width
+# big-endian; and ordered sequences as count:u32 big-endian followed by elements.
+integer_width_encoding = "fixed-width"
+integer_byte_order = "big-endian"
+sequence_count_type = "u32"
+
+# Sequences inside a payload are sorted by plain bytewise (memcmp) ascending order of the element's
+# canonical bytes before hashing. Sorting is stable and total. Never a language's default collation.
+sequence_sort = "bytewise-ascending"
+
+# Forbidden inside a payload, restated so it cannot be reintroduced by a default:
+# no JSON, no floats, no locale-sensitive formatting, no platform-endian writes, and no
+# length-prefixed UTF-8 with implementation-defined normalization.
+json_allowed = false
+float_allowed = false
+
+# ---------------------------------------------------------------------------
+# Canonical JSON. Part II section 69.5.2. Frozen key `core.canonical_json`.
+# ---------------------------------------------------------------------------
+[core.canonical_json]
+encoding = "utf-8"
+byte_order_mark = false
+line_ending = "lf"
+key_order = "byte-value-ascending"
+insignificant_whitespace = false
+
+# Integers only. Floating point is forbidden in every ABI payload. A value that is conceptually
+# fractional is transported as an integer numerator with a declared fixed denominator.
+float_allowed = false
+
+# No null. An absent value is an absent key.
+null_allowed = false
+
+# Strings are NFC-normalized; control characters are \u00XX escaped.
+string_normalization = "nfc"
+control_character_escape = "u00xx"
+
+# No wall-clock timestamps, no hostnames, no absolute paths, no usernames, no process ids and no
+# environment capture anywhere in an ABI payload. Event timestamps from telemetry are data and are
+# exempt; they are carried as integer nanoseconds since the scenario epoch.
+environment_capture = false
+wall_clock_fields = false
+
+# ---------------------------------------------------------------------------
+# Time. Part II section 57.3 rule 7.
+# ---------------------------------------------------------------------------
+[core.time]
+
+# Tick is u64, an integer count of nanoseconds since the scenario epoch (tick 0).
+tick_type = "u64"
+tick_unit = "nanosecond"
+tick_epoch = "scenario"
+
+# All intervals are half-open [t0, t1).
+interval_convention = "half-open"
+
+# There is no floating point anywhere in the time model and no wall-clock value in any hashed
+# payload.
+float_allowed = false
+
+# ---------------------------------------------------------------------------
+# Locale and timezone. Development happens inside WSL2 or the devcontainer.
+# ---------------------------------------------------------------------------
+[core.locale]
+tz = "UTC"
+lc_all = "C"
+
+# ---------------------------------------------------------------------------
+# NOT YET DEFINED. Each key below belongs in this file but the owning section has not fixed its
+# value. Do not uncomment a key without a value the owning section states.
+# ---------------------------------------------------------------------------
+
+# TODO(section 57.2 / lint-vocab V1): the identifier grammar is normative prose and an ABNF block.
+# Decide whether the compiled per-prefix regexes are generated into this file by `make lint-vocab`
+# or are read directly from docs/vocab.toml at load time. Preference: read from docs/vocab.toml so
+# there is exactly one source. Change by adding a [core.id_grammar] table here and a generator step.
+
+# TODO(Part II section 58, determinism): the run-manifest field set, the git SHA capture rule and
+# the toolchain-version capture rule. These are core because every run hashes them.
+# [core.run_manifest]
+# fields = [ ... ]
+
+# TODO(Part I section 34.9): the exact canonical concatenation order used to compute the `rules`
+# hash over multiple rule files. Unordered concatenation is not reproducible.
+# [core.config_hash]
+# rules_file_order = "path-bytewise-ascending"
+
+# TODO(Part II section 69.7): the pinned ABI integer for this checkout. Part II section 69.7.4 says
+# the Python layer refuses to serve if either binary's ABI set does not contain the ABI pinned in
+# `spectra.toml`. Decide whether the pin lives in `spectra.toml` or here, and record the decision in
+# docs/adr/. Do not pin it in two places.
+# [core.abi]
+# pinned = 1
