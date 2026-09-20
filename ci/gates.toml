@@ -7,12 +7,15 @@
 # row here is a defect, not a gate. The tier model is documented once, in
 # .github/workflows/README.md; it is not repeated here.
 #
-# STATUS: not started. Every gate below is DECLARED and none is IMPLEMENTED,
-# except G-SKELETON-001, which gates this skeleton and nothing else. Declaring a
+# STATUS: not started. Exactly two gates below are IMPLEMENTED: G-SKELETON-001,
+# which gates this skeleton and nothing else, and G-WIN-001, which is the
+# Makefile sandbox guard at Makefile lines 51-61, evaluates on every make
+# invocation in this repository, and is enforced before every commit by
+# .pre-commit-config.yaml. Every other gate below is DECLARED only. Declaring a
 # gate does not make it run; the tier workflows carry the enablement state, and
 # every job except the skeleton job is explicitly skipped with its reason and its
-# enabling milestone stated there. No gate in this file has ever passed, because
-# no gate in this file has ever run.
+# enabling milestone stated there. No gate below other than those two has ever
+# passed, because no gate below other than those two has ever run.
 #
 # FIELDS (74.4)
 #   id             stable identifier, referenced by docs, workflows and the ledger
@@ -26,7 +29,7 @@
 #   budget_s       a DECLARED CEILING enforced by a per-job timeout, never a measurement
 #
 # UNRECONCILED: MOST make_target VALUES NAME NO RULE IN THE MAKEFILE
-#   178 of the 201 rows below name a make_target with no rule in the Makefile.
+#   176 of the 201 rows below name a make_target with no rule in the Makefile.
 #   G-REG-001, once implemented, fails on this registry as written. That is the
 #   gate working, not the gate misconfigured.
 #
@@ -928,8 +931,9 @@ soundness = false
 artifact = "junit-ts.xml"
 budget_s = 60  # illustrative, not a target
 
-# NOTE: The only gate enabled in session one. It gates the skeleton itself
-# and nothing else. It does not run, exercise or verify any part of the
+# NOTE: The only gate enabled in CI in session one. G-WIN-001 is also enabled
+# in session one, on the local pre-commit stage. This gate gates the skeleton
+# itself and nothing else. It does not run, exercise or verify any part of the
 # platform, because no part of the platform exists yet.
 [[gate]]
 id = "G-SKELETON-001"
