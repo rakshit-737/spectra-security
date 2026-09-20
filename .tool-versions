@@ -55,8 +55,9 @@ pnpm 9.12.0
 postgres 16.4
 
 # --- Bash: the shell layer under every make target -------------------------
-# NOT pinned here. Bash 5 is provided by spectra/toolchain-a and by the WSL2
-# distribution image pinned in docs/dev/wsl.md. asdf/mise shimming the shell
+# NOT pinned here. Bash 5 is provided by spectra/toolchain-a and by whatever
+# WSL2 distribution the contributor installs; docs/dev/wsl.md describes the
+# requirement but pins no image, and no gate asserts a distribution version. asdf/mise shimming the shell
 # that runs the shims is a loop nobody should build.
 # `make doctor` asserts bash >= 5 and must match spectra/toolchain-a at the
 # images.lock digest.
