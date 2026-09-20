@@ -169,7 +169,7 @@ OVERRIDES Part I §26: the live container range is no longer "the only place SPE
 
 OVERRIDES Part I §52.1: milestones go green **once** per push on the CORE four languages (Python, Rust, Go, TypeScript) plus the full matrix nightly. "Green twice in a row on a clean clone" across 40+ toolchains is a cadence one engineer cannot sustain and creates direct pressure to weaken tests; the ratchet in 75.6 replaces it as the anti-regression mechanism.
 
-OVERRIDES Part I §0.1 Law 1: the written-plan obligation applies at **increment** granularity (one `BUILD_LOG.md` entry per increment, typically 1-2 days of work), not per file. File-granularity planning is unaffordable with an agent that creates dozens of files per increment, and a law that is quietly violated corrodes the rest of the operating contract.
+RESTATES Part I §0.1 Law 1, and overrides nothing. Part I already binds the written-plan obligation to the increment -- "a written plan for the increment exists in `BUILD_LOG.md`" -- and §0.2 defines exactly one PLAN step per increment. There is no per-file planning requirement anywhere in Part I to relax. This note is kept because the misreading is easy to make and was made once already; it is not an override, and an implementer must not treat Law 1 as something Part II weakened.
 
 ------------------------------------------------------------
 75.5 THE DESCOPE LADDER
