@@ -10,7 +10,8 @@
 # ANTI-INFLATION STATEMENT (Part II section 73.8, hard ban).
 # Nothing in this file is miscategorised to add a row to, or grow a row in, the
 # GitHub language bar. `linguist-language=` appears exactly once below and only
-# to correct a genuine misdetection, with a one-line comment saying which.
+# to pin the language Linguist already detects, with a one-line comment saying
+# why; it never moves a file into a language Linguist would not assign it.
 # Renaming fixtures to a source extension, declaring configuration as code,
 # tagging generated output as authored, or splitting one component across
 # extensions to add a bar row is inflation and fails `make polyglot-audit` with
@@ -189,9 +190,11 @@ data/fixtures/**     linguist-detectable=false
 # ===========================================================================
 # 6. The single permitted linguist-language= override (Part II section 73.8)
 # ===========================================================================
-# Misdetection corrected: Linguist classifies .wat as plain text, but
+# Pinned, not corrected: Linguist already detects .wat as WebAssembly, and
 # wasm/preimage/ holds hand-authored WebAssembly text format, which is authored
-# source. The compiled .wasm in section 4 stays generated and uncounted.
+# source. This line fixes that label so a later Linguist change cannot silently
+# move hand-authored wasm text out of the roster. The compiled .wasm in
+# section 4 stays generated and uncounted.
 wasm/preimage/*.wat  linguist-language=WebAssembly
 
 # ===========================================================================
