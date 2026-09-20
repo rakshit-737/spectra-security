@@ -1,0 +1,25 @@
+# xtask - codegen and verification tasks invoked by the Makefile.
+# Spec: Part I 32.4, 33.4 (the Makefile calls cargo xtask, never a bespoke
+# script).
+# Status: not started.
+#
+# TODO(naming exception): every other crate here is spectra-*; this one keeps the
+# conventional name because Part I 33.4 spells the invocation `cargo xtask`.
+
+[package]
+name = "xtask"
+description = "SPECTRA repository automation tasks. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet.
+# TODO(binary): `cargo xtask` needs a [[bin]] with a main function; it is
+# declared in the commit that writes the first task, not before.
