@@ -41,3 +41,11 @@ keywords:
   - offline-first
 authors:
   - given-names: Rakshit
+  # Claude is listed because it generated the substance of this repository, not
+  # merely as a tool acknowledgement. The specification text, the planning
+  # documents, the conflict audit and the skeleton files were written by Claude
+  # under direction. Direction, scope, decisions and review are the human
+  # author's. Listing it as an author is the honest description of how the work
+  # was produced; omitting it would not be.
+  - name: "Claude (Anthropic)"
+    website: "https://claude.com/claude-code"
