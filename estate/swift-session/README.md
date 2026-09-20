@@ -61,9 +61,9 @@ source. Three things break, in order:
 2. The session-lifecycle obligations that the rule table grounds over lose their observed anchor in
    that scenario. Steps that were derived from observed records become candidates for licensed
    unobserved steps instead, which changes the reconstructed state and changes the cut.
-3. The estate loses one of the members that makes the no-language-branch property in `ingest/`
-   testable at all. That property is the Tier C promise; a promise with fewer witnesses is a weaker
-   promise.
+3. The estate loses its only subject that emits session establishment, resumption, refresh and
+   expiry as distinct records rather than as connection events, which is the case that makes
+   reconstruction of one session identity across a gap in observation testable at all.
 
 The consumer must be an artifact owned by a different component (section 73.3.1). The scenario gate
 and the ingest corpus are owned by the scenario and ingest components respectively, not by this one.
