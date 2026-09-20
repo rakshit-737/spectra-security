@@ -1,0 +1,35 @@
+# config/vs/goal.toml
+#
+# The single goal of the vertical slice: the fact whose derivability the two-sided bracket
+# is about, and which a cut is asked to sever.
+#
+# EXACTLY ONE GOAL. The scenario loader constraint is one goal per scenario, and the goal
+# library of the residual object is that one entry. `goals_severed` is the complement of
+# `goals_derivable` over this library, so a second entry here changes what a residual
+# means and is a scenario change, not a config tweak.
+#
+# HOW THIS IS RESOLVED. `goal_args` are entity references into the scenario's entity
+# tables, as authored. Turning them into entity ids and thence into a FactHash is the
+# prove stage's job and goes through er.json, which pins the resolution into the
+# certificate. Nothing in the cut search resolves a goal from the bundle: the goal is an
+# input to the search, never a discovery of it.
+#
+# WHAT SEVERING MEANS AND DOES NOT MEAN. A cut that makes this fact underivable severs
+# this chain in the model, under this rule table, this control catalog and the telemetry
+# actually ingested, against a non-adaptive attacker. It did not prevent anything, it
+# would not have stopped anything, and the scenario it is about is simulated.
+
+schema = "spectra.vs.goal/1"
+
+[[goal]]
+# Route A reaches this through a replayed refresh token, a gateway call and a bulk read.
+# Route B reaches it through an unapproved admin role assumption and an export that
+# bypasses the egress path. Both routes end at the same fact, which is what makes the
+# degraded cell's second corridor a second way to the same place rather than a new goal.
+goal_predicate = "resource.bulk_read"
+goal_args = ["res_customer_records"]
+
+# Horizon in ticks, at the scenario's tick granularity of one second. Hashed into the
+# certificate as inputs.k; a truncated horizon sets horizon_truncated and suppresses the
+# premium rather than publishing one computed over a clipped program.
+horizon_k = 3600
