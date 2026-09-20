@@ -1,9 +1,11 @@
 # CI tiers
 
-**Status: not started.** One gate in this repository is implemented. Every other
-job in every workflow here is declared and explicitly skipped. Nothing in this
-directory has ever produced a passing gate result, because nothing in this
-directory has ever run a gate.
+**Status: not started.** Two gates in this repository are implemented:
+`G-SKELETON-001` (T1, the skeleton layout check) and `G-WIN-001` (T0, the
+Makefile sandbox guard, which belongs to the pre-commit tier and not to a
+workflow here). Every other job in every workflow here is declared and
+explicitly skipped. Nothing in this directory has ever produced a passing gate
+result, because nothing in this directory has ever run a gate.
 
 ## The one rule that governs this directory
 
@@ -135,7 +137,7 @@ tier, or delete the requirement it enforces -- each of them visible in the diff 
 
 | Tier | Gates declared | Gates implemented | Declared sum vs ceiling | Measured runtime | Measured CI minutes |
 |---|---|---|---|---|---|
-| T0 | 3 | 0 | within ceiling | not measured | not measured |
+| T0 | 3 | 1 | within ceiling | not measured | not measured |
 | T1 | 96 | 1 | over ceiling -- unreconciled | not measured | not measured |
 | T2 | 88 | 0 | over ceiling -- unreconciled | not measured | not measured |
 | T3 | 14 | 0 | over ceiling -- unreconciled | not measured | not measured |
