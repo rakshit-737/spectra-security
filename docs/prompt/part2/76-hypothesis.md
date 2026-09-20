@@ -155,6 +155,8 @@ NEGATIVE TYPE REQUIREMENTS, enforced by `make lint-no-scores` (a schema + AST li
                          "obligation_trigger":{"$ref":"#/$defs/obligation_trigger"}}}]}}}}}
 ```
 
+OVERRIDES Part I section 17.1.3: the 16-byte BLAKE3-128 `event_id` rendered as 32 hex digits, and the `^ev:[0-9a-f]{32}$` pattern in 18.7's finding-provenance schema and the 32-hex worked record in 19.3, are replaced by the 16-hex-digit form `^ev:[0-9a-f]{16}$` above, which is normative for the wire. An implementer emitting 32-hex ids produces stages that fail this schema outright, so no hypothesis export validates and 76.5.1's re-resolution against `bundle.jsonl` never runs.
+
 `"number"` is forbidden anywhere in every SPECTRA schema; a schema lint (`make lint-schema-nofloat`) greps the compiled schema bundle for `"type": "number"` and fails.
 
 76.4 IDENTITY AND HASH
@@ -174,7 +176,7 @@ HypothesisId = blake3(canon(h))
 ```
 
 Rules:
-1. Identity is the **instance set**, not the stage list. Two derivations differing only in tree shape or traversal order are one hypothesis. Enumeration deduplicates on `HypothesisId` before ranking.
+1. Identity is the **instance set**, not the stage list. Two derivations differing only in tree shape or traversal order are one hypothesis. Enumeration deduplicates on `HypothesisId` before ranking. OVERRIDES Part I section 19.5.1: the definition of a hypothesis as a *minimal* connected sub-DAG, and the step-5 prune of "any candidate that is a strict superset of another candidate with the same leaf set (non-minimal)", are replaced by deduplication on `HypothesisId` alone, with no minimality condition on the instance set. An implementer who keeps 19.5.1's minimality prune returns a strictly smaller set than this section's enumerator even on runs that never reach the cap.
 2. `rank_key`, `stages`, `severed_by`, `degraded` and `realizability` are NOT hashed. Re-ranking or re-binding a cut does not change identity.
 3. Cut-dependent views are addressed as `HypothesisId @ CutHash`, never folded into the id.
 4. A property test asserts id stability under randomized rule-firing order, randomized enumeration seed and randomized `HashMap` capacity hints. `make test-hypothesis-determinism`.
@@ -182,6 +184,8 @@ Rules:
 76.5 EVIDENCE BINDING (THE RULE THAT MAKES THE OBJECT HONEST)
 
 Every stage is exactly one of OBSERVED or GHOST. There is no third state and no partial state.
+
+OVERRIDES Part I section 17.4: the three-valued `observed` status OBSERVED / LICENSED / UNDETERMINED — carried by 17.4.2's rule that an UNDETERMINED absence yields nothing in P_min and a licensed instance in P_max, by 17.4.3's `absence_undetermined` counter and `uses_undetermined_absence` run flag, by 18.7's schema enum and its SQL `CHECK (observed IN ('OBSERVED','LICENSED','UNDETERMINED'))`, and by 19.6.1's U(h) count of UNDETERMINED-supported edges — is replaced by the two-variant `StageEvidence` of 76.2, in which a stage is OBSERVED or GHOST and nothing else. An implementer who keeps the third value has no variant to serialize it into and will either drop those instances from every hypothesis, losing derivations Part I places in P_max, or record them as GHOST, which asserts a `LicenseId` implied by `liveness.json` that an UNDETERMINED absence need not have.
 
 1. An OBSERVED stage carries at least one `EventId` that exists in `bundle.jsonl` under the hashed bundle. The checker (ECLIPSE §5) re-resolves every one; a dangling EventId is a certificate rejection, not a warning.
 2. A GHOST stage carries **zero** EventIds in its `events` position. It carries a `LicenseId` that must be implied by `liveness.json`.
@@ -209,6 +213,8 @@ order_stages(instances, H):
 
 Both assertions abort the process with exit code 70 and a dump of the offending instance ids. They are not flags and not recoverable: time-indexed monotone grounding (ECLIPSE §3) makes them unreachable, so reaching them means the grounder is broken and no artifact from that run may be published.
 
+OVERRIDES Part I section 19.2: the OBSERVES relation, which alone among the edge relations carries no tick condition and is defined as an edge from a later observation to the earlier GHOST it forces — the shape 18.3's R7 and 25.4's obligation construct by design — is replaced by an unconditional `t_lo(parent) <= t_lo(s)` invariant over every stage's `parents`. An implementer who follows 19.2 and records an obligation's triggering stage as a parent of the forced earlier stage gets exit 70 and a published-nothing run rather than a modelled backward-in-time edge, and must therefore not carry the OBSERVES edge into `parents`.
+
 76.7 RELATIONSHIP TO CORRIDORS AND TO THE CUT
 
 ```
@@ -217,10 +223,12 @@ corridor_of(h) = { minimal threshold literal x_{k,ℓ} per control k
 ```
 Minimal means: if a hypothesis is blocked at level 2 and at level 3 of the same control, only `x_{k,2}` enters, since `x_{k,3} → x_{k,2}`. `CorridorId = blake3("SPECTRA-CORR-v1" || u64le(mask) || controls_hash)`.
 
+OVERRIDES Part I section 19.5.2: the corridor clause as the raw union of `blockers` over a hypothesis — the same mask 25.6E computes as `corridor_mask(tree)` and 25.7 stores verbatim in the certificate's `psi` — is replaced by the threshold-minimal literal set above, and `CorridorId` is taken over that reduced mask. An implementer who unions raw blocker masks gets a different mask and therefore a different corridor identity for any hypothesis blocked at two levels of the same control, so 19.8.2(f)'s equality of the derived corridor set against the stored Ψ fails even though the sever test `S & mask != 0` still agrees under implication closure.
+
 1. The map hypothesis → corridor is many-to-one and total. Every enumerated hypothesis has a corridor; every corridor in Ψ was induced by at least one witness tree.
 2. A cut `S` **severs** h iff `S & corridor_mask(h) != 0`. `Stage.severed_by = blockers & S`; the **biting stage** is the lowest `ord` with `severed_by != 0`. The UI names it; the API returns its `ord`.
 3. OVERRIDES Part I: 22-25 present cut search without any statement about what a cut means for a displayed chain. The binding is now one-directional and explicit: a HypothesisSet is always served **with respect to a named cut** (possibly the empty cut) and the response carries `cut_hash`. A hypothesis rendered without a `cut_hash` is a malformed response.
-4. Forbidden inference: "S severs every hypothesis we enumerated" may **not** be rendered as "S severs the attack". The safety verdict comes from the fixpoint test under S over the whole program, never from the enumerated set. UI copy for the set is fixed at: "`<n>` of the enumerated hypotheses are severed at the stage shown. The verdict above comes from the fixpoint over the full program, not from this list."
+4. Forbidden inference: "S severs every hypothesis we enumerated" may **not** be rendered as "S severs the attack". The safety verdict comes from the fixpoint test under S over the whole program, never from the enumerated set. UI copy for the set is fixed at: "`<n>` of the enumerated hypotheses are severed at the stage shown. The verdict above comes from the fixpoint over the full program, not from this list." OVERRIDES Part I section 19.4.2: the per-hypothesis label "a hypothesis containing one or more GHOSTs is `OPTIMISTIC-ONLY` unless the ECLIPSE run was performed on `P_max` and returned ROBUST", printed on the hypothesis header line in 19.9's worked output, is replaced by a run-level typed verdict that carries its scope (76.14.2); `Hypothesis` has no verdict field and 76.19.11 forbids adding one. An implementer who renders that label per hypothesis is deriving a verdict from `ghost_stage_count` in the client without a scope binding, and fails `verdict-scope-required.spec.ts` and the reducer test in 76.12.5.
 
 76.8 RANKING: THE EXPLICIT FORMULA AND THE PROBABILITY BAN
 
@@ -235,6 +243,8 @@ rank_key(h) = ( h.ghost_stage_count,          # fewer licensed steps first
                 first_u64_of(h.id) )          # total order, always breaks remaining ties
 ```
 
+OVERRIDES Part I section 19.6.1: the 7-tuple rank(h) = ( G, U, L, S, E, D, T ) — ghost nodes, count of UNDETERMINED-supported edges, seconds of licensed blindness relied upon, summed per-source `source_rank` from `sources.toml`, edge count, temporal span in seconds, and a blake3_128 of the canonical edge id list — is replaced by the 6-tuple above: U and S are dropped, licensed blindness is counted as distinct licenses rather than seconds, the span is in ticks, and the final tiebreak is the first u64 of the `HypothesisId`. An implementer following 19.6.1 produces a different total order on the same set, ordering by seconds of blindness and by evidence quality where this section orders by license count and drops evidence quality entirely, which also leaves `source_rank` in `sources.toml` with no consumer.
+
 1. The tuple is published verbatim in `docs/ranking.md`, in the OpenAPI description of the field, and in a UI tooltip that is also rendered as static text below the list. If the formula changes, `enumerator_version` increments and every prior certificate keeps its recorded version.
 2. The ordinal shown to users is the 1-based position plus its tie class. Label is fixed: "rank (ordering rule, not a probability)". Banned labels: score, confidence, likelihood, certainty, plausibility, priority, severity, "most likely", "best explanation", star ratings, bar lengths proportional to rank, percentage.
 3. Banned rendering: any visual encoding whose length, area, opacity or color intensity is a function of rank. A rank is an ordinal; a bar is a magnitude. Playwright test `hypothesis-no-magnitude-encoding.spec.ts` asserts no element in the hypothesis rail has a width, height or opacity that varies with rank.
@@ -248,12 +258,14 @@ Enumeration and exactness. The k-best enumerator is Lawler-style over the AND/OR
 ```
 `k_max` is a declared constant (8), not a measurement. When the enumerator hits it, set D8 and 76.9 applies.
 
+OVERRIDES Part I section 19.5.1: expansion of the AND/OR structure into candidate DAGs by choosing one alternative per OR node, capped at `max_hypotheses` (default 256) with the certificate flag `hypothesis_enumeration_capped`, is replaced by the Lawler-style k-best enumerator above with `k_max` = 8, whose cap sets the monotone degradation code D8 HYPO_RANK_TRUNCATED. An implementer who keeps the 256 cap and the flag enumerates up to thirty-two times as many hypotheses and reports the cap as certificate metadata, where 76.13 makes it a run-level degraded state that suppresses set-cardinality claims and counts as a failure in the ROBUST-yield metric of section 62.
+
 76.9 COMPETING HYPOTHESES: A SET, NEVER A WINNER
 
 1. The API, the UI and every export return a `HypothesisSet`. There is no endpoint, field or component that returns one hypothesis as "the" reconstruction.
 2. If `rank_class_1_size > 1`, all members of the tie class are displayed at the same visual level, in id order, with the fixed caption "`<n>` hypotheses are tied at rank 1 under the ordering rule; the ordering rule does not distinguish them."
 3. If `enumeration_complete == false`, the set header reads "at least `<k>` hypotheses; enumeration was truncated at k_max" and the phrase "all hypotheses" is unconstructible: the string table has no entry for it and the banned-phrase gate covers "the attack chain was", "the attacker did", "what actually happened".
-4. Narration (the LLM boundary) receives the whole set or nothing. A narrator prompt containing exactly one hypothesis is a build failure of the narration harness. Every narrated sentence about a stage carries either its EventIds or the literal token `GHOST`.
+4. Narration (the LLM boundary) receives the whole set or nothing. A narrator prompt containing exactly one hypothesis is a build failure of the narration harness. Every narrated sentence about a stage carries either its EventIds or the literal token `GHOST`. OVERRIDES Part I section 19.10: "an LLM may narrate an already-computed hypothesis" in the singular, and 21.10's exhaustive list of permitted narrator inputs — certificate JSON, cut, corridor list, counterexample derivation trees, license list, blindness premium, state timeline, provenance subgraph, degradation table, and no hypothesis set — are replaced by this rule: the narrator receives the whole `HypothesisSet` or nothing. Item 5 below does not cover this, being scoped to 39-42 and the demo script, so an implementer building the narrator from 21.10's closed list has no lawful way to pass the set at all, and one building from 19.10 passes exactly one hypothesis, which is a build failure of the narration harness.
 5. OVERRIDES Part I: any place in 39-42 or in the demo script that speaks of "the reconstruction" in the singular is replaced by "the hypothesis set". The banned-phrase gate enforces it outside `docs/limitations/`.
 
 76.10 REALIZABILITY GATE BEFORE DISPLAY
@@ -295,6 +307,8 @@ GET  /v1/runs/{run_id}/hypotheses/{hypothesis_id}?cut={cut_hash}
 GET  /v1/runs/{run_id}/hypotheses/{hypothesis_id}/stages?limit=200&cursor=
 GET  /v1/runs/{run_id}/hypotheses/{hypothesis_id}/export?format=json|jsonl|dot
 ```
+
+OVERRIDES Part I section 19.7.1: the path `GET /api/v1/runs/{id}/hypotheses`, and with it the `/api/v1` prefix Part I uses for every HTTP surface (20.14, 24.9, 25.11), is replaced by the `/v1` prefix on the four routes above. An implementer who mounts these under `/api/v1` serves paths the generated TypeScript client never calls, because 76.11.5 generates that client from this OpenAPI document and gates the build on drift.
 
 ```json
 { "run_id": "run_01J...", "goal": "fact:41207", "program": "P_MAX",
