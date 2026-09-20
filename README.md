@@ -129,9 +129,11 @@ No results have been measured.
 
 What will be measured, how, with which seeds and repetitions, and what would falsify each research
 question is committed in advance in [docs/research/preregistration.md](docs/research/preregistration.md).
-That document is currently headings only. Results, when they exist, are produced by a gate, written
-to a run artifact, registered in [CLAIMS.md](CLAIMS.md) against the artifact and gate that produced
-them, and rendered into documentation by a generator — never typed into this file.
+That document is a skeleton: a framing section and a minimum list of what the protocol cannot
+establish are written; every research question, falsifier and scenario pool section is empty.
+Results, when they exist, are produced by a gate, written to a run artifact, registered in
+[CLAIMS.md](CLAIMS.md) against the artifact and gate that produced them, and rendered into
+documentation by a generator — never typed into this file.
 
 ## Building
 
@@ -145,12 +147,16 @@ Prerequisites:
 - No network is needed after clone. Nothing in this repository fetches anything at build or test
   time.
 
-**Nothing builds yet beyond the skeleton gate.** The `Makefile` declares part of the target
-vocabulary; the ten component gates named in `mpc.toml` and the targets named in `CLAIMS.md` are
-not declared yet. What is declared is reviewable, and a target that is not implemented prints what
-is missing and exits non-zero. No declared target exits zero having done nothing. The CI workflow
-declares its jobs and skips them with a stated reason; no job reports green for work that was not
-performed.
+**Nothing builds yet beyond the skeleton gate and the sandbox guard.** `make skeleton-verify`
+(gate `G-SKELETON-001`) and `make guard-sandbox` (gate `G-WIN-001`) are the only gates in
+`ci/gates.toml` whose make target is implemented; every other gate row names a target that is
+either undeclared or declared and not implemented. The `Makefile` declares part of the target
+vocabulary; the ten component gates named in `mpc.toml` are not declared at all, and of the
+targets named in `CLAIMS.md` only `claims-check` and `verify-no-llm` are declared — and both of
+those are declared, not implemented. What is declared is reviewable, and a target that is not
+implemented prints what is missing and exits non-zero. No declared target exits zero having done
+nothing. The CI workflow declares its jobs and skips them with a stated reason; no job reports
+green for work that was not performed.
 `make m0-verify`, the gate that would make the toolchain milestone green, is not started.
 
 The development setup, the target vocabulary and the test layers will be described in
