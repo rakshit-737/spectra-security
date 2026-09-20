@@ -1,0 +1,19 @@
+# spectra-bench - Rust benchmarks emitting JSON consumed by bench/.
+# Spec: Part I 32.4, 48; Part I 33.9 (no other target may produce a number).
+# Status: not started.
+
+[package]
+name = "spectra-bench"
+description = "SPECTRA Rust benchmarks. Not started; no measurement exists."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): criterion is not added until a bench exists.
