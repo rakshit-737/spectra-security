@@ -1,0 +1,9 @@
+# SPECTRA - pinned Rust toolchain.
+# Spec: Part I 33.4 (channel, components, targets), 33.6 (rust 1.82.0).
+# Never use "stable" or any floating channel here (Part I 33.6).
+
+[toolchain]
+channel = "1.82.0"
+components = ["rustfmt", "clippy", "rust-src"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"
