@@ -1,0 +1,50 @@
+# S7 liveness configuration for the SPECTRA vertical slice.
+#
+# This file is hashed into the certificate. Editing any value below changes the
+# thresholds, therefore the verdicts, therefore the certificate, which is why the
+# values live here rather than in code: a threshold that can be changed without the
+# change being visible in a hash is a threshold that can be tuned until the answer is
+# the one someone wanted.
+#
+# Every number here is an integer. Decimal literals are rejected at parse time
+# (E-CANON-FLOAT) rather than rounded, because a quantile read as a binary float is a
+# quantile whose value depends on the platform that read it.
+#
+# THE ONE VALUE THAT IS NOT HERE: the threshold itself. It is never derived from the
+# run under analysis. It comes from profiles/<family>.json, produced by S6 on a
+# separate clean run under a seed from the calibration band. Deleting records from the
+# run being analysed stretches its own gap distribution, so a quantile taken from it
+# would rise exactly as degradation rises and suppression would hide itself at the
+# high degradation levels the whole study is about.
+
+schema = "spectra.vs.liveness_cfg/1"
+
+# Order statistic taken from the calibration gap vector, as num/den. The literal is a
+# string and not 0.95 on purpose; see the header.
+quantile = "95/100"
+
+# Multiplied onto the order statistic before comparison: T = ceil(Q * 3 / 2).
+slack_num = 3
+slack_den = 2
+
+# Tail-sample requirement feeding n_min. n_min(p,q) = max(n_floor, ceil(k_tail*q/(q-p))).
+# For 95/100 that is max(30, 100) = 100 gaps per (source, regime) before F0 is possible.
+k_tail = 5
+n_floor = 30
+
+# Minimum records bracketed by a window before the window may be called LIVE.
+#
+# READ THIS BEFORE CHANGING IT, AND READ IT BEFORE RELYING ON IT. The breakpoint grid
+# places a breakpoint at every t_evt_ns of the source, so an elementary interval
+# between two adjacent records brackets exactly two records. With m_min = 3 rule R9
+# therefore fires on every elementary interval of a source whose records are distinct
+# in time, and no interval can reach R11. That is fail-closed and it is what the
+# operative specification's CONFIG block states, so it is what ships. It is also
+# almost certainly not what the specification's minimum-viable scenario assumes, since
+# that scenario requires iam_audit to be LIVE at completeness 1.0. The contradiction
+# is recorded rather than patched: lowering this value is a config edit, it changes
+# the hash, and it is visible in every certificate that follows.
+m_min = 3
+
+# Cap on the exact search in the decisive-observation stage, consumed by S10 not S7.
+mcs_exact_cap = 64
