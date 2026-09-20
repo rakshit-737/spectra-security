@@ -37,6 +37,14 @@ never a stored or hashed value.
    SQL:        BIGINT NOT NULL                           -- never TIMESTAMP, never TIMESTAMPTZ
    ```
 
+   OVERRIDES Part I section 2.4: "timestamps inside artifacts are scenario-relative, not
+   wall-clock" is replaced by absolute nanoseconds since the Unix epoch, and Part I section 3.1's
+   transition-schema field `"t": {"type":"integer","description":"scenario-relative microseconds"}`
+   together with section 3.5's `interval: (Micros, Micros)` is replaced by `TsNanos`. An
+   implementer who generates the Pydantic, Rust and TypeScript types from the section 3.1 schema
+   as written emits scenario-relative microseconds, which no hashed artifact in this section
+   accepts.
+
 2. Forbidden as stored or hashed time representations: `float`/`double` seconds, `time.Time`,
    `datetime`, JS `number` milliseconds, `NUMERIC`, RFC 3339 strings, monotonic clock readings,
    and any value carrying a timezone. RFC 3339 exists only at the ingest boundary (parsed to
@@ -57,6 +65,13 @@ never a stored or hashed value.
    (58.6) fails the build on `SystemTime::now`, `time.Now`, `datetime.now`, `Date.now`,
    `getTimeOfDay`, `clock_gettime` outside an allowlisted file list committed at
    `tools/lint/clock-allowlist.txt`.
+
+   OVERRIDES Part I section 17.1.2 and section 15.6: the three-clock record's `t_ing`, "the
+   instant SPECTRA durably received the record", and section 15.6's permission for wall-clock
+   reads at the ingest boundary are revoked for any value that reaches a hashed artifact. The two
+   reads listed above are the only permitted ones and neither of them is `t_ing`. An implementer
+   who populates `t_ing` from a host clock and lets that record feed `content_hash` makes the
+   fact base host-dependent and trips the 58.6 lint.
 
 6. `TZ=UTC` and `LC_ALL=C` are set in every Dockerfile, every CI job, every devcontainer and the
    `Makefile` itself (`export TZ := UTC`, `export LC_ALL := C`). A gate asserts both are set
@@ -100,6 +115,13 @@ made grounding and `t+1` expiry semantics ill-defined.
    are listed in `rules/granularity-sensitive.txt`, must carry a written justification, and the
    test asserts exactly that list, so adding a sensitive rule silently is impossible.
 
+   OVERRIDES Part I section 17.10: gate G17.5, which rejects a granularity-sensitive rule at load
+   with diagnostic `V19` unless the rule's own `flags` field carries `time_fragile_ok` (section
+   18.1), is replaced by the committed list `rules/granularity-sensitive.txt`, and the comparison
+   is `tick_nanos = 1_000_000` against `1_000` rather than Δ against Δ/2. An implementer who keeps
+   `V19` and the per-rule flag rejects at load the rules this section admits, and leaves the
+   committed list unasserted.
+
 
 58.3 THE TOTAL ORDER ON EVENTS AND THE TIE-BREAK CHAIN
 ------------------------------------------------------------
@@ -115,6 +137,13 @@ made grounding and `t+1` expiry semantics ill-defined.
    | 4 | `content_hash`   | `[u8;32]`     | ascending byte-lexicographic, BLAKE3-256 of canonical record |
    | 5 | `line_ordinal`   | `u64`         | ascending, 0-based line index in `bundle.jsonl`      |
 
+   OVERRIDES Part I section 17.1.3: the 4-tuple `order_key(e) = (t_evt(e), source_id(e), seq(e),
+   event_id(e))` is replaced by this 5-tuple, in which component 2 is the BLAKE3 of the source
+   name compared byte-lexicographically rather than the TEXT `source_id` of the section 3.1 DDL,
+   and the final tie-break is `line_ordinal` rather than a content address. An implementer who
+   sorts by the Part I key obtains a different permutation of the same bundle, and therefore a
+   different fact base and a different certificate.
+
 2. String comparison anywhere in the order is **byte-lexicographic over UTF-8**, never
    locale-aware, never case-folded, never normalized at compare time. Unicode normalization
    (NFC) happens once at ingest; after ingest all strings are opaque bytes.
@@ -124,6 +153,14 @@ made grounding and `t+1` expiry semantics ill-defined.
    counter, not a database sequence, and not stable across bundles. A gate asserts that shuffling
    the physical lines of `bundle.jsonl` produces a byte-identical fact base and a byte-identical
    certificate.
+
+   OVERRIDES Part I section 17.1.3 and section 19.3: `event_id` as the 16-byte BLAKE3-128 content
+   address, written `ev:<32 hex>` in the section 19.3 edge record and constrained to
+   `^ev_[0-9a-f]{16}$` by the section 3.1 transition schema, is replaced by a dense 0-based rank
+   that is neither a content address nor stable across bundles. An implementer who keeps the
+   content-addressed form leaves the shuffle gate, the `DUP_EVENT_SAME_KEY` diagnostic and the
+   `line_ordinal` tie-break with nothing to attach to, and those two patterns no longer describe
+   the value.
 
 4. If component 5 is ever reached between two distinct events, the pipeline emits diagnostic
    `DUP_EVENT_SAME_KEY` into the run manifest with both `EventId`s. This is not an error (exact
@@ -140,6 +177,14 @@ made grounding and `t+1` expiry semantics ill-defined.
    LicenseId    := rank of (source_id, t0, t1, basis_tag)
    CorridorId   := rank of the corridor's blocker mask, ascending as u64
    ```
+
+   OVERRIDES Part I section 17.2.1 and section 19.3: interning a fact to a `FactId(u32)` in
+   first-appearance order is replaced by the rank of the canonical key, and the content-addressed
+   `ri:`, `lc:` and `ed:` identifiers of the section 19.3 edge record — `BYTEA` primary keys in
+   that section's DDL, and `^tr_[0-9a-f]{16}$` in the section 3.1 schema — are replaced by ranks.
+   An implementer who interns in first-appearance order assigns different `FactId`s to the same
+   bundle, and one who emits fixed-width content addresses produces a hypergraph this discipline
+   rejects.
 
    Bit positions in the `blockers: u64` mask are therefore a pure function of `controls.toml`
    and are written to `build/atom-positions.txt`, which is committed and diffed in CI so a
@@ -183,6 +228,12 @@ disallowed-types = [
   { path = "std::collections::HashSet", reason = "58.4: use BTreeSet or IndexSet in decision paths" },
 ]
 ```
+
+OVERRIDES Part I section 15.6: scoping the `clippy.toml` denial of `std::collections::HashMap` to
+`spectra-state` and `spectra-eclipse` is replaced by a denial that applies to every decision crate
+in the workspace. An implementer who keeps the two-crate scoping leaves every other decision crate
+unchecked; the crate names in the comment above identify that role and are not a renaming of the
+workspace members declared in Part I section 1.5.
 
 ```go
 // tools/vet/maprange: a golang.org/x/tools analyzer.
@@ -326,6 +377,13 @@ are banned in every decision path.
    process prints a warning and **continues**. It may not abort, because aborting on time is a
    wall-clock decision. CI kills runaway jobs at the job level, and a job killed that way is a
    red build, not a flagged certificate.
+
+   OVERRIDES Part I section 47.6: the degradation flag set of 47.6(6), which enumerates "a
+   timeout" alongside a cap, a voided license, a dead-lettered record and a partial source as
+   states the API response, the certificate and the UI header must carry, loses its timeout
+   entry; no run aborts on time, so no timeout state exists to flag. An implementer who adds a
+   `timeout` flag to the certificate schema builds a flag that is either unproducible or, if
+   derived from wall-clock, not reproducible across the 58.10 environments.
 
 6. Forbidden constructs in decision paths, lint-enforced: `tokio::time::timeout`,
    `context.WithTimeout`, `signal.alarm`, `SIGALRM`, `setTimeout` gating a computation,
@@ -535,6 +593,13 @@ operators' stream and silently invalidates every fixture. Seeds are now derived 
    forbidden by the writer, which panics rather than emitting one. A round-trip conformance
    corpus at `tests/scj/` must produce byte-identical output from the Rust writer, the Go writer
    and the Python writer. Disagreement fails the build.
+
+   OVERRIDES Part I section 44.1: "integers only (no floats; fixed-point millis for time), `\u`
+   escapes uppercase" is replaced by SCJ — every integer emitted as a decimal string, `\u00xx`
+   escapes lowercase, and time carried as `TsNanos` nanoseconds rather than fixed-point
+   milliseconds. An implementer who serializes per section 44.1 produces different bytes for the
+   same data, so the stage digests, the `tests/scj/` corpus, `make test-golden` and the Go
+   checker's re-serialization all disagree with this writer.
 
 3. `git_dirty: true` forces `flags.dirty_tree` on the certificate, and per the verdict-algebra
    section a dirty run is never ROBUST and its numbers may never reach `docs/`.
