@@ -1,0 +1,241 @@
+# config/vs/rules.toml
+#
+# The vertical slice rule table. Six detect rules and two obligation axioms, per the
+# operative specification's minimum_viable section. Loaded and compiled by S1
+# (python/spectra_vs/src/spectra_vs/rules.py).
+#
+# WHAT THIS FILE IS. A hand-authored model of one simulated scenario family,
+# `vs-01-token-pivot`. Nothing here is measured and nothing here describes a system that
+# ran. A rule firing is a statement about this table, not about the world.
+#
+# ---------------------------------------------------------------------------
+# PATTERN GRAMMAR
+# ---------------------------------------------------------------------------
+# `head` and each `body` entry are `predicate(var, var, ..., tick_var)`:
+#   - the predicate is dotted snake, e.g. `iam.role_assumed`;
+#   - every argument is a snake variable, never a literal;
+#   - the LAST argument is the tick variable and binds the fact's tick;
+#   - every preceding argument binds one entity argument of the fact, positionally.
+# A variable repeated across two body patterns is an equality join on that argument.
+# Every head variable must occur in the body, except where `silent_bind_kinds` names it.
+#
+# A body predicate that is not the head of any rule in this table is an AXIOM predicate:
+# it is seeded directly from bundle records through the entity-resolution bindings. Every
+# `detect` rule must have at least one axiom body pattern, because an OBSERVED instance
+# with no axiom slot would carry no evidence.
+#
+# An axiom pattern's entity variables ARE the entity-resolution role names, and they must be
+# written in ASCENDING BYTE ORDER, because the seeded fact orders its argument vector by role
+# name. The loader checks it. Writing them in any other order would make the binding of a
+# variable depend on a convention held in two places instead of one.
+#
+# `when` refers to body slots by position: slot `a` is body[0], `b` is body[1], and so on.
+# `a.t` is that slot's tick, and `t` is reserved for exactly that, so no pattern may use
+# `t` as an ENTITY variable. `a.<var>` is that slot's entity argument named `<var>`.
+# Tick variables are per-pattern: two body patterns that both wrote `t` would be asserting
+# that the two facts share a tick, which is never what a temporal rule means.
+# The tick variable of an `absence` pattern is bound by the lookback, never by the body.
+#
+# ---------------------------------------------------------------------------
+# CONTROL CATALOG THIS FILE PINS
+# ---------------------------------------------------------------------------
+# `blocked_when` names levels BY NAME, never by integer. The names below are the ones this
+# table references; the catalog that defines them is config/vs/controls.toml and the bit
+# positions are the append-only lock at config/vs/catalog-bits.lock. S1 fails loudly on a
+# level name this table uses and the catalog does not define, rather than defaulting to the
+# weakest setting, because a guard that silently weakened would sever nothing.
+#
+#   egress_seg        levels = ["unsegmented", "allowlist_egress", "brokered_egress"]
+#   priv_approval     levels = ["none", "async_ticket", "sync_two_person"]
+#   rate_limit        levels = ["none", "per_principal_quota"]
+#   session_binding   levels = ["none", "device_bound", "device_and_network_bound"]
+#   token_expiry      levels = ["long_lived", "short_lived", "single_use"]
+#
+# Level 0 is the weakest setting and has no threshold literal, because "at least the
+# weakest setting" asserts nothing. That gives 2 + 2 + 1 + 2 + 2 = 9 threshold literals.
+#
+# ---------------------------------------------------------------------------
+# NEGATIVE REQUIREMENTS, ENFORCED BY THE LOADER
+# ---------------------------------------------------------------------------
+# - No rule may carry a delete, retract, revoke or expire effect. Facts are append-only;
+#   expiry is modelled as a later fact not being derived, never as an earlier fact being
+#   withdrawn. The loader rejects the key outright rather than ignoring it.
+# - `blocked_when` is a disjunction of bare thresholds (C-SLICE-1). A conjunctive term is
+#   rejected with E-VS-BLOCK-CONJ.
+# - `when` may not mention `ctl.` (E-SYN-010); `blocked_when` may not mention `not`,
+#   arithmetic, a variable or a literal (E-SYN-009), and may not write a level as an
+#   integer (E-SYN-012).
+# - `persistence` must be "instant" in this slice; "sticky" and "until(<expr>)" are
+#   deferred and are rejected at load rather than silently treated as "instant".
+
+schema = "spectra.vs.rules/1"
+
+# ===========================================================================
+# ROUTE A - fully observed at completeness 1.0
+# ===========================================================================
+
+# k2: refresh exchange at the IdP. The observed step that starts the chain.
+[[rule]]
+id                = "r0001"
+version           = "1.0.0"
+dimension         = "session"
+kind              = "detect"
+head              = "session.established(principal, credential, t)"
+body              = ["idp.refresh_exchange(credential, principal, t)"]
+when              = ""
+blocked_when      = "ctl.token_expiry >= short_lived or ctl.session_binding >= device_bound"
+producing_sources = ["idp_auth"]
+silent_possible   = false
+persistence       = "instant"
+evidence          = ["a"]
+causal_relation   = "AUTHORIZES"
+attck             = ["T1550"]
+note              = "A refresh exchange establishes a session. Shortening token lifetime or binding the session to a device severs this edge in the model."
+
+# k3: gateway call carrying the replayed token.
+[[rule]]
+id                = "r0002"
+version           = "1.0.0"
+dimension         = "api"
+kind              = "detect"
+head              = "access.gateway(principal, service, t1)"
+body              = ["session.established(principal, credential, t0)", "gw.request(principal, service, t1)"]
+temporal          = { op = "seq", left = "a", right = "b", within = "30m" }
+when              = "a.principal == b.principal and a.t <= b.t"
+blocked_when      = "ctl.session_binding >= device_bound"
+producing_sources = ["gw_access"]
+silent_possible   = false
+persistence       = "instant"
+evidence          = ["b"]
+causal_relation   = "PROPAGATES"
+attck             = ["T1078"]
+note              = "The session reaches the gateway within half an hour of being established."
+
+# k4: bulk resource read. Three distinct resources inside a ten-minute window.
+[[rule]]
+id                = "r0003"
+version           = "1.0.0"
+dimension         = "resource"
+kind              = "detect"
+head              = "exfil.bulk_read(principal, resource, t1)"
+body              = ["access.gateway(principal, service, t0)", "res.read(principal, resource, t1)"]
+temporal          = { op = "distinct", of = "b", field = "resource", n = "3", within = "10m" }
+when              = "a.principal == b.principal and a.t <= b.t"
+blocked_when      = "ctl.rate_limit >= per_principal_quota or ctl.egress_seg >= allowlist_egress"
+producing_sources = ["res_access"]
+silent_possible   = false
+persistence       = "instant"
+evidence          = ["b"]
+causal_relation   = "PROPAGATES"
+attck             = ["T1530"]
+note              = "The goal predicate. Reached by route A here and by route B through r0005."
+
+# ===========================================================================
+# ROUTE B - the escalation path, present only as an escalation path
+# ===========================================================================
+
+# k5: an admin role assumed with no preceding approval. The absence is the whole point,
+# and it is the only negation in the table.
+[[rule]]
+id                = "r0004"
+version           = "1.0.0"
+dimension         = "privilege"
+kind              = "detect"
+head              = "privilege.escalated(principal, role, t)"
+body              = ["iam.role_assumed(principal, role, t)"]
+temporal          = { op = "absence", of = "iam.approval_granted(principal, role, ta)", before = "a", within = "72h" }
+when              = ""
+blocked_when      = "ctl.priv_approval >= async_ticket"
+producing_sources = ["iam_audit"]
+silent_possible   = true
+silent_bind_kinds = { principal = "user", role = "account" }
+persistence       = "instant"
+evidence          = ["a"]
+causal_relation   = "AUTHORIZES"
+attck             = ["T1078.004"]
+note              = "Absence over a sealed 72h lookback. When iam_audit is blind across that lookback the instance may only be LICENSED, never OBSERVED."
+
+# k6: admin export, bypassing the egress path. Deliberately unblocked by egress_seg:
+# corridor B is a singleton so that the premium computation has something to separate.
+[[rule]]
+id                = "r0005"
+version           = "1.0.0"
+dimension         = "resource"
+kind              = "detect"
+head              = "exfil.bulk_read(principal, resource, t1)"
+body              = ["privilege.escalated(principal, role, t0)", "res.export(principal, resource, t1)"]
+temporal          = { op = "seq", left = "a", right = "b", within = "30m" }
+when              = "a.principal == b.principal and a.t <= b.t"
+blocked_when      = ""
+producing_sources = ["res_access"]
+silent_possible   = false
+persistence       = "instant"
+evidence          = ["b"]
+causal_relation   = "PROPAGATES"
+attck             = ["T1530"]
+note              = "The escalated principal exports directly, so the egress segmentation control does not appear on this route."
+
+# A side observation, not on the goal path: the held credential turning up at the gateway.
+[[rule]]
+id                = "r0006"
+version           = "1.0.0"
+dimension         = "credential"
+kind              = "detect"
+head              = "credential.replayed(credential, principal, t1)"
+body              = ["credential.held(credential, principal, t0)", "gw.request(principal, service, t1)"]
+temporal          = { op = "seq", left = "a", right = "b", within = "30m" }
+when              = "a.t <= b.t"
+blocked_when      = "ctl.session_binding >= device_bound"
+producing_sources = ["gw_access"]
+silent_possible   = false
+persistence       = "instant"
+evidence          = ["b"]
+causal_relation   = "AUTHORIZES"
+attck             = ["T1550.001"]
+note              = "credential.held is only ever a GHOST in this scenario, so this rule derives nothing in P_min. causal_relation is AUTHORIZES, not PROPAGATES, because a GHOST may never be the sole support of a PROPAGATES edge."
+
+# ===========================================================================
+# OBLIGATION AXIOMS
+# ===========================================================================
+# An obligation never fires in P_min. Its head is by construction a step nobody observed,
+# so the only honest place to instantiate it is the envelope, where a licence can be cited
+# or a permanent blind spot recorded instead.
+
+# O1: a token presented implies a token acquired. edr_host is declared and emits nothing
+# ever, so this obligation is licensed by a permanent BLIND window and produces the GHOST.
+[[rule]]
+id                = "r0007"
+version           = "1.0.0"
+dimension         = "credential"
+kind              = "obligation"
+head              = "credential.held(credential, principal, t)"
+body              = ["idp.refresh_exchange(credential, principal, t)"]
+temporal          = { op = "obligation", before = "a", within = "1h" }
+when              = ""
+blocked_when      = ""
+producing_sources = ["edr_host"]
+silent_possible   = true
+persistence       = "instant"
+evidence          = ["a"]
+causal_relation   = "AUTHORIZES"
+attck             = []
+note              = "Rendered as INFERRED, UNOBSERVED with its licensing source and window inline. It contributes 0 to observed_event_count and 1 to ghost_count."
+
+# O2: a session used implies a session was issued.
+[[rule]]
+id                = "r0008"
+version           = "1.0.0"
+dimension         = "session"
+kind              = "obligation"
+head              = "session.issued(principal, credential, t)"
+body              = ["session.established(principal, credential, t)"]
+temporal          = { op = "obligation", before = "a", within = "1h" }
+when              = ""
+blocked_when      = ""
+producing_sources = ["idp_auth"]
+silent_possible   = true
+persistence       = "instant"
+evidence          = ["a"]
+causal_relation   = "AUTHORIZES"
+attck             = []
+note              = "The mandatory contrast case. Nothing in this table derives session.issued from a record, so this obligation is never satisfied: where idp_auth is blind over the lookback it produces a licensed GHOST, and where idp_auth is live it produces a permanent_blind_spot entry instead - the honest admission that the step is invisible rather than a pretty inferred node."
