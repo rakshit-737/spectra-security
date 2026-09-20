@@ -84,7 +84,7 @@ jobs:
       # TODO(pin): 74.11.2 requires every action pinned to a full commit SHA.
       # The SHA below is actions/checkout v4.2.2. Verify it against the upstream
       # tag on the first real run and record the check in ci/ledger/.
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: make skeleton-verify
