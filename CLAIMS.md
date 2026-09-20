@@ -181,4 +181,5 @@ whose mode string is a bare token without its scope binding. None of these is im
 | G-LIMITS-COMPLETE | `make release` | a required limitations block is NOT MEASURED |
 | G-DEMO-CLAIMS | `make demo-verify` | a transcript line lacks its claim tag, or its printed value differs from the live run |
 
-Every gate in this table is **not started**. None of these targets exists.
+Every gate in this table is **not started**. Of these targets only `make claims-check` is declared
+in the Makefile, and it is not implemented; the rest are not declared at all.
