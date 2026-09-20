@@ -13,9 +13,10 @@
 # THE BINDING RULE. Every line below must match the toolchain baked into
 # spectra/toolchain-a at the digest recorded in images.lock. This file is the
 # convenience copy for a developer working in WSL2 outside the container; the
-# image is the authority. `make doctor` compares found-vs-pinned and exits
-# nonzero on any mismatch (Part I section 33, target table). If a version here
-# and the image disagree, the image wins and this file is the bug.
+# image is the authority. `make doctor` will compare found-vs-pinned and exit
+# nonzero on any mismatch once that comparison is implemented; today it probes
+# presence only (Part I section 33, target table). If a version here and the
+# image disagree, the image wins and this file is the bug.
 #
 # No line may ever read `latest`, `stable`, `nightly`, or carry a range
 # operator (`^`, `~`, `*`, `>=`) - Part II section 74.11.2.
@@ -25,7 +26,8 @@
 
 # --- Python: generator, ingest orchestration, ER, API services -------------
 # Must match spectra/toolchain-a at the images.lock digest.
-# Members under python/ pin requires-python = "==3.12.*"; uv.lock is committed.
+# Members under python/ pin requires-python = "==3.12.*"; uv.lock will be
+# committed once a dependency exists, and is absent while there are none.
 python 3.12.7
 
 # --- Rust: proof kernel, grounder, fixpoint, cut solver --------------------
