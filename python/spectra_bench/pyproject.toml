@@ -1,0 +1,20 @@
+# spectra_bench - benchmark drivers and result serialization (no plotting).
+# Spec: Part I 32.3, 48; Part II 69.16 (only measured figures may be published).
+# Status: not started.
+
+[project]
+name = "spectra-bench"
+version = "0.0.0"
+description = "SPECTRA benchmark drivers and result serialization. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them (Part II 74.2).
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): see python/spectra_core/pyproject.toml.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_bench"]
