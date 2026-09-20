@@ -1,0 +1,138 @@
+# SPECTRA - .dockerignore
+#
+# Status: session one. This file is the thing being delivered.
+#
+# Purpose: keep the build context small and, more importantly, keep host state
+# out of it. Part II section 74.0 allows exactly two network postures and the
+# image build is on the NETWORK-FORBIDDEN side for everything except
+# `make toolchain-refresh`. A host-resolved dependency cache, a host .venv or a
+# host target/ directory copied into a context is how a resolver result leaks
+# into an image that is supposed to be offline-complete.
+#
+# Rule: exclude broadly, then re-include the few paths a build stage actually
+# needs. A path that must be inside an image belongs in a vendored bundle under
+# /opt/spectra/vendor/<ecosystem>/ (Part II section 74.1.2), not in this context.
+
+# ---------------------------------------------------------------------------
+# Version control and repository metadata
+# ---------------------------------------------------------------------------
+.git
+.git/**
+.gitignore
+.gitattributes
+.github
+.opencode
+
+# ---------------------------------------------------------------------------
+# Host toolchain state - never copied into an image
+# ---------------------------------------------------------------------------
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/.tox
+**/.nox
+**/.hypothesis
+**/*.egg-info
+
+# Rust
+**/target
+**/.cargo/registry
+**/.cargo/git
+
+# Go
+**/go.work.sum.tmp
+
+# Node / TypeScript
+**/node_modules
+**/.pnpm-store
+**/.npm
+**/.turbo
+**/.vite
+**/dist
+**/*.tsbuildinfo
+**/playwright-report
+**/test-results
+
+# .NET
+**/bin
+**/obj
+**/.vs
+
+# JVM
+**/.gradle
+**/build
+**/.kotlin
+**/.bloop
+**/.metals
+**/.bsp
+
+# Haskell
+**/dist-newstyle
+**/.stack-work
+
+# Native / CMake
+**/CMakeFiles
+**/CMakeCache.txt
+**/cmake-build-*
+**/compile_commands.json
+
+# ---------------------------------------------------------------------------
+# Generated and run-scoped data (Part I section 32.9)
+# ---------------------------------------------------------------------------
+data/generated
+data/runs
+bench/results
+out
+bin
+artifacts
+
+# Toolchain OCI tarballs. Large, and already addressed by digest in images.lock.
+cas/oci
+cas/tmp
+
+# ---------------------------------------------------------------------------
+# Secrets and local environment
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+**/credentials.env
+**/*.pem
+**/*.key
+
+# ---------------------------------------------------------------------------
+# Editor, OS and local scratch
+# ---------------------------------------------------------------------------
+.idea
+.vscode
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini
+
+# ---------------------------------------------------------------------------
+# Documentation and prose: not needed to build an image
+# ---------------------------------------------------------------------------
+docs
+**/*.md
+!README.md
+# README.md is re-included because a stage may embed the project description.
+# TODO(decision): if no stage ends up needing it, drop the re-include rather
+# than leaving an unused file in the context.
+
+# ---------------------------------------------------------------------------
+# Committed test data: excluded from image builds on purpose
+# ---------------------------------------------------------------------------
+# data/fixtures and data/golden are TRACKED in git and are mounted into a test
+# run, not baked into a toolchain image. A fixture inside an image is a fixture
+# nobody can see change.
+data/fixtures
+data/golden
+tests/golden
