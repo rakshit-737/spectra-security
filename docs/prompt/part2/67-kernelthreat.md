@@ -51,8 +51,24 @@ Attacker capability classes, declared per fixture in `attack.toml`:
 | `C5_flooder` | emit unbounded volume and unbounded distinct entities | exceed the range's declared resource limits |
 | `C6_catalog_author` | contribute rules, blocker bits, controls, goals (supply-chain-of-the-model) | modify the kernel or the checker |
 
+OVERRIDES Part I §6.2: the closed capability set declared in `threat/model.toml`
+(`C1_credential_theft` through `C11_time_manipulation`) does not govern red-team fixtures. The
+`C0`–`C6` set above is a separate namespace, declared per fixture in `attack.toml`, and the
+identifiers collide across the two files — `C5` is lateral authentication in one and unbounded
+flooding in the other, `C6` is service-account abuse in one and catalog authorship in the other —
+so a capability id is meaningful only together with the file that declares it. An implementer
+running §6.2's capability linter over `attack.toml` fails the build on every fixture in 67.12.
+
 `C6` is included deliberately: a control catalog is a contribution surface, and 67.7/67.8 are the
 only defenses SPECTRA has against a contributor who authors a flattering model.
+
+OVERRIDES Part I §6.3 L3 and §6.5: "the attacker CANNOT modify the control configuration; controls
+are defender-side state" and the out-of-scope entry assigning supply-chain compromise to WARDEN are
+replaced for the catalog surface. A contributor who authors rules, blocker bits, controls or goals
+is in scope as `C6_catalog_author`, and 67.8's gates are the defense; `threat/SCOPE.md` no longer
+states the scope the code enforces. An implementer maintaining §6.5's rule linter rejects the
+provenance notes on the very fixtures 67.8 requires (`A6_universal_atom`, `A6_inert_atom`,
+`A6_unenforced_blocker`).
 
 ## 67.2 Attack table
 
@@ -94,6 +110,10 @@ Required implementation:
    obligation axiom satisfied. Search to a declared depth bound; report `>bound` otherwise.
    Emit `artifacts/evasion.json`. Every τ with `d_evade(τ) < ∞` is written into `LIMITATIONS.md`
    by the docs build. The build fails if `LIMITATIONS.md` is stale relative to `evasion.json`.
+   OVERRIDES Part I §8.8: the staleness gate keyed only to `crates/eclipse/**` and `rules.toml` is
+   replaced by one that also fails on staleness relative to `evasion.json`, and `LIMITATIONS.md`
+   gains a second generated region beyond the §8.8 skeleton's section 10. An implementer following
+   §8.8 ships a gate that stays green while the evasion-depth table is out of date.
 2. **Anchor coverage.** Every fact in `invariant_U` and every node of every witness tree is
    `OBSERVED` (cites ≥1 real `EventId`), `LICENSED` (cites a `LicenseId`), or `UNANCHORED`.
    `UNANCHORED` must be unconstructible; if the grounder ever produces one, abort with exit 4.
@@ -102,6 +122,14 @@ Required implementation:
    declared clean calibration run of the *same generator config*, hashed into the certificate as
    an input. A window whose observed count falls below the envelope floor is BLIND regardless of
    chain continuity and regardless of gap size. Deleting records can now only ever *add* licenses.
+   OVERRIDES Part I §7.4: Def 11's requirement that the inter-arrival quantile be "computed from
+   this run" is replaced by thresholds read from `baseline.json`. Consequently §8.1 CV3's
+   sensitivity sweep over q95/q99/q999 is no longer the mitigation for self-calibration, §6.6 T2 no
+   longer detects DELAY via a q99 taken from the bundle, and §44.8 `test_irrelevant_event_removal`
+   may no longer assert that a liveness change is confined to that source's q99. `baseline.json` is
+   a new required kernel input, produced by a clean calibration run that the §43.4 fixture builder
+   does not yet emit. An implementer following Part I computes the threshold from attacker-authored
+   evidence and trips the build failure of 67.14 #2.
 4. **Obligation-orphan flag.** If any derivation used in the cut proof rests on a source-window
    pair for which no obligation axiom applies and no bracketing corroboration exists, set
    `obligation_orphan`. A run with this flag may not be ROBUST.
@@ -181,6 +209,12 @@ sealer        = false
 bracketing    = false
 ```
 
+OVERRIDES Part I §6.4 TB1 and §7.2: the boundary obligation "every record gets `(source_id, seq,
+prev_hash, hash)`" and the `event` table's `NOT NULL` `prev_hash`/`self_hash` with
+`UNIQUE (run_id, source_id, seq)` do not hold for `UNCHAINED` sources, which carry no chain fields
+and no per-source sequence. An implementer keeping Part I's collection-plane schema cannot
+represent the all-`UNCHAINED` held-out scenario family this section requires.
+
 Liveness admissibility by class:
 
 | class | chain gap absent | sealer digest matches | volume envelope met | cross-source corroboration | LIVE? |
@@ -194,11 +228,21 @@ Additional fail-closed rules:
 - **Post-compromise blackout.** If the scenario's ground truth (§62) places a host in the
   compromised set at time `t`, every `CHAINED_LOCAL` and `UNCHAINED` source resident on that host
   is BLIND for all `t' ≥ t`. No exceptions, no reinstatement by later clean-looking records.
+  OVERRIDES Part I §6.6 rule 1, §7.2 and §8.2 IV2: the absolute ban on the reconstruction path
+  reading generator ground truth is narrowed to a declared carve-out — the compromised-host set and
+  compromise time of §62 are an input to the liveness stage, and to the §6.4 TB4 re-derivation of
+  liveness in the Go checker, which needs the same set. No other part of the ground-truth stream
+  crosses the boundary. An implementer following Part I either fails the IV2 compile-time test and
+  the §7.2 column test, or disables them wholesale and loses the boundary for everything else.
 - **Sealer divergence.** A mismatch between a source-local chain head and the sealer's digest is
   `SUPPRESSED` with flag `chain_divergence` — it localizes deletion and *adds* licenses.
 - **Unsealed honesty.** A bundle with no sealer digests carries `unsealed`. Any document reporting
   suppression-detection results must split them by source class; a claim stated over all classes
   without the split fails the claims-registry lint.
+  OVERRIDES Part I §6.4 TB2: the single collector-level manifest seal that must be verified before
+  any parsing, on pain of refusing to run, is replaced by per-source sealer digests that are
+  optional; a bundle with none runs and carries `unsealed`. An implementer following TB2 refuses to
+  run on every unsealed and `UNCHAINED` fixture this section requires.
 - At least one scenario family in the held-out set must consist entirely of `UNCHAINED` sources.
 
 ## 67.6 A4 — Entity-resolution poisoning by attacker-chosen identifiers
@@ -233,6 +277,13 @@ Required implementation:
    mirrored in the Go checker. Two distinct raw identifiers from different sources that normalize
    to the same key do not merge: they emit an `er_collision` quarantine record with a reason code,
    and the window is `er_ambiguous`.
+   OVERRIDES Part I §44.8: `test_relabeling_invariance` may no longer quantify over an arbitrary
+   bijection on entity identifiers. Reconstruction is deliberately sensitive to identifier spelling
+   here, so a bijection that maps two non-colliding names onto one normalized key sets
+   `er_ambiguous`, bars ROBUST and changes the certificate. The test holds only for bijections that
+   preserve normalization classes and the `attacker_writable` namespace declarations of `er.toml`.
+   An implementer keeping the Part I test as written sees it fail against a correct implementation
+   of this section, and will weaken normalization to make it pass.
 5. **Flags.** `er_ambiguous` bars ROBUST. `er_poisoning_suspected` is set when any merge used only
    attacker-writable evidence *and* that merge is load-bearing for the cut (removing it changes
    `S`). Both appear in the certificate and in the UI banner, not only in JSON.
@@ -345,6 +396,12 @@ Rules:
   - `DERIVED`: the goal set is computed from the generator's ground truth via the correspondence
     relation of §62 — the objectives the scenario script actually achieved. Required for every
     headline number and for the demo fixture.
+    OVERRIDES Part I §7.4 Def 10 and §7.2: "reconstruction sees only `B` and the declared catalogs"
+    is replaced for the goal input. A `DERIVED` goal set is computed outside the kernel from
+    `transition.ground_truth` and supplied to it as a hashed input, a second declared carve-out in
+    the §8.2 IV2 boundary alongside 67.5's compromised-host set. An implementer following Part I
+    has no way to produce a `DERIVED` goal set and falls back to `AD_HOC`, which is never
+    ROBUST-eligible.
   - `LIBRARY`: a frozen library goal not achieved in this scenario; permitted, clearly labeled.
   - `AD_HOC`: hand-authored for this run. **Never ROBUST-eligible.** Watermarked in UI and in
     every export. The Go checker refuses `Safety::Robust` with `goal_provenance = AD_HOC`
@@ -388,10 +445,21 @@ Required consequences:
   No code path formats a verdict by string concatenation; there is one constructor and one
   formatter, and a unit test asserts no other path produces a verdict string. The Go checker
   rejects a certificate whose mode string lacks its scope binding (`E_UNSCOPED_VERDICT`).
+  OVERRIDES Part I §46.6: the pinned demo-path header shape `verdict: ROBUST  cut: {…}
+  corridors: <n>` with `flags: none`, asserted as a required CI check and re-asserted through the
+  UI by the Playwright job in `e2e.yml`, is replaced by the scoped render above and by the flag set
+  of 67.11. An implementer keeping the Part I header assertions emits a certificate the Go checker
+  rejects with `E_UNSCOPED_VERDICT`, failing the demo-path check and the e2e job together.
 - **Banned vocabulary**, enforced by the claims-registry lint across README, docs, UI strings, API
   field names, demo script and commit-message templates: "prevents", "would have stopped", "stops
   the attack", "guaranteed", "formally verified", "proves the system is secure". The permitted
   phrasing is "severs every recorded corridor in the model" and "lower bound on control effort".
+  OVERRIDES Part I §8.6 and §8.9: this list replaces §8.6's word list and §8.9's instruction never
+  to describe SPECTRA as detecting anything. "Detects" is no longer banned and is required in the
+  scoped form of 67.14. The §8.6 certificate footnote, required verbatim in every render, contains
+  "the attacker would have been stopped", which this list's "would have stopped" entry matches as a
+  substring. An implementer running both word lists over the same surfaces fails the repository
+  against itself.
 - **Adaptivity probe** (required for the demo fixture and for every held-out scenario family). Run
   the generator a second time with the cut `S` enforced *and* the scenario script permitted to take
   its declared alternate branch. If the alternate branch reaches a goal atom, the certificate
@@ -399,6 +467,11 @@ Required consequences:
   A demo fixture with a known adaptive bypass must say so on screen.
 - `LIMITATIONS.md` opens with (3) and (4), verbatim, above the fold, linked from the README's
   first screen.
+  OVERRIDES Part I §8.8: the skeleton's "## 0. One-paragraph summary ... before anything else" no
+  longer holds the first position; (3) and (4) stand above it, and the §8.8 CI gate on absence,
+  length, TODOs and staleness continues to apply alongside the `evasion.json` staleness gate of
+  67.3 and the fixture-reference requirement of 67.12. An implementer following §8.8 alone puts
+  the plain-language summary first and breaks this requirement while the §8.8 gate stays green.
 
 ## 67.11 Fail-closed algebra
 
@@ -437,6 +510,15 @@ impl Verdict {
 }
 ```
 
+OVERRIDES Part I §47.3, §47.2 and §47.1: the closed, lint-enforced observability surface is
+replaced. `tests/observability/test_metric_names.py`, which asserts the documented label sets "and
+no others", must admit `verdict=incomplete` on `spectra_proofs_total` and the `SoundnessFlags`
+values above on `spectra_proof_flags_total`, which no longer carries `subset_minimal_only` or
+`greedy_cover`; `spectra_licenses_voided_total` and the `voided_licenses` span attribute on
+`spectra.liveness.compute` now describe a behavior 67.4 deletes; and the closed log-`event`
+registry gains the events these flags raise. An implementer following Part I ships a metrics test
+that fails the moment an `INCOMPLETE` run or any new flag is emitted.
+
 - OVERRIDES Part I: safety and minimality are **independent** fields. `subset_minimal_only` (a
   statement about cut size) no longer suppresses a safety result. A fully verified unreachability
   result with `Minimality::Subset` is still `Safety::Robust`. This removes Part I's standing
@@ -446,6 +528,11 @@ impl Verdict {
   (reason code `E_ALGEBRA`). It never accepts the emitter's word for a flag.
 - `make no-score-lint`: no field, column, API key or UI string anywhere in the repo may be named
   or typed as a probability, confidence, score, severity, risk or likelihood. Schema-level lint.
+  OVERRIDES Part I §45.3: the mandatory `severity:` front-matter key on every security finding, and
+  the matching key in `docs/security/findings/index.json`, are forbidden names under this lint,
+  which grants no carve-out for the declared ordinal; §47.5 row 2's "reduce confidence by degrading
+  mode" wording trips the same lint. An implementer following §45.3 writes a findings schema that
+  fails `make no-score-lint` on the field §45.3 requires.
 
 ## 67.12 Red-team fixture corpus and the build gate
 
@@ -469,6 +556,16 @@ fixtures/redteam/
   A7_adhoc_chokepoint/  A7_disjunct_cherrypick/
   A8_adaptive_branch/
 ```
+
+OVERRIDES Part I §43.4 and §46.8: "fixtures are generated, never hand-edited" and "do NOT cache the
+fixture bundles" do not govern `fixtures/redteam/`. This corpus lives outside
+`tests/fixtures/scenarios/`, is checked in with a hand-written `attack.toml`, an adversarial
+`bundle.jsonl`, a `baseline.json` and an `expected.json`, and is not regenerated from a seed
+in-job. `tools/lint/fixture_guard.py` and the manifest-hash test are scoped to exclude this tree;
+the committed `bundle.jsonl` is the artifact under test, and `attack.toml`'s `transform` records
+how it was derived from the benign twin rather than authorizing in-job regeneration. An
+implementer applying §43.4 fails the build on every red-team fixture for a missing
+`manifest.sha256`.
 
 ```toml
 # fixtures/redteam/A2_backdate_to_robust/attack.toml
@@ -562,6 +659,11 @@ Forbidden claims, in the repository and in any paper drawn from it:
 
 - "SPECTRA detects log tampering." It detects declared tampering classes on declared source
   classes, and publishes the classes it cannot detect.
+  OVERRIDES Part I §8.9 and §8.6: the instruction never to describe SPECTRA as detecting anything,
+  and the banned word "detects" in the §8.6 linter over UI strings, API schemas and report
+  templates, are replaced by this scoped claim, which is the prescribed wording. An implementer
+  keeping §8.6's word list fails the build on the sentence this section requires, and on 67.2's
+  "detection" column and 67.5's source-class split of suppression-detection results.
 - "The minimum cut would have prevented this attack." The cut severs every recorded corridor in
   the model; the attacker is non-adaptive; the cut is a lower bound (67.10).
 - "The proof kernel is resistant to adversarial telemetry." It fails closed on the enumerated
