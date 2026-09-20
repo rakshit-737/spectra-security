@@ -39,7 +39,7 @@ MAKEFLAGS     += --warn-undefined-variables --no-builtin-rules --no-builtin-vari
 #
 # TODO(decision: guard location) Section 74.10.3 specifies this guard as
 # `ci/guard.mk`, included before any other target. It is inline here because
-# ci/ does not exist yet. To change: create ci/guard.mk with this block verbatim
+# ci/guard.mk does not exist yet. To change: create ci/guard.mk with this block verbatim
 # and replace it here with `include ci/guard.mk`.
 
 CI                   ?=
@@ -214,11 +214,11 @@ doctor: ## Report which toolchains are present; non-zero if a Tier A toolchain i
 	  printf 'and images spectra/toolchain-{b,c,d} are not built (section 74.1).\n'; \
 	  printf '\n'; \
 	  printf 'NOT CHECKED by this target yet:\n'; \
-	  printf '  * version pins        .tool-versions does not exist (section 33.6)\n'; \
+	  printf '  * version pins        .tool-versions is committed but not compared (section 33.6)\n'; \
 	  printf '  * image digests       images.lock does not exist (section 74.1)\n'; \
 	  printf '  * host sizing         profile minimums are undeclared (section 74.10.4)\n'; \
 	  printf 'Presence is all this target asserts. It does not assert a version matches\n'; \
-	  printf 'a pin, because there is no pin file to compare against.\n'; \
+	  printf 'a pin, because the found-vs-pinned comparison is not implemented.\n'; \
 	  spectra_rule; \
 	  if [ "$$missing" -ne 0 ]; then \
 	    spectra_err "doctor: $$missing Tier A toolchain(s) missing"; \
@@ -344,7 +344,7 @@ build-offline: ## Clean clone built with --network=none -- the offline claim (G-
 	$(call todo,74.3,clone the repo from file:// into a scratch dir; build and run the T1 tier inside toolchain-a with --network=none and a tmpfs HOME; assert the egress sentinel counted zero packets,M0)
 
 core: ## Build the core the offline gate runs inside the container
-	$(call todo,74.3,build the Tier A artifacts that `make build-offline` then tests; invoked as `make -C /w core` inside the container,M0)
+	$(call todo,74.3,build the Tier A artifacts that 'make build-offline' then tests; invoked as 'make -C /w core' inside the container,M0)
 
 clean: ## Remove build outputs and generated data; keeps caches unless DEEP=1
 	$(call todo,33.3,remove build outputs and data/generated and data/runs until git status --porcelain is empty; keep the ecosystem caches unless DEEP=1,M0)
@@ -432,7 +432,7 @@ replay: ## Run the concrete simulator for one control configuration
 	$(call todo,33.3,run the simulator for a given control configuration and emit replay.json with per-step terminations that must agree with the kernel on the same configuration,M3)
 
 scenario: ## End to end -- gen-data then ingest then reconstruct then prove then verify
-	$(call todo,33.3,run the full pipeline for SCENARIO and SEED and emit data/runs/<run_id>/cert.json that `spectra verify` accepts and whose verdict matches ground_truth.json,M3)
+	$(call todo,33.3,run the full pipeline for SCENARIO and SEED and emit data/runs/<run_id>/cert.json that 'spectra verify' accepts and whose verdict matches ground_truth.json,M3)
 
 demo-slice: ## The thin vertical slice; runs in every later milestone verify target
 	$(call todo,52.1,run generate through ingest through reconstruct through replay and assert the result is visible in the UI; nothing after M3 may break this,M3)
