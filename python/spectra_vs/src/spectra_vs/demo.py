@@ -1,0 +1,504 @@
+"""THE DEMONSTRATION: two completeness cells, side by side, and the difference between them.
+
+WHY THIS FILE EXISTS. The slice exists to show two things and nothing else:
+
+  1. that missing telemetry becomes an EXPLICIT, NAMED, RE-CHECKABLE LICENCE for an
+     unobserved attacker step, rather than a silent gap or an assumption inside a
+     heuristic;
+  2. the separation between a control that is genuinely needed and a control that is in
+     the cut ONLY because a sensor could not see. That difference is the blindness premium.
+
+Both cells are printed. The full-telemetry cell is the CONTROL ARM: without it the other
+cell demonstrates nothing, because a premium that is non-empty everywhere is not evidence
+about blindness. If the premium at the degraded cell is empty, that is printed as the
+result it is; the scenario, the seed, the thresholds and the completeness levels are not
+adjusted to produce a prettier one.
+
+WHAT NOTHING HERE MEANS. No number printed below is measured. There is no Rust kernel, no
+Go checker, no C guard VM and no Docker range; telemetry is the output of a seeded
+synthetic generator and the attack it contains is simulated and did not happen. A cut
+severs a chain IN THE MODEL, under this rule table and this control catalog, over the
+telemetry actually ingested, against a non-adaptive attacker. It prevented nothing and
+would have stopped nothing.
+"""
+
+from __future__ import annotations
+
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+from spectra_core import canon, model
+from spectra_vs import cert as cert_mod
+from spectra_vs import degrade as degrade_mod
+from spectra_vs import liveness as liveness_mod
+from spectra_vs import pipeline as pipeline_mod
+
+__all__ = ["CELLS", "main", "render_cell", "render_difference"]
+
+#: The two cells of the minimum-viable design: full telemetry, then the degraded cell.
+#: Fixed here rather than taken from the command line, because a completeness level chosen
+#: after seeing the answer is a fitted parameter and a fitted premium is worthless.
+CELLS: tuple[tuple[str, degrade_mod.Completeness], ...] = (
+    ("c=100%  full telemetry (CONTROL ARM)", degrade_mod.Completeness.of(1, 1)),
+    ("c=70%   degraded cell", degrade_mod.Completeness.of(7, 10)),
+)
+
+_RULE = "=" * 96
+_THIN = "-" * 96
+
+
+@dataclass(frozen=True, slots=True)
+class Rendered:
+    """One cell's printable summary, kept as data so the difference block can re-read it."""
+
+    label: str
+    cell: pipeline_mod.CellResult
+
+    @property
+    def premium(self) -> tuple[str, ...]:
+        result = self.cell.prove.premium
+        if not result.published:
+            return ()
+        return tuple(str(c) for c in result.blindness_premium)
+
+    @property
+    def premium_published(self) -> bool:
+        return self.cell.prove.premium.published
+
+
+def _raised(cut: model.Cut) -> tuple[tuple[str, int], ...]:
+    levels: dict[str, int] = {}
+    for atom in cut.atoms:
+        key = str(atom.control_id)
+        levels[key] = max(levels.get(key, 0), atom.level)
+    return tuple(sorted(levels.items(), key=lambda kv: canon.byte_order_key(kv[0])))
+
+
+def _render_cut(cut: model.Cut) -> str:
+    raised = _raised(cut)
+    if not raised:
+        return "(no control raised)"
+    return ", ".join(f"{name} >= {level}" for name, level in raised)
+
+
+def _licence_line(licence: model.Licence) -> str:
+    """A licence is a permission for a step nobody could have seen. Never an observation."""
+    span_ns = licence.t1_ns - licence.t0_ns
+    minutes = span_ns // 60_000_000_000
+    basis = str(licence.basis)
+    witness = (
+        " no witness (a BLIND licence records that nobody could have seen)"
+        if basis == "BLIND"
+        else f" bracketed by {len(licence.witness)} record ids"
+    )
+    return (
+        f"{licence.license_id}  {licence.source_id}  [{licence.t0_ns}, {licence.t1_ns})"
+        f"  {minutes} min  {basis}/{licence.reason}{witness}"
+    )
+
+
+def render_cell(rendered: Rendered) -> str:
+    """Everything one cell has to show: cut, cardinality, minimality, verdict, flags, premium."""
+    cell = rendered.cell
+    prove = cell.prove
+    out: list[str] = []
+    add = out.append
+
+    add(_RULE)
+    add(rendered.label)
+    add(_RULE)
+    add(f"run_id            {cell.run_id}")
+    add(f"run directory     {cell.run_dir}")
+    add(
+        f"completeness      {cell.completeness.num}/{cell.completeness.den} exact rational"
+        f"   (deleted {len(cell.degrade.result.removed)} of "
+        f"{len(cell.gen.result.raw)} simulated records, delete-only)"
+    )
+    add(
+        f"seeds             analysis 0x{cell.seed:016x}, degradation "
+        f"0x{cell.degradation_seed:016x}, calibration band is disjoint"
+    )
+    add(f"bundle            {len(cell.ingest.result.events)} sealed records")
+    add(
+        f"programs          P_min {len(cell.ground.result.program.instances)} observed "
+        f"instances / P_max {len(cell.envelope.result.p_max.instances)} instances "
+        f"({prove.silent_count} silent)"
+    )
+    add(
+        f"counts            observed_event_count {prove.observed_event_count}, "
+        f"ghost_count {prove.ghost_count}   (two members, never summed)"
+    )
+    add(
+        f"goal library      {len(prove.goal_library)} fact(s) of the bound goal predicate"
+        + ("" if prove.goal_resolved else "   (EMPTY: proving against a sentinel key)")
+    )
+    add("")
+
+    add("LIVENESS (the only producer of licences; no threshold comes from this run)")
+    for source in cell.liveness.document.sources:
+        blind = {str(r): v for r, v in source.blind_volume_ns_by_reason}
+        parts = ", ".join(f"{k}={v}ns" for k, v in sorted(blind.items())) or "no blind volume"
+        add(f"  {source.source_id!s:<16} mode {source.mode:<16} {parts}")
+    add("")
+
+    add("LICENCES RELIED ON (a licence is a permission for an unobserved step)")
+    if not prove.licences:
+        add("  none: no silent instance is licensed in this cell")
+    for licence in prove.licences:
+        add(f"  {_licence_line(licence)}")
+    if cell.envelope.result.blind_spots:
+        add("")
+        add(
+            "PERMANENT BLIND SPOTS (obligation unsatisfied AND unlicensed; no GHOST is "
+            "created, because the honest answer is that the step is invisible)"
+        )
+        for spot in cell.envelope.result.blind_spots:
+            add(
+                f"  {spot.rule_id} {spot.head_predicate} over "
+                f"[{spot.t0_ns}, {spot.t1_ns}) on "
+                f"{', '.join(str(s) for s in spot.producing_sources)}: {spot.reason}"
+            )
+    add("")
+
+    add("THE TWO-SIDED BRACKET (a pair, never a confidence interval)")
+    lower = prove.bracket.lower
+    upper = prove.bracket.upper
+    add(
+        f"  Psi_min  {len(lower.psi.corridors)} corridors, complete={lower.psi.complete}"
+        f"     Psi_max  {len(upper.psi.corridors)} corridors, "
+        f"complete={upper.psi.complete}"
+    )
+    add(f"  cut over P_min   {_render_cut(lower.cut)}")
+    add(
+        f"                   cardinality {lower.cut.cardinality} raised controls   "
+        f"minimality {lower.minimality}"
+    )
+    add(f"                   {cert_mod.render_minimality(lower.cut.minimality)}")
+    add(f"  cut over P_max   {_render_cut(upper.cut)}")
+    add(
+        f"                   cardinality {upper.cut.cardinality} raised controls   "
+        f"minimality {upper.minimality}"
+    )
+    add(f"                   {cert_mod.render_minimality(upper.cut.minimality)}")
+    add("")
+
+    add("VERDICTS, each with the scope it is relative to")
+    add("  proving with S = the cut over P_min:")
+    for line in cert_mod.render_long(prove.verdict_at_cut_min, prove.scope).splitlines():
+        add(f"    {line}")
+    add("  proving with S = the cut over P_max:")
+    for line in cert_mod.render_long(prove.verdict_at_cut_max, prove.scope).splitlines():
+        add(f"    {line}")
+    add("")
+
+    add("FLAGS SET")
+    add(f"  {', '.join(prove.flags) if prove.flags else 'none'}")
+    add("")
+
+    add("BLINDNESS PREMIUM   B = NEC(Psi_max) \\ OCC(Psi_min)")
+    result = prove.premium
+    if not result.published:
+        add(
+            f"  ABSENT. premium_suppressed_reason = {result.suppressed_reason}. "
+            "The member is omitted entirely, not null, not [] and not 0."
+        )
+    else:
+        add(f"  NEC(Psi_max)  {', '.join(str(c) for c in result.nec_max) or '(empty)'}")
+        add(f"  OCC(Psi_min)  {', '.join(str(c) for c in result.occ_min) or '(empty)'}")
+        premium = rendered.premium
+        if not premium:
+            add("  B             EMPTY")
+        else:
+            add(f"  B             {', '.join(premium)}")
+            for entry in prove.premium_entries:
+                deficiency = entry.calibration_deficiency
+                phrase = (
+                    "needed because this run was not calibrated for this source"
+                    if deficiency > 0
+                    else "rests on observed-gap licences"
+                )
+                add(
+                    f"                {entry.control_id}: "
+                    f"calibration_deficiency {deficiency.numerator}/"
+                    f"{deficiency.denominator} -- {phrase}"
+                )
+    add("")
+    add(
+        f"cut_delta_canonical  {', '.join(str(c) for c in prove.cut_delta) or '(empty)'}"
+    )
+    add(f"  {cert_mod.CUT_DELTA_CAPTION}")
+    add("")
+    add(f"certificate       {prove.cert_path}")
+    if cell.verify_exit is not None:
+        add(
+            f"S11 checker       exit {cell.verify_exit} "
+            f"({'ACCEPT' if cell.verify_exit == 0 else 'REJECT'})"
+        )
+        for line in cell.verify_text.splitlines():
+            add(f"  | {line}")
+    if cell.complaints:
+        add("")
+        add("SEAMS REPORTED BY THIS RUN (config files authored against different vocabularies)")
+        for complaint in cell.complaints:
+            add(f"  - {complaint}")
+    return "\n".join(out)
+
+
+def render_difference(cells: tuple[Rendered, ...]) -> str:
+    """The headline: what changed between the two cells, in one short block."""
+    out: list[str] = []
+    add = out.append
+    add(_RULE)
+    add("THE DIFFERENCE BETWEEN THE TWO CELLS -- the headline")
+    add(_RULE)
+
+    control, degraded = cells[0], cells[1]
+    for name, rendered in (("full telemetry", control), ("degraded cell", degraded)):
+        prove = rendered.cell.prove
+        premium = (
+            "ABSENT (" + str(prove.premium.suppressed_reason) + ")"
+            if not rendered.premium_published
+            else (", ".join(rendered.premium) if rendered.premium else "EMPTY")
+        )
+        add(
+            f"  {name:<16} |Psi_min|={len(prove.bracket.lower.psi.corridors)} "
+            f"|Psi_max|={len(prove.bracket.upper.psi.corridors)}  "
+            f"r_min={prove.bracket.lower.cut.cardinality} "
+            f"r_max={prove.bracket.upper.cut.cardinality}  "
+            f"licences={len(prove.licences)}  premium={premium}"
+        )
+    add(_THIN)
+
+    gained = tuple(c for c in degraded.premium if c not in set(control.premium))
+    lost = tuple(c for c in control.premium if c not in set(degraded.premium))
+    if not control.premium_published or not degraded.premium_published:
+        add(
+            "  The premium is suppressed in at least one cell, so the two cells are not "
+            "comparable on this axis and no difference is claimed."
+        )
+    elif gained and not control.premium:
+        add(
+            "  Degrading telemetry added "
+            + ", ".join(gained)
+            + " to the blindness premium: those controls are in the robust cut not "
+            "because anyone saw the step they block, but because for the length of a "
+            "blind window nobody could have."
+        )
+    elif not degraded.premium and not control.premium:
+        add(
+            "  The blindness premium is EMPTY IN BOTH CELLS. That is the result, reported "
+            "as one. Nothing was tuned to avoid it: the scenario, the seed, the thresholds "
+            "and the two completeness levels are exactly what the design fixes them at."
+        )
+    else:
+        if control.premium:
+            add(
+                "  THE CONTROL ARM IS NOT CLEAN. The premium at FULL telemetry is already "
+                "non-empty ("
+                + ", ".join(control.premium)
+                + "), so it is not evidence"
+            )
+            add(
+                "  about degradation and the degraded cell has nothing to be contrasted "
+                "with."
+            )
+        if lost:
+            add(
+                "  Under degradation the premium LOST "
+                + ", ".join(lost)
+                + ", which is the opposite of the direction the design predicts."
+            )
+        if gained:
+            add("  Under degradation the premium GAINED " + ", ".join(gained) + ".")
+        add(
+            "  This is reported as the result it is. The scenario, the seed, the "
+            "thresholds and the two completeness levels were not adjusted afterwards."
+        )
+    add(_THIN)
+    for line in _causes(cells):
+        add(line)
+    add(_THIN)
+    add(
+        "  A cut severs this chain IN THE MODEL, under this rule table, this control "
+        "catalog and the telemetry actually ingested, against a non-adaptive attacker."
+    )
+    add(
+        "  P_max is a superset of realizable worlds, so any tree drawn from it may combine "
+        "silent instances that no single consistent world realizes."
+    )
+    add(
+        "  The checker establishes INTERNAL CONSISTENCY with the hashed inputs only. It "
+        "shares an author, a language and a reading of the specification with the emitter, "
+        "so no certificate here is independently verified."
+    )
+    return "\n".join(out)
+
+
+def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
+    """Why the two cells came out as they did, read off the artifacts rather than asserted.
+
+    Every line below is a consequence of a committed configuration value or of a count
+    taken from a written artifact. None is an interpretation added after the fact, and no
+    value it names was changed once the result was known.
+    """
+    lines: list[str] = ["  WHY, read off the artifacts:"]
+
+    live_counts = {
+        rendered.label.split()[0]: sum(
+            1
+            for source in rendered.cell.liveness.document.sources
+            for interval in source.intervals
+            if str(interval.verdict) == "LIVE"
+        )
+        for rendered in cells
+    }
+    if all(count == 0 for count in live_counts.values()):
+        m_min = cells[0].cell.liveness.document.m_min
+        lines.append(
+            f"    1. NO SOURCE IS LIVE IN EITHER CELL. With m_min = {m_min} and a "
+            "breakpoint at every record instant, an elementary interval"
+        )
+        lines.append(
+            "       brackets exactly two records, so R9 (n_records_in_span < m_min -> "
+            "BLIND, B_WINDOW_UNDERSAMPLED) fires on every interval and"
+        )
+        lines.append(
+            "       R11, the only construction site of LIVE, is unreachable. "
+            "config/vs/liveness.toml states this contradiction in its own"
+        )
+        lines.append(
+            "       comment and ships the value anyway. Blindness is therefore TOTAL AT "
+            "EVERY COMPLETENESS LEVEL, and the full-telemetry cell"
+        )
+        lines.append("       cannot be a control arm for blindness.")
+    else:
+        lines.append(
+            "    1. LIVE intervals per cell: "
+            + ", ".join(f"{k}={v}" for k, v in sorted(live_counts.items()))
+        )
+
+    if all(not r.cell.prove.bracket.lower.psi.corridors for r in cells):
+        lines.append(
+            "    2. Psi_min IS EMPTY IN BOTH CELLS, so OCC(Psi_min) is empty and B "
+            "degenerates to NEC(Psi_max). The premium then cannot"
+        )
+        lines.append(
+            "       distinguish a control needed because of blindness from a control "
+            "needed at all. The goal is underivable in P_min because rule"
+        )
+        lines.append(
+            "       r0003 requires distinct(resource) >= 3 over res.read inside ten "
+            "minutes while config/vs/scenario.toml emits exactly one"
+        )
+        lines.append(
+            "       res_read record (attack step k4), so the observed route never fires."
+        )
+
+    degraded = cells[-1]
+    if not degraded.cell.prove.goal_resolved:
+        lines.append(
+            "    3. At the degraded cell the goal library is EMPTY. The delete-only "
+            "degrader empties whole 20-minute outage blocks, and the block"
+        )
+        lines.append(
+            "       holding the escalation route's observed leaf went with it, so P_max "
+            "derives no goal fact at all. Degradation removed the route"
+        )
+        lines.append(
+            "       rather than licensing it: the premium is empty there for a reason "
+            "that has nothing to do with what a sensor could see."
+        )
+
+    for rendered in cells:
+        for entry in rendered.cell.prove.premium_entries:
+            share = entry.calibration_deficiency
+            if share > 0:
+                lines.append(
+                    f"    4. {entry.control_id} at {rendered.label.split()[0]} rests "
+                    f"{share.numerator}/{share.denominator} on calibration-deficiency "
+                    "licences, so the supported"
+                )
+                lines.append(
+                    "       sentence is 'needed because this run was not calibrated for "
+                    "this source', NOT 'needed because a sensor could not see'."
+                )
+    return tuple(lines)
+
+
+def _preamble(layout: pipeline_mod.Layout) -> str:
+    config = liveness_mod.load_liveness_config(str(layout.liveness_toml))
+    return "\n".join(
+        (
+            _RULE,
+            "SPECTRA vertical slice -- the two completeness cells",
+            _RULE,
+            "PYTHON REFERENCE IMPLEMENTATION. No Rust kernel, no Go checker, no C guard VM",
+            "and no Docker range exists or was built. Telemetry is the output of a seeded",
+            "synthetic generator (bundle_provenance: synthetic_generator_no_range) and the",
+            "attack in it is SIMULATED: nothing below happened. No figure here is measured.",
+            "",
+            f"liveness config   quantile {config.quantile}, slack "
+            f"{config.slack_num}/{config.slack_den}, n_min {config.n_min}, "
+            f"m_min {config.m_min}",
+            "",
+        )
+    )
+
+
+def main(
+    *,
+    repo_root: Path,
+    seed: int = pipeline_mod.DEFAULT_ANALYSIS_SEED,
+    degradation_seed: int = pipeline_mod.DEFAULT_DEGRADATION_SEED,
+    calibration_seed: int = pipeline_mod.DEFAULT_CALIBRATION_SEED,
+    verify: bool = True,
+    stream=None,
+) -> int:
+    """Run both cells with NESTED deletion sets and print the comparison."""
+    out = stream if stream is not None else sys.stdout
+    layout = pipeline_mod.Layout(repo_root=repo_root)
+
+    print(_preamble(layout), file=out, flush=True)
+
+    from spectra_vs import scenario as scenario_mod
+
+    spec = scenario_mod.load_scenario(layout.scenario_toml)
+    config = liveness_mod.load_liveness_config(str(layout.liveness_toml))
+    calibration = pipeline_mod.s6_calibrate(layout, spec, config, calibration_seed)
+    print(
+        "S6 calibration profile "
+        f"{calibration.profile.profile_id}\n"
+        "  produced by a SEPARATE clean run at completeness 1.0 under a seed from the\n"
+        "  calibration band, which is disjoint from the analysis band. It is a model of a\n"
+        "  seeded generator's emission behaviour and measures nothing about real telemetry.\n",
+        file=out,
+        flush=True,
+    )
+
+    rendered: list[Rendered] = []
+    parent = None
+    for label, completeness in CELLS:
+        cell = pipeline_mod.run_cell(
+            layout,
+            completeness=completeness,
+            seed=seed,
+            degradation_seed=degradation_seed,
+            calibration=calibration,
+            calibration_seed=calibration_seed,
+            parent=parent,
+            verify=verify,
+        )
+        parent = cell.degrade.result
+        entry = Rendered(label=label, cell=cell)
+        rendered.append(entry)
+        print(render_cell(entry), file=out, flush=True)
+        print("", file=out, flush=True)
+
+    print(render_difference(tuple(rendered)), file=out, flush=True)
+    failed = [r for r in rendered if r.cell.verify_exit not in (None, 0)]
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(repo_root=Path(__file__).resolve().parents[4]))
