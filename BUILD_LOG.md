@@ -187,3 +187,112 @@ for the exact intended path, and the skeleton gate must assert that the working 
 no unexpected untracked files.
 
 ---
+
+## INC-0004  reconciliation: mark the silent Part I / Part II contradictions
+
+date: 2026-09-20
+status: DONE
+concern: single
+
+### Goal
+
+Close the SILENT class from INC-0001. 213 places where Part II contradicts Part I without marking
+it, so an implementer reading a Part I section builds the superseded behaviour and no test catches
+it.
+
+### Method
+
+Twenty agents, one per Part II section, each given its own findings and permitted to edit only its
+own file. Each was instructed to insert an explicit `OVERRIDES Part I section <N>:` line adjacent
+to the passage carrying the new behaviour, and to REJECT any finding where the audit had misread
+one of the two parts -- a false override line instructs an implementer to change correct behaviour,
+which is worse than a missing one.
+
+### Result
+
+230 override lines applied, 5 findings rejected as not real, 2 unplaceable.
+
+230 exceeds 213 because several contradictions have two carrier passages and a reader of either
+alone needs the marker. Section 67 took 16 lines for 12 findings, section 58 nine for eight.
+
+### Measured
+
+Nothing was measured. No code exists.
+
+### Follow-up
+
+The override lines have been sampled for correctness against the Part I text they cite. Result
+recorded in INC-0005.
+
+---
+
+## INC-0005  self-audit of the skeleton, and two fix rounds
+
+date: 2026-09-20
+status: DONE
+concern: single
+
+### Goal
+
+Check whether the committed skeleton actually obeys the honesty rules it declares about itself,
+rather than assuming it does because it says it does.
+
+### Round one
+
+Six auditors over the Makefile, the CI workflows and gate registry, the claims documents, the
+language surface, the source files and the planning layer. 47 findings, 9 HIGH.
+
+The most serious was not a documentation error. Backticks inside `$(call todo,...)` descriptions
+are live command substitution, because the macro passes its arguments through a double-quoted
+shell word. `make core` therefore FORKED AND RAN `make build-offline` and `make -C /w core` before
+printing its not-implemented message, and printed a sentence that was not the text in the file.
+The auditor proved it by putting a stub `make` on PATH and catching the invocation.
+
+Notable non-findings: 61 targets were enumerated mechanically -- 4 do real work, 57 exit non-zero
+through a shared macro whose exit path is readonly, and ZERO silently succeed. Rule 5 was clean:
+no committed source file contains logic that could be mistaken for an implementation.
+
+44 of 47 fixed. Two findings landed in merged ADRs and were correctly refused: a merged record is
+immutable except its Status line, so those corrections became ADR-0011 and ADR-0012.
+
+### Round two: the fixes were verified, not trusted
+
+Re-audited. 40 of 45 findings genuinely FIXED, 3 WRONGLY_FIXED, 2 NOT_FIXED -- and **31 new
+findings introduced by the fixes themselves**.
+
+### The finding that matters
+
+Manual honesty auditing does not converge.
+
+One edit -- correcting the T0 header in `ci/gates.toml` from "0 implemented" to "1 implemented" --
+left four files asserting three different counts: the registry's own STATUS block, the README
+status line, the README tier table, and a comment in `t1.yml`. Each was individually true when
+written. Nothing mechanically relates them, so a fix in one place silently falsifies three others.
+
+The same shape produced most of the 31: a fact changed in its owning file while other files kept
+stating the old one. The first round fixed 44 findings and created 31; severity fell from 9 HIGH
+to 3 HIGH, so it is converging, but slowly and by hand.
+
+This is the argument for the claims gate described in `CLAIMS.md`, which is not implemented. Until
+a machine checks that every path referenced exists, every make target named is declared, and every
+count matches the artifact named in the same sentence, this class of error is found by reading --
+which is how four files came to disagree about a number in the first place.
+
+### Errors made by the agent running this session, recorded
+
+Four claims of verification were made ahead of the evidence:
+
+1. "Verified: every key file exists" -- the check tested the FILESYSTEM, not git. Seven dotfiles
+   were untracked. See INC-0003.
+2. "Verified: every .PHONY name has a rule" -- the parser matched ZERO .PHONY names, so it
+   verified nothing. Caught only because the printed number looked wrong.
+3. "Verified: no record's status disagrees" -- asserted before the check returned; the check then
+   reported a mismatch. It was a false positive, but the claim preceded the evidence.
+4. A conflict total of 353 was quoted in four files and in every report to the human for several
+   hours. The correct total is 453. Corrected in ADR-0010.
+
+All four are the same failure: a check that returns success without testing what it claims to
+test. The skeleton gate must assert a clean working tree and verify by `git cat-file -e HEAD:<path>`
+rather than by filesystem existence.
+
+---
