@@ -1,0 +1,23 @@
+# spectra_narrate - OPTIONAL narration over the certificate only.
+# Spec: Part I 32.3; Part II 72 (LLM surface), 75.3 (optional; not described in
+# the present tense in README until its gate is green).
+# Status: not started.
+
+[project]
+name = "spectra-narrate"
+version = "0.0.0"
+description = "SPECTRA optional narration surface over the certificate. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them. Every dependency here
+# must be removable: make verify-no-llm runs with them uninstalled (Part II
+# 75.1.13).
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): see python/spectra_core/pyproject.toml.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_narrate"]
