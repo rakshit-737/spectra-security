@@ -1,0 +1,43 @@
+# SPECTRA - uv workspace root.
+# Spec: Part I 32.3, 33.4, 34.7; Part II 74.2 (wheels-only offline vendoring).
+# Status: not started. Declares the workspace and shared lint config. No logic.
+
+[project]
+name = "spectra-workspace"
+version = "0.0.0"
+description = "SPECTRA uv workspace root. Contains no code."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["python/*"]
+
+# TODO(decision: spectra_eclipse renamed to spectra_kernel_client). Part I 32.3
+# names a member spectra_eclipse, a ctypes/PyO3 binding. Part II 69.1.2 and
+# 69.21.2 forbid in-process bindings; Part II 73.10 forbids the string eclipse in
+# any package name. The member is the subprocess client of Part II 69.12.
+# TODO(decision: spectra_ml not created). Part I 32.3 lists an OPTIONAL ML
+# anomaly-baseline member; Part II 75.1.6 forbids every score, confidence,
+# probability and severity, so it has no admissible output. Revisit only if
+# 75.1.6 changes.
+# TODO(conflict: vocabulary module path). Part II 57.5/57.9 bind the canonical
+# vocabulary to spectra.vocab, Part I 32.3 to spectra_core. Layout follows
+# Part I 32.3 here; reconcile before the vocabulary types are written.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100  # TODO(decision: line length chosen, not specified)
+src = ["python"]
+
+[tool.ruff.lint]
+# PLR2004 (magic value) is required by Part I 34.7 and may never be disabled.
+select = ["E", "F", "I", "B", "UP", "PL", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
