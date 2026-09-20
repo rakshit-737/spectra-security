@@ -1,0 +1,313 @@
+# SPECTRA vertical slice - scenario vs-01-token-pivot
+#
+# THIS DESCRIBES A SIMULATION. No container range exists, no service produced any of the
+# telemetry this scenario generates, and nothing here happened. Every artifact derived
+# from it carries bundle_provenance: "synthetic_generator_no_range" at manifest level.
+#
+# WHY TOML AND NOT YAML. The operative specification names config/vs/scenario.yaml. There
+# is no YAML parser in the Python standard library and no package may be installed here,
+# so the surface syntax is TOML and tomllib reads it. Member names, member types and the
+# loader constraints are the specification's verbatim.
+#
+# WHY THIS SHAPE. Two routes to one goal, so that the corridor database can have more
+# than one clause. One source that is declared and emits nothing ever, so that a
+# permanently blind sensor is representable rather than merely absent. One attack step
+# that no declared sensor could have recorded, so that the licence mechanism has a step
+# to account for. Declared blind windows, so that blindness exists at full completeness
+# and is not only an artifact of degradation.
+#
+# Nothing here is a measurement. Every number is a design parameter.
+
+schema = "spectra.vs.scenario/1"
+scenario_id = "vs-01-token-pivot"
+family = "token_pivot"
+
+# 2024-02-04T00:00:00Z. i64 nanoseconds as decimal text, per the encoding law: a bare
+# integer in this position would be a JSON integer wider than the contract permits.
+epoch_ns = "1707004800000000000"
+
+# Two hours at one-second ticks. Sized so that every calibrated source emits well over
+# the 2000 records the calibration stage needs for n_gaps >= n_min in each regime.
+horizon_ticks = 7200
+tick_granularity_ns = 1000000000
+
+# ---------------------------------------------------------------------------
+# Sources. Six declared. One of them emits nothing, ever.
+# ---------------------------------------------------------------------------
+
+[[sources]]
+source_id = "idp_auth"
+integrity_class = "chained"
+source_rank = 1
+emits_event_types = ["idp_login", "idp_refresh"]
+# Declared period, used only by mode F3 and only under --allow-declared-profile. Present
+# on exactly one source so that the F3 rung of the ladder has a fixture to exercise.
+nominal_period_ns = "2000000000"
+
+[[sources]]
+source_id = "iam_audit"
+integrity_class = "chained"
+source_rank = 2
+emits_event_types = ["iam_approval_granted", "iam_list_roles", "iam_role_assumed"]
+
+[[sources]]
+source_id = "gw_access"
+integrity_class = "sequenced"
+source_rank = 3
+emits_event_types = ["gw_health", "gw_request"]
+
+[[sources]]
+source_id = "res_access"
+integrity_class = "none"
+source_rank = 4
+emits_event_types = ["res_browse", "res_export", "res_read"]
+
+# DECLARED AND EMITS NOTHING EVER. There is no endpoint sensor in this estate. The
+# source is declared rather than omitted so that it is INSUFFICIENT in the profile and
+# therefore BLIND everywhere, fail-closed. An undeclared sensor would simply be invisible
+# and the step it cannot see would look like a step that did not happen.
+[[sources]]
+source_id = "edr_host"
+integrity_class = "none"
+source_rank = 5
+emits_event_types = []
+
+# The benign-noise source. Carries background chatter and nothing the attack touches.
+[[sources]]
+source_id = "net_flow"
+integrity_class = "none"
+source_rank = 6
+emits_event_types = ["net_conn"]
+
+# ---------------------------------------------------------------------------
+# Phases. Regime membership comes from this hashed timeline and is never inferred from
+# the data under analysis, which is what stops the profile depending on its own input.
+# ---------------------------------------------------------------------------
+
+[[phases]]
+regime_id = "steady"
+t0_ns = "1707004800000000000"
+t1_ns = "1707008400000000000"
+
+[[phases]]
+regime_id = "burst"
+t0_ns = "1707008400000000000"
+t1_ns = "1707012000000000000"
+
+# ---------------------------------------------------------------------------
+# Excluded intervals. The calibration stage drops any gap whose span intersects one of
+# these. The generator does not change its behaviour here: an excluded interval is a
+# statement about what calibration may learn from, not about what was emitted.
+# ---------------------------------------------------------------------------
+
+[[excluded_intervals]]
+t0_ns = "1707006600000000000"
+t1_ns = "1707006630000000000"
+reason = "declared_estate_maintenance"
+
+# ---------------------------------------------------------------------------
+# Entity tables. Entity resolution joins against these by exact string match only. No
+# fuzzy matching, no similarity, no scores.
+# ---------------------------------------------------------------------------
+
+[entities]
+zones = ["corp", "dmz", "prod"]
+
+[[entities.principals]]
+id = "p_analyst"
+kind = "human"
+
+[[entities.principals]]
+id = "p_attacker"
+kind = "human"
+
+[[entities.principals]]
+id = "p_ops"
+kind = "human"
+
+[[entities.principals]]
+id = "svc_gateway"
+kind = "service_account"
+
+[[entities.devices]]
+id = "d_jump_host"
+
+[[entities.devices]]
+id = "d_victim_laptop"
+
+[[entities.credentials]]
+id = "cr_admin_role"
+subject = "p_attacker"
+kind = "role"
+
+[[entities.credentials]]
+id = "cr_analyst_token"
+subject = "p_analyst"
+kind = "refresh_token"
+
+[[entities.credentials]]
+id = "cr_ops_role"
+subject = "p_ops"
+kind = "role"
+
+[[entities.credentials]]
+id = "cr_refresh_token"
+subject = "p_attacker"
+kind = "refresh_token"
+
+[[entities.credentials]]
+id = "cr_svc_token"
+subject = "svc_gateway"
+kind = "refresh_token"
+
+[[entities.services]]
+id = "sv_gateway"
+zone = "dmz"
+
+[[entities.services]]
+id = "sv_iam"
+zone = "corp"
+
+[[entities.services]]
+id = "sv_idp"
+zone = "corp"
+
+[[entities.resources]]
+id = "rs_customer_db"
+zone = "prod"
+sensitivity = "high"
+
+[[entities.resources]]
+id = "rs_wiki"
+zone = "corp"
+sensitivity = "low"
+
+# ---------------------------------------------------------------------------
+# Benign background population.
+#
+# `families` names EVENT TYPES, not abstract family labels. The contract gives families
+# as bare strings and declares no member binding a family to a source, so each family is
+# an event type that exactly one declared source emits and emits_event_types carries the
+# binding. Inventing a scenario member for it would have been a requirement nobody wrote.
+#
+# One record per family every two ticks, so a calibrated source sees roughly 3600 records
+# and roughly 1800 gaps per regime, comfortably above n_min = 100.
+# ---------------------------------------------------------------------------
+
+[noise]
+benign_rate_num = 1
+benign_rate_den = 2
+families = ["gw_health", "iam_approval_granted", "iam_list_roles", "idp_login", "net_conn", "res_browse"]
+
+# ---------------------------------------------------------------------------
+# The simulated attack chain. Two routes to one goal.
+#
+# Route A, k1..k4, is fully observed at 100% telemetry except for k1, which no declared
+# sensor could ever record. Route B, k5..k6, is the escalation path: at full completeness
+# an approval record precedes the role assumption, so the absence operator fires
+# OBSERVED-negative and Route B is derivable in neither program.
+# ---------------------------------------------------------------------------
+
+[attack]
+chain_id = "vs-01"
+
+# k1. THE UNOBSERVABLE STEP. emits is empty and observable is false, which is exactly the
+# case the licence mechanism exists for: it happened in the simulation and no declared
+# sensor could have recorded it. It produces no raw event and exactly one ground-truth
+# annotation of kind attack_unobserved.
+[[attack.steps]]
+k = 1
+actor = "p_attacker"
+action = "token_acquire"
+emits = []
+observable = false
+t_offset_ns = "4200000000000"
+attrs = { credential = "cr_refresh_token", device = "d_victim_laptop", principal = "p_attacker" }
+expect_transition = { dim = "credential", from = "absent", to = "held" }
+
+[[attack.steps]]
+k = 2
+actor = "p_attacker"
+action = "refresh_exchange"
+event_type = "idp_refresh"
+emits = ["idp_auth"]
+observable = true
+t_offset_ns = "4260000000000"
+attrs = { credential = "cr_refresh_token", principal = "p_attacker", service = "sv_idp" }
+expect_transition = { dim = "session", from = "unbound", to = "bound" }
+
+[[attack.steps]]
+k = 3
+actor = "p_attacker"
+action = "gateway_call"
+event_type = "gw_request"
+emits = ["gw_access"]
+observable = true
+t_offset_ns = "4320000000000"
+attrs = { credential = "cr_refresh_token", principal = "p_attacker", service = "sv_gateway" }
+expect_transition = { dim = "access", from = "denied", to = "granted" }
+
+[[attack.steps]]
+k = 4
+actor = "p_attacker"
+action = "bulk_read"
+event_type = "res_read"
+emits = ["res_access"]
+observable = true
+t_offset_ns = "4380000000000"
+attrs = { principal = "p_attacker", resource = "rs_customer_db", service = "sv_gateway" }
+expect_transition = { dim = "exfil", from = "none", to = "staged" }
+
+[[attack.steps]]
+k = 5
+actor = "p_attacker"
+action = "role_assumed"
+event_type = "iam_role_assumed"
+emits = ["iam_audit"]
+observable = true
+t_offset_ns = "4500000000000"
+attrs = { credential = "cr_admin_role", principal = "p_attacker", service = "sv_iam" }
+expect_transition = { dim = "privilege", from = "user", to = "admin" }
+
+[[attack.steps]]
+k = 6
+actor = "p_attacker"
+action = "admin_export"
+event_type = "res_export"
+emits = ["res_access"]
+observable = true
+t_offset_ns = "4560000000000"
+attrs = { credential = "cr_admin_role", principal = "p_attacker", resource = "rs_customer_db" }
+expect_transition = { dim = "exfil", from = "staged", to = "exported" }
+
+# ---------------------------------------------------------------------------
+# Declared blind windows. The generator emits nothing from the named source over the
+# named span. These are DECLARATIONS about the estate, never observations: the liveness
+# stage still has to reach BLIND from the resulting gap on its own.
+# ---------------------------------------------------------------------------
+
+# edr_host over the whole horizon. It has no sensor at all, so its blindness is total and
+# permanent, and obligation axiom O2 for step k1 rests on it.
+[[blindness]]
+source_id = "edr_host"
+t0_ns = "1707004800000000000"
+t1_ns = "1707012000000000000"
+basis = "blind"
+
+# A one-minute gateway collector restart during the burst phase. Present so that a
+# declared outage exists at completeness 1.0 and the blind path is exercised before any
+# degradation operator runs. It does not intersect any attack step.
+[[blindness]]
+source_id = "gw_access"
+t0_ns = "1707010200000000000"
+t1_ns = "1707010260000000000"
+basis = "blind"
+
+# ---------------------------------------------------------------------------
+# The goal. Exactly one.
+# ---------------------------------------------------------------------------
+
+[goal]
+goal_predicate = "resource.exfiltrated"
+goal_args = ["p_attacker", "rs_customer_db"]
+horizon_k = 7200
