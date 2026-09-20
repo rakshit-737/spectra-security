@@ -1,0 +1,67 @@
+# Dependabot configuration.
+#
+# STATUS: not started. No workflow in this repository is enabled beyond the
+# skeleton gate, and no ecosystem is vendored yet, so this file currently has
+# nothing to update. It is committed now so that the policy below is written
+# down before the first dependency exists, rather than after.
+#
+# WHY ONLY github-actions IS LISTED
+#   Section 74.11.2 requires every action reference pinned to a full commit SHA
+#   with the version in a trailing comment. A SHA pin is safe and also
+#   unattended: nothing tells you when the pinned commit has a known problem.
+#   Dependabot's github-actions updater is the mechanism that moves a SHA pin
+#   forward as a reviewable diff, which is exactly the posture this repository
+#   wants.
+#
+#   Every other ecosystem is deliberately absent. Sections 74.1 and 74.2 route
+#   all dependency movement through one target:
+#
+#       make toolchain-refresh   (the ONLY target permitted to touch the network)
+#         resolve + lock  -> toolchains.lock
+#         fetch vendor bundles per ecosystem
+#         docker build FROM <base>@sha256:...
+#         record image digests -> images.lock
+#         docker save -> cas/oci/<digest>.tar
+#
+#   A cargo, pip, pnpm, go, maven, gradle, nuget, cabal, opam, renv, julia or
+#   pub update that arrived as a lockfile-only pull request would leave
+#   toolchains.lock, images.lock and the baked-in vendor bundles behind, and
+#   `make build-offline` would fail in a confusing way one commit later. Worse,
+#   it would look like a maintained dependency policy while the thing that
+#   actually feeds the offline build went stale.
+#
+#   TODO(ecosystems): if a future session wants automated notice for those
+#   ecosystems, the correct change is NOT to add package-ecosystem entries here.
+#   It is to add a scheduled job that runs `make toolchain-refresh` on a branch
+#   and opens a pull request carrying the regenerated toolchains.lock,
+#   images.lock and vendor-bundle hashes together. That job is network-permitted
+#   and human-reviewed by construction; nothing else in CI is.
+#
+# 74.11.2 also bans `latest`, `stable`, `nightly` and floating version ranges.
+# Dependabot never introduces one for the github-actions ecosystem when the
+# existing reference is a SHA pin with a version comment, which is the only form
+# permitted in this repository.
+
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      # TZ=UTC everywhere in this repository (58, 74.3). A local-time schedule
+      # would drift twice a year.
+      timezone: "Etc/UTC"
+    # Small, so that a week's batch stays reviewable by one person. Illustrative,
+    # not a target.
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "ci"
+    # TODO(reviewers): no reviewer or assignee is set because the repository has
+    # no CODEOWNERS file yet. Add one, then delete this comment rather than
+    # hard-coding a username here.
