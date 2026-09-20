@@ -1,0 +1,49 @@
+# SPECTRA - cargo workspace root.
+# Spec: Part I 32.4, 33.4; Part II 69 (kernel boundary), 73.10 (naming).
+# Status: not started. No member contains implementation logic.
+
+[workspace]
+resolver = "2"
+members = ["rust/*"]
+
+# Members: core, kernel, rules, cut, liveness, cert, sim, graph, wasm, bench,
+# xtask.
+#
+# TODO(decision: crate and directory names). Part I 32.4 spells five crates
+# eclipse-core, eclipse-rules, eclipse-cut, eclipse-liveness and eclipse-cert.
+# Part II 73.10 bans the string eclipse in every crate, module, directory and
+# file name and names the kernel crate spectra-kernel; Part II 69.5.3 spells the
+# kernel directory rust/kernel. Directories here are therefore the crate name
+# without the spectra- prefix, uniformly. To change: rename the directories and
+# the [package] name fields; the members glob needs no edit.
+# TODO(decision: no ffi crate). Part I 32.4 lists spectra-ffi (cdylib + PyO3).
+# Part II 69.1.2 and 69.21.2 forbid pyo3 and every in-process binding, so the
+# crate does not exist and must not be added.
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.82.0"
+license = "Apache-2.0"
+repository = "https://github.com/rakshit-737/spectra-security"  # TODO(placeholder owner)
+publish = false
+
+[workspace.dependencies]
+# TODO(dependencies): declared here, once, in the commit that uses them, and
+# vendored per Part II 74.2 (cargo vendor, source replacement, offline cargo).
+
+[workspace.lints.rust]
+# Part I 33.4 denies unsafe_code outside the ffi and native-binding crates.
+# "deny" rather than "forbid" so a future native-bindings crate can override it
+# with a justified allow; the ffi crate itself is forbidden (Part II 69.21.2).
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+# TODO(lints): the determinism lints Part II 58 and 69.21.4 require (no floating
+# point in a decision path, no Instant::now, no map-iteration order in an output
+# path) are not configured yet; they land with the first crate that could
+# violate them.
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1
