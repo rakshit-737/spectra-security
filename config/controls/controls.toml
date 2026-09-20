@@ -1,0 +1,122 @@
+# config/controls/controls.toml
+#
+# The control catalog. ZERO controls are defined. This file is a header, a schema version and a
+# field contract. It defines nothing yet and must not be treated as an empty-but-valid catalog:
+# a loader given this file has no controls, and any code path that requires at least one control
+# must say so and exit non-zero rather than proceed.
+#
+# Owning sections: Part I section 22 (control catalog), Part I section 34.3 (this file's shape),
+# Part II section 57 (naming), Part II section 63 (guard language and bit assignment).
+#
+# Due: M3. Status: not started.
+
+schema_version = 1
+
+# ===========================================================================
+# REQUIRED FIELDS PER CONTROL
+# ===========================================================================
+#
+# Each control is one [[control]] table. Every field below is required unless marked optional.
+# The schema that enforces this is config/schema/controls.schema.json, which does not exist yet.
+#
+#   id           ControlId, rendered on the wire as "ctl:<id>".
+#                Grammar: snake = lower *( lower / DIGIT / "_" ), at most 48 octets.
+#                Part II section 57.2. Unique across the catalog. Never reused after deletion,
+#                because bit positions are append-only across catalog versions.
+#
+#   title        One human-readable line. Rendered in the UI. Never parsed.
+#
+#   levels       Ordered array of level names. The array index IS the Level ordinal, 0..m_k.
+#                Level 0 is the weakest setting. Higher is never weaker; the catalog is a lattice
+#                and antitonicity depends on this. Part I section 34.3, Part II section 57 row 17.
+#                Renaming a level is a semantic edit; reordering one is a different catalog.
+#
+#   guard_symbol The symbol the guard language binds this control to, so that a rule guard can
+#                compare it against a level. Part II section 63 renders control references in the
+#                control sort as `ctl.<id> >= <level>`.
+#                TODO(decision: guard_symbol may be redundant): if section 63's `ctl.<id>` form is
+#                the only accepted reference, this field carries no information and should be
+#                deleted rather than defaulted. Decide at M3 when the guard compiler lands, record
+#                the decision in docs/adr/, and remove the field from the schema in the same commit.
+#                OVERRIDE, Part II section 57 over Part I section 34.3: Part I named this field
+#                `guard_atom`. `atom` is a retired term and `make lint-vocab` check V6 rejects it
+#                as a TOML key with no allowlist path. The field is `guard_symbol`.
+#
+#   dimensions   Non-empty array of DimensionId values, from the closed set of exactly ten:
+#                identity session credential privilege process network api service resource trust
+#                Part II section 57.6. A value outside that set is a fatal config error.
+#
+#   provenance   Non-empty prose naming where this control comes from in the modeled world and what
+#                it corresponds to in the lab. A control with no provenance is not a control, it is
+#                a knob, and a knob is not admissible. Never empty, never "TODO", never "see PR".
+#
+# Optional, and absent until the owning section defines it:
+#
+#   TODO(Part II section 62.4.2): every threshold literal must bind to a concrete service
+#   configuration change in the range harness, so that the re-execution oracle can actually enforce
+#   it. Section 62 places that binding in `range/enforcement.toml`, not here. Do not duplicate it
+#   into this file. Confirm at M7 that no field is needed here at all.
+#
+# ===========================================================================
+# DERIVED, NEVER AUTHORED
+# ===========================================================================
+#
+# Threshold literals are DERIVED from this catalog and are never hand-listed. For a control k with
+# m_k + 1 level names, the derived literals are:
+#
+#   [k >= 1], [k >= 2], ... , [k >= m_k]
+#
+# There is no literal for level 0, because "at least the weakest setting" is vacuously true.
+# Part I section 34.3, Part II section 57 row 15.
+#
+# Bit positions in the 64-bit blockers mask are DERIVED, never authored. Part II section 57.8:
+# sort by ControlId bytewise ascending, then by Level ascending, and assign bit i to the i-th
+# literal in that order. Bit assignment is therefore a pure function of this catalog, and any edit
+# to this catalog renumbers bits. Consequences, all mandatory:
+#
+#   - A mask is never compared across two different catalog hashes.
+#   - A mask is never printed in a user-facing artifact.
+#   - Every certificate records both the catalog hash and the explicit ordered list of LiteralId,
+#     so a reader never reconstructs a bit position.
+#
+# The generated bit-assignment table lives in `controls.lock` and is produced by the control-catalog
+# tooling, not by hand. Part II section 63.6. `controls.lock` does not exist yet.
+#
+# ===========================================================================
+# BUDGET
+# ===========================================================================
+#
+# `make lint-vocab` check V9 recomputes, over this file,
+#
+#   sum over controls of (m_k + 1)  minus  |controls|   <=   64
+#
+# and fails the build when it exceeds 64. That is the count of derived threshold literals, and it
+# is the width of the blockers mask. When the catalog exceeds it, the run is downgraded to
+# subset-minimal with the `subset_minimal_only` flag rather than silently truncated.
+# Part I section 34.3, Part II section 57.10.
+#
+# With zero controls defined the sum is 0.
+#
+# ===========================================================================
+# NEGATIVE REQUIREMENTS
+# ===========================================================================
+#
+# - Do not hand-list a threshold literal. They are derived.
+# - Do not hand-assign a bit position. It is derived.
+# - Do not reuse a ControlId after deleting a control; bit positions are append-only.
+# - Do not add a control without provenance.
+# - Do not add a control whose levels are not totally ordered by strictness.
+# - Do not use the word `atom` as a field name, a level name or a control id. It is retired.
+# - Do not add a control here and its enforcement binding in a later commit. A control that cannot
+#   be enforced in the range cannot be validated by the re-execution oracle.
+#
+# ===========================================================================
+# CONTROLS
+# ===========================================================================
+#
+# None. Controls are authored at M3, together with the rule table and the guard compiler, so that
+# every control is introduced with a guard that references it and a test that exercises it.
+#
+# Part II section 70 additionally seals this file against the held-out protocol: a pull request
+# touching controls.toml is subject to the pre-registration rules, and controls.toml must not be
+# written before the pre-registration commit. Read Part II section 70 before adding the first row.
