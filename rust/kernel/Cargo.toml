@@ -1,0 +1,27 @@
+# spectra-kernel - the SPECTRA proof kernel.
+# Spec: Part I 25, 32.4; Part II 69 (ABI, budgets, exit codes), 73.10 (naming).
+# Status: not started.
+
+[package]
+name = "spectra-kernel"
+description = "SPECTRA proof kernel: grounding, fixpoint, cut search. Not started."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# TODO(dependencies): none yet. Part II 69.13 RULE P3 and 69.20 (make
+# no-service-deps) forbid any database, HTTP, DNS, queue or telemetry client in
+# this crate's dependency tree, permanently.
+
+# TODO(binary): the `spectra` binary with its `prove` subcommand (Part II 73.10,
+# 75.1.15) is not declared, because a [[bin]] target without a main function does
+# not build. Add [[bin]] name = "spectra" with src/main.rs in the commit that
+# writes the entry point, and settle 69.4.1's spelling (spectra-kernel prove) at
+# the same time.
