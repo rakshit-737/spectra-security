@@ -9,9 +9,12 @@
 #
 # ANTI-INFLATION STATEMENT (Part II section 73.8, hard ban).
 # Nothing in this file is miscategorised to add a row to, or grow a row in, the
-# GitHub language bar. `linguist-language=` appears exactly once below and only
-# to pin the language Linguist already detects, with a one-line comment saying
-# why; it never moves a file into a language Linguist would not assign it.
+# GitHub language bar. `linguist-language=` appears exactly once below, on the
+# one line Part II section 73.8's own block carries; it never moves a file
+# into a language Linguist would not assign it. Section 73.8 permits the
+# attribute only to correct a genuine misdetection and requires a one-line
+# comment stating the misdetection corrected; section 6 below records why that
+# rule and section 73.8's own example block disagree.
 # Renaming fixtures to a source extension, declaring configuration as code,
 # tagging generated output as authored, or splitting one component across
 # extensions to add a bar row is inflation and fails `make polyglot-audit` with
@@ -189,12 +192,21 @@ data/fixtures/**     linguist-detectable=false
 
 # ===========================================================================
 # 6. The single permitted linguist-language= override (Part II section 73.8)
+#    wasm/preimage/ will hold hand-authored WebAssembly text format, which is
+#    authored source; no .wat file is committed yet, and
+#    wasm/preimage/README.md records the component as not started. The line
+#    below pins the language Linguist already assigns, so a later Linguist
+#    change cannot silently move hand-authored wasm text out of the roster.
+#    The compiled .wasm in section 4 stays generated and uncounted.
+#
+#    TODO(decision): Part II section 73.8's hard ban permits
+#    `linguist-language=` only to correct a genuine misdetection and requires
+#    a one-line comment stating the misdetection corrected, yet the same
+#    section's own .gitattributes block carries the line below under a comment
+#    that corrects no misdetection. Kept because that block is normative and
+#    names this exact line. To reverse: delete this whole block; no .wat file
+#    exists anywhere in the tree, so nothing is protected today.
 # ===========================================================================
-# Pinned, not corrected: Linguist already detects .wat as WebAssembly, and
-# wasm/preimage/ holds hand-authored WebAssembly text format, which is authored
-# source. This line fixes that label so a later Linguist change cannot silently
-# move hand-authored wasm text out of the roster. The compiled .wasm in
-# section 4 stays generated and uncounted.
 wasm/preimage/*.wat  linguist-language=WebAssembly
 
 # ===========================================================================
