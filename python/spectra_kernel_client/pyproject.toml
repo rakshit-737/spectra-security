@@ -1,0 +1,24 @@
+# spectra_kernel_client - the only component permitted to spawn the kernel or
+# the checker (Part II 69.12.1).
+# Spec: Part II 69.1 (subprocess over content-addressed files), 69.12; replaces
+# Part I 32.3's spectra_eclipse, whose bindings are forbidden by 69.1.2/69.21.2
+# and whose name is forbidden by 73.10.
+# Status: not started.
+
+[project]
+name = "spectra-kernel-client"
+version = "0.0.0"
+description = "SPECTRA subprocess client for the kernel and checker binaries. Not started."
+requires-python = "==3.12.*"
+license = { text = "Apache-2.0" }
+dependencies = []
+# TODO(dependencies): added in the commit that uses them (Part II 74.2). No
+# pyo3, cffi or ctypes dependency may ever appear here (Part II 69.21.2).
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# TODO(pin): see python/spectra_core/pyproject.toml.
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spectra_kernel_client"]
