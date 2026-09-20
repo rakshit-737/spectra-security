@@ -56,7 +56,9 @@ What breaks:
 
 1. The privilege and local-account transitions that the rule table grounds over lose their observed
    anchor in that scenario. Steps that were derived from observed records become candidates for
-   licensed unobserved steps, which changes the reconstructed state and changes the cut.
+   licensed unobserved steps, which changes the reconstructed state and changes the cut, so the
+   scenario's assertion that the reconstructed privilege timeline matches the generator's recorded
+   ground truth fails.
 2. The estate loses its only subject whose record shape is event-identifier-keyed rather than
    message-text-keyed, which is the case that makes format-keyed adaptation testable against a shape
    unlike the others.
