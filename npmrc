@@ -1,0 +1,20 @@
+; SPECTRA - npm/pnpm configuration.
+; Spec: Part I 33.4 (engine-strict, offline-friendly store); Part II 74.2 (pnpm
+; content-addressed store baked into the toolchain image), 75.1.14 (no network
+; after clone).
+; Status: not started - nothing has been installed from this configuration.
+
+engine-strict=true
+prefer-offline=true
+ignore-scripts=true
+strict-peer-dependencies=true
+recursive-install=true
+store-dir=/opt/spectra/vendor/pnpm-store
+
+; TODO(offline switch): Part II 74.2 enforces --offline / npm_config_offline=true
+; inside the toolchain image rather than here, because make toolchain-refresh is
+; the one target permitted to reach the network (Part II 74.1). Do not set
+; offline=true in this file without moving that target's install path.
+; TODO(store-dir): the path above is the in-image vendor path; a developer
+; outside the devcontainer has no such directory. Decide whether this line
+; belongs in the image's own .npmrc once that image exists.
