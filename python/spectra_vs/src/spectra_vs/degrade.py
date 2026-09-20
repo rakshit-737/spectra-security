@@ -1,0 +1,361 @@
+"""S3: the degradation operator. `raw + completeness + seed -> raw.c<NN>.jsonl + manifest`.
+
+DELETE ONLY. The operator removes whole records and never alters one. A degraded record
+would change its own event id, and an oracle could then no longer re-link the degraded
+bundle to the truth stream by id - which is the one thing the truth stream is for.
+
+NESTING IS THE WHOLE POINT, AND IT IS STRUCTURAL HERE. Two cells of the completeness axis
+are comparable only if the lower cell saw strictly less than the higher one. If the 70%
+run deleted records the 90% run kept AND kept records the 90% run deleted, the difference
+between their verdicts would mix "less telemetry" with "different telemetry", and the
+degradation axis would be noise.
+
+The nesting is not asserted after the fact, it is a consequence of the construction: this
+module defines ONE total order over the records of each source, depending only on
+`(seed, record)` and never on the completeness level, and deletes a PREFIX of it. Prefixes
+of a fixed order are nested by definition, so `removed(c1) superset-of removed(c2)`
+whenever `c1 < c2` holds for every pair of levels without a pairwise check. A caller that
+passes the higher cell's result as `parent` gets the containment re-verified anyway, and
+the manifest then cites the parent's hash.
+
+LOSS IS CORRELATED, NOT SPRINKLED. Real telemetry loss is an outage, not an independent
+coin flip per record, and the two produce completely different liveness verdicts: uniform
+thinning leaves small gaps everywhere while an outage leaves one large gap in one place.
+The deletion order is therefore keyed by an outage block first and by the individual
+record second, so deleting a prefix removes whole blocks in a seeded block order and
+thins only within the last block it reaches.
+
+`OUTAGE_BLOCK_SPAN_NS` IS A CONSTANT, NOT A PARAMETER. It is part of what the operator
+is, so it is code rather than an argument: with it as an argument, two runs at the same
+completeness and the same seed could differ, and the artifact would not be a pure
+function of its hashed inputs. Changing it changes every degraded artifact, which is the
+intended cost of changing what an outage means.
+
+LOSS IS STRATIFIED BY SOURCE. Each source loses the same fraction of its own records
+rather than a fraction drawn from the pooled population. Pooled deletion at a low
+completeness can erase a low-volume source entirely by chance, and a source that vanished
+by accident is indistinguishable from a source that was never there.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import gcd
+from pathlib import Path
+from typing import Any, Final
+
+from spectra_core import canon
+from spectra_core.errors import SchemaError
+from spectra_core.ids import EventId, SourceId
+
+from spectra_vs.gen import RAW_FILE_KIND, RawEvent, raw_to_scf, render_raw
+from spectra_vs.scenario import source_key
+from spectra_vs.scf import scf_bytes, write_jsonl, write_scf
+
+__all__ = [
+    "DEGRADATION_SCHEMA",
+    "MANIFEST_KIND",
+    "OUTAGE_BLOCK_SPAN_NS",
+    "Completeness",
+    "DegradationResult",
+    "RemovedRef",
+    "degrade",
+    "write_degraded_raw",
+    "write_manifest",
+]
+
+#: The schema tag every degradation manifest carries.
+DEGRADATION_SCHEMA: Final[str] = "spectra.vs.degradation/1"
+
+#: The digest domain for a manifest, distinct from the raw-file domain.
+MANIFEST_KIND: Final[str] = "vsdegmanifest"
+
+#: The span of one correlated outage block: twenty minutes in nanoseconds.
+#:
+#: Chosen against the slice's two-hour horizon so that the block layer does at the
+#: completeness levels the slice runs what it claims to do. Six blocks per source means a
+#: thirty-per-cent deletion empties one whole block before it begins thinning a second.
+#: A forty-minute block would give only three blocks per source, thirty per cent would not
+#: fill even one, and every deletion would degrade into the uniform thinning this layer
+#: exists to avoid. A shorter block would empty more blocks but each silence would be
+#: shorter, and what the absence operator needs is one CONTIGUOUS non-live run long enough
+#: to contain a whole sealed lookback, not a larger number of short ones.
+#:
+#: CONSEQUENCE FOR THE RULE TABLE, stated here because it crosses a stage boundary: an
+#: `absence` lookback window longer than this span cannot lie wholly inside a single
+#: emptied block, so its licence condition cannot be met from one outage. A rule that
+#: needs a longer lookback needs a longer block, and changing this constant changes every
+#: degraded artifact.
+#:
+#: The grid is anchored at the Unix epoch, not at the scenario epoch, so that the key
+#: below is a function of the record alone and needs no scenario to compute.
+OUTAGE_BLOCK_SPAN_NS: Final[int] = 1_200_000_000_000
+
+_BLOCK_KIND: Final[str] = "vsdegblk"
+_RECORD_KIND: Final[str] = "vsdegrec"
+
+
+# ---------------------------------------------------------------------------
+# Completeness
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Completeness:
+    """An exact rational in lowest terms. There is no float anywhere on this axis.
+
+    A completeness of 0.7 stored as a float would make the surviving record count depend
+    on a rounding mode, and two implementations that disagree by one record produce
+    different bundle hashes and therefore incomparable certificates.
+    """
+
+    num: int
+    den: int
+
+    def __post_init__(self) -> None:
+        canon.u32(self.num)
+        canon.u32(self.den)
+        if self.den == 0:
+            raise SchemaError("Completeness: denominator must be positive")
+        if not 0 <= self.num <= self.den:
+            raise SchemaError(f"Completeness: {self.num}/{self.den} is not in [0, 1]")
+        if gcd(self.num, self.den) != 1:
+            raise SchemaError(
+                f"Completeness: {self.num}/{self.den} is not in lowest terms; "
+                "the contract requires a reduced rational"
+            )
+
+    @classmethod
+    def of(cls, num: int, den: int) -> Completeness:
+        """Reduce and construct. The one place a caller's unreduced pair is normalised."""
+        if isinstance(num, bool) or isinstance(den, bool):
+            raise SchemaError("Completeness.of: a bool is not a rational part")
+        if not isinstance(num, int) or not isinstance(den, int):
+            raise SchemaError("Completeness.of: numerator and denominator must be ints")
+        if den <= 0:
+            raise SchemaError("Completeness.of: denominator must be positive")
+        divisor = gcd(num, den) or 1
+        return cls(num=num // divisor, den=den // divisor)
+
+    @classmethod
+    def percent(cls, value: int) -> Completeness:
+        """`Completeness.percent(70)` is seven tenths. Integer percent only, never a float."""
+        return cls.of(value, 100)
+
+    @property
+    def is_identity(self) -> bool:
+        """True at completeness 1. The identity spec is what calibration gate B2 requires."""
+        return self.num == self.den
+
+    def keep(self, population: int) -> int:
+        """How many of `population` records survive: floor, so the target is never exceeded."""
+        return (population * self.num) // self.den
+
+    def tag(self) -> str:
+        """The `c<NN>` file-name tag.
+
+        Integer percent when the rational is one, because the contract's file name is
+        `raw.c<NN>.jsonl` and every cell the slice runs is a whole percent. Anything else
+        renders as `<num>_<den>` rather than rounding, because a rounded tag would make
+        two different degradations write the same file name.
+        """
+        if (self.num * 100) % self.den == 0:
+            return str((self.num * 100) // self.den)
+        return f"{self.num}_{self.den}"
+
+    def to_scf(self) -> dict[str, int]:
+        return {"den": self.den, "num": self.num}
+
+    def __lt__(self, other: Completeness) -> bool:
+        return self.num * other.den < other.num * self.den
+
+
+# ---------------------------------------------------------------------------
+# The manifest rows
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class RemovedRef:
+    """One deleted record, named by what survives its deletion: its source, seq and id."""
+
+    source_id: SourceId
+    seq: int
+    event_id: EventId
+
+    def sort_key(self) -> tuple[bytes, int]:
+        return (canon.byte_order_key(source_key(self.source_id)), self.seq)
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "event_id": str(self.event_id),
+            "seq": self.seq,
+            "source_id": source_key(self.source_id),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class DegradationResult:
+    """The surviving stream and the manifest that accounts for every deletion."""
+
+    raw: tuple[RawEvent, ...]
+    removed: tuple[RemovedRef, ...]
+    completeness: Completeness
+    degradation_seed: int
+    parent_raw_hash: str
+    nested_parent_manifest_hash: str | None = None
+
+    @property
+    def raw_bytes(self) -> bytes:
+        return render_raw(self.raw)
+
+    @property
+    def raw_hash(self) -> str:
+        return canon.hash_ref(RAW_FILE_KIND, self.raw_bytes)
+
+    @property
+    def removed_keys(self) -> frozenset[tuple[str, int]]:
+        """The deletion set as `(source_id, seq)` pairs, for a containment check."""
+        return frozenset((source_key(r.source_id), r.seq) for r in self.removed)
+
+    def manifest(self) -> dict[str, Any]:
+        """Data contract 5 on the wire.
+
+        `nested_parent_manifest_hash` is omitted rather than written as null at the
+        highest completeness level, because on this wire absence is how optionality is
+        expressed and `null` is never a value.
+        """
+        document: dict[str, Any] = {
+            "completeness": self.completeness.to_scf(),
+            "degradation_seed": canon.mask_hex(self.degradation_seed),
+            "operators": ["delete"],
+            "parent_raw_hash": self.parent_raw_hash,
+            "removed": [r.to_scf() for r in self.removed],
+            "schema": DEGRADATION_SCHEMA,
+        }
+        if self.nested_parent_manifest_hash is not None:
+            document["nested_parent_manifest_hash"] = self.nested_parent_manifest_hash
+        return document
+
+    def manifest_hash(self) -> str:
+        return canon.hash_ref(MANIFEST_KIND, scf_bytes(self.manifest(), where="manifest"))
+
+
+# ---------------------------------------------------------------------------
+# The operator
+# ---------------------------------------------------------------------------
+
+
+def degrade(
+    raw: tuple[RawEvent, ...],
+    completeness: Completeness,
+    seed: int,
+    *,
+    parent: DegradationResult | None = None,
+) -> DegradationResult:
+    """Delete records down to `completeness`, nested with every other level at this seed.
+
+    `parent` is the result at the next HIGHER completeness level. Passing it is optional
+    and changes nothing about which records are deleted; it makes the manifest cite the
+    parent's hash and it re-verifies the containment that the construction already
+    guarantees. The re-verification is kept because a structural guarantee that nobody
+    ever checks is a structural guarantee until the day somebody edits the ordering key.
+    """
+    canon.u64(seed)
+    if not isinstance(completeness, Completeness):
+        raise SchemaError("degrade: completeness must be a Completeness")
+
+    by_source: dict[str, list[RawEvent]] = {}
+    for record in raw:
+        by_source.setdefault(source_key(record.source_id), []).append(record)
+
+    removed: list[RemovedRef] = []
+    survivors: list[RawEvent] = []
+    for name in sorted(by_source, key=canon.byte_order_key):
+        records = by_source[name]
+        canon.check_strictly_ascending(
+            [r.seq for r in sorted(records, key=lambda r: r.seq)],
+            lambda k: k,
+            where=f"degrade.{name}.seq",
+        )
+        order = sorted(records, key=lambda r: _deletion_key(r, seed))
+        cut = len(records) - completeness.keep(len(records))
+        for record in order[:cut]:
+            removed.append(
+                RemovedRef(
+                    source_id=record.source_id, seq=record.seq, event_id=record.event_id
+                )
+            )
+        survivors.extend(order[cut:])
+
+    ordered_removed = tuple(sorted(removed, key=lambda r: r.sort_key()))
+    canon.check_strictly_ascending(
+        [r.sort_key() for r in ordered_removed], lambda k: k, where="degrade.removed"
+    )
+    ordered_survivors = tuple(sorted(survivors, key=lambda r: r.sort_key()))
+    canon.check_strictly_ascending(
+        [r.sort_key() for r in ordered_survivors], lambda k: k, where="degrade.raw"
+    )
+
+    parent_hash: str | None = None
+    if parent is not None:
+        if not completeness < parent.completeness:
+            raise SchemaError(
+                f"degrade: parent completeness {parent.completeness.num}/{parent.completeness.den} "
+                f"must be strictly greater than {completeness.num}/{completeness.den}"
+            )
+        if parent.degradation_seed != seed:
+            raise SchemaError("degrade: a nested chain must hold the degradation seed fixed")
+        child_keys = frozenset((source_key(r.source_id), r.seq) for r in ordered_removed)
+        if not parent.removed_keys <= child_keys:
+            raise SchemaError(
+                "degrade: nesting violated; the lower completeness level must delete a "
+                "superset of the higher level's deletions"
+            )
+        parent_hash = parent.manifest_hash()
+
+    return DegradationResult(
+        raw=ordered_survivors,
+        removed=ordered_removed,
+        completeness=completeness,
+        degradation_seed=seed,
+        parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
+        nested_parent_manifest_hash=parent_hash,
+    )
+
+
+def _deletion_key(record: RawEvent, seed: int) -> tuple[bytes, int, bytes, int]:
+    """The one total order deletion walks. Depends on `(seed, record)` and nothing else.
+
+    Independence from the completeness level is what makes nesting a property of the
+    construction rather than a post-hoc check. The block digest leads, so a prefix of this
+    order removes whole outage blocks in a seeded block order before it thins inside one.
+    """
+    block = record.t_evt_ns // OUTAGE_BLOCK_SPAN_NS
+    block_key = canon.digest(
+        _BLOCK_KIND,
+        canon.u64(seed) + canon.ascii_text(source_key(record.source_id)) + canon.i64(block),
+    )
+    record_key = canon.digest(
+        _RECORD_KIND, canon.u64(seed) + canon.ascii_text(str(record.event_id))
+    )
+    return (block_key, block, record_key, record.seq)
+
+
+# ---------------------------------------------------------------------------
+# Writers
+# ---------------------------------------------------------------------------
+
+
+def write_degraded_raw(run_dir: Path, result: DegradationResult) -> Path:
+    """Write `raw.c<NN>.jsonl` under `run_dir` and return the path."""
+    path = Path(run_dir) / f"raw.c{result.completeness.tag()}.jsonl"
+    write_jsonl(path, [raw_to_scf(r) for r in result.raw], where="raw")
+    return path
+
+
+def write_manifest(run_dir: Path, result: DegradationResult) -> Path:
+    """Write `degradation_manifest.json` under `run_dir` and return the path."""
+    path = Path(run_dir) / "degradation_manifest.json"
+    write_scf(path, result.manifest(), where="manifest")
+    return path
