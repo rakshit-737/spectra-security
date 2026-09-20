@@ -44,7 +44,7 @@ tool, not multi-tenant or hosted, and it emits no probability, score, severity o
 kind. Read the list rather than this paragraph.
 
 What SPECTRA can and cannot claim about its own results, once it has any, is recorded in
-[LIMITATIONS.md](LIMITATIONS.md) and in `docs/checker-scope.md`.
+[LIMITATIONS.md](LIMITATIONS.md) and, once written, in `docs/checker-scope.md` (not yet written).
 
 ## Scenario generators contain no weaponizable code
 
@@ -57,7 +57,8 @@ anything. The generators cannot compromise a host because they do not act on hos
 lines to a file.
 
 No generator exists yet. The statement above is a standing constraint on what may be written, and
-it is intended to be enforced by `make weaponization-scan`, which is declared and not implemented.
+it is intended to be enforced by a `make weaponization-scan` target, which is neither declared in
+the Makefile nor implemented.
 
 <!-- TODO(decision): Part II section 75.9 requires this statement verbatim on the README's first
      screen, while section 71.5 defines the first screen structurally as the bytes before the first
@@ -88,9 +89,9 @@ row reads `not started`.
 | M10 | Documentation, demo, release | `make release-check` | not started |
 
 Supporting status files, each declared and empty of results: `mpc.toml` (the minimum publishable
-core, components C1 through C10, every component red), `ratchet.json` (test and gate ratchet, no
-milestone recorded), `BUILD_LOG.md` (increment log), `docs/descope-ladder.md` (rungs D1 through
-D12, none applied).
+core, components C1 through C10, every component not started), `ratchet.json` (test and gate
+ratchet, no milestone closed; the single M0 entry is an all-zero placeholder), `BUILD_LOG.md`
+(increment log), `docs/descope-ladder.md` (rungs D1 through D12, none applied).
 
 <!-- TODO(decision): Part II section 75.3 requires the README status table, the language table and
      the waiver table to be machine-generated from mpc.toml and ratchet.json by the docs gate, and
@@ -108,11 +109,11 @@ its artifact turns a named CI job red. A language that fails all three is delete
 | Tier | Languages | Promise | Status |
 |------|-----------|---------|--------|
 | A | Bash, Go, Python, Rust, SQL, TypeScript | The critical path. Never cut. | package roots only, empty; not started |
-| B | Haskell, C, C++, one JVM language, x86-64 assembly | Independent oracles and measured performance, each consumed by something. | directory and README stating the tier; not started |
+| B | Haskell, C, C++, one JVM language, C#, x86-64 assembly | Independent oracles and measured performance, each consumed by something. | directory and README stating the tier; not started |
 | C | Range-realism emitters (PowerShell, PHP, Ruby, Perl, Lua, Kotlin, Swift, Dart and others) | The heterogeneous observed estate. Cut as a whole tier, never language by language. | directory and README stating the tier; not started |
-| D | R, Julia, GNU Octave | Analysis and reporting, each with a narrow stated promise. | directory and README stating the tier; not started |
+| D | R, Julia, GNU Octave, F#, Solidity, Verilog, VHDL, YARA, WebAssembly text | Analysis and reporting, each with a narrow stated promise. | directory and README stating the tier; not started |
 
-GNU Octave is used and is called Octave. It is never described as MATLAB or as MATLAB-verified.
+Where GNU Octave is used, it is called Octave. It is never described as MATLAB or as MATLAB-verified.
 
 **Configuration and markup formats are not languages in any prose claim made by this project.**
 JSON, YAML, TOML, XML, HTML, CSS, SCSS, Dockerfile, Makefile, CMake and HCL may appear in the
@@ -129,8 +130,8 @@ No results have been measured.
 What will be measured, how, with which seeds and repetitions, and what would falsify each research
 question is committed in advance in [docs/research/preregistration.md](docs/research/preregistration.md).
 That document is currently headings only. Results, when they exist, are produced by a gate, written
-to a run artifact, registered in `docs/claims.md` against the artifact and gate that produced them,
-and rendered into documentation by a generator — never typed into this file.
+to a run artifact, registered in [CLAIMS.md](CLAIMS.md) against the artifact and gate that produced
+them, and rendered into documentation by a generator — never typed into this file.
 
 ## Building
 
@@ -144,15 +145,17 @@ Prerequisites:
 - No network is needed after clone. Nothing in this repository fetches anything at build or test
   time.
 
-**Nothing builds yet beyond the skeleton gate.** The `Makefile` declares the full target vocabulary
-so that the vocabulary is reviewable, but a target that is not implemented prints what is missing
-and exits non-zero. No declared target exits zero having done nothing. The CI workflow declares its
-jobs and skips them with a stated reason; no job reports green for work that was not performed.
+**Nothing builds yet beyond the skeleton gate.** The `Makefile` declares part of the target
+vocabulary; the ten component gates named in `mpc.toml` and the targets named in `CLAIMS.md` are
+not declared yet. What is declared is reviewable, and a target that is not implemented prints what
+is missing and exits non-zero. No declared target exits zero having done nothing. The CI workflow
+declares its jobs and skips them with a stated reason; no job reports green for work that was not
+performed.
 `make m0-verify`, the gate that would make the toolchain milestone green, is not started.
 
-The development setup, the target vocabulary and the test layers are described in
-`docs/DEVELOPMENT.md`. Contribution policy, including the rule that no change may add a number to
-documentation without the command that generates it, is in `CONTRIBUTING.md`.
+The development setup, the target vocabulary and the test layers will be described in
+`docs/DEVELOPMENT.md` (not yet written). Contribution policy, including the rule that no change may
+add a number to documentation without the command that generates it, is in `CONTRIBUTING.md`.
 
 ## Naming
 
@@ -161,16 +164,17 @@ over Silent Envelopes). It is unrelated to the Eclipse Foundation, the Eclipse I
 or Eclipse Adoptium, and uses none of their marks. The acronym appears in prose and in the
 specification only; it is not used in any crate, module, directory or file name, where the kernel
 is called `spectra-kernel` and the binary is `spectra prove`. Prefer "the SPECTRA kernel" in
-user-facing prose. See `docs/naming.md`.
+user-facing prose. See `docs/naming.md` (not yet written).
 
 ## Licence and citation
 
 Licensed under the Apache License, Version 2.0. The full text is in [LICENSE](LICENSE) and the
 reasoning — the explicit patent grant and the explicit no-warranty clause, both of which matter for
-a research artifact a reader might run against their own telemetry — is in `docs/licensing.md`.
-There is no dual licence and no non-commercial rider. Every source file carries
-`SPDX-License-Identifier: Apache-2.0`. Third-party licences are vendored under
-`third_party/licenses/`.
+a research artifact a reader might run against their own telemetry — will be in
+`docs/licensing.md` (not yet written). There is no dual licence and no non-commercial rider. Every
+source file will carry `SPDX-License-Identifier: Apache-2.0`; the header is not yet applied to any
+file and no gate enforces it. Third-party licences will be vendored under `third_party/licenses/`;
+no dependency is vendored yet and the directory does not exist.
 
 Citation metadata is in [CITATION.cff](CITATION.cff). It describes a pre-alpha repository with no
 results; cite it as software, not as a finding.
@@ -179,6 +183,7 @@ Security reporting policy: [SECURITY.md](SECURITY.md). This is a one-person rese
 There is no bounty, no service-level agreement and no security team.
 
 <!-- TODO(decision): the Go module path and the repository URL are recorded as
-     github.com/rakshit-737/spectra-security in go.mod, CITATION.cff and docs/repo-metadata.toml. The hosting
-     account is not yet fixed. Changing it later rewrites go.work, every go.mod and every import
-     path, so fix it before the Go checker module is created at M6. -->
+     github.com/rakshit-737/spectra-security in go.mod and CITATION.cff, and will be recorded in
+     docs/repo-metadata.toml (not yet written). The hosting account is not yet fixed. Changing it
+     later rewrites go.work, every go.mod and every import path, so fix it before the Go checker
+     module is created at M6. -->
