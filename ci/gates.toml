@@ -87,7 +87,7 @@ T2 = 5400  # illustrative, not a target
 T3 = 21600  # illustrative, not a target
 
 
-# ---- TIER T0 - 3 gates declared, 0 implemented. --------------------------
+# ---- TIER T0 - 3 gates declared, 1 implemented (G-WIN-001). --------------
 # Local pre-commit tier. Runs inside WSL2 or the devcontainer. Never
 # authoritative: a green T0 proves nothing to anyone but the author.
 
