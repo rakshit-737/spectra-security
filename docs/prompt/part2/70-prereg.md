@@ -95,6 +95,25 @@ required = ["A_eclipse", "B0_trivial_all", "B0_trivial_none", "B1_time_order",
             "B5_dev_frequency_prior", "C_ceiling_clean"]
 ```
 
+OVERRIDES Part I section 50.2: the eleven-operator catalog (`none`, `delete_random`,
+`delete_targeted`, `reorder`, `duplicate`, `delay_jitter`, `corrupt_field`, `strip_identity`,
+`backdate`, `forge_provenance`, `silence`) is replaced by the six operators declared above, and
+`research/prereg.toml` rather than `bench/manifests/*.json` is the binding matrix. An implementer
+following Part I would execute `backdate`, `forge_provenance`, `strip_identity` and `none` cells that
+no metric in 70.3 and no arm in 70.9 consumes, against a matrix file that 70.6 freezes and 70.10
+forbids editing.
+
+OVERRIDES Part I section 50.1 item 2: the rule that `completeness` applies only to data-removing
+operators while shape-preserving operators sweep their own intensity knob and record
+`completeness = 1.0` is replaced by the single `levels_pct` axis crossed with every operator in the
+cell key above. An implementer following Part I would emit every `duplicate`, `reorder` and `corrupt`
+row at completeness 1.0 and produce one level where the cell key declares eight.
+
+OVERRIDES Part I section 50.3: the requirement to present `delete_random` and `delete_targeted`
+adjacent at the same scale in every figure and table, and never to report `delete_random` alone, is
+replaced by the single `delete` operator, which carries no random/targeted split. An implementer
+following Part I would look for an adjacency the declared operator set cannot produce.
+
 `make prereg-check` (runs on every push, and is the first gate in CI) verifies:
 
 1. `research/prereg.toml` parses and `schema_version` is known.
@@ -183,7 +202,21 @@ tier          = "secondary"
 definition    = "Share of the forged-certificate corpus the Go checker rejects. Must be 1."
 ```
 
-Hypotheses are declared alongside, each with the outcome that would falsify it:
+OVERRIDES Part I section 50.7 item 13: the invariant that rows with `eclipse_verdict = ROBUST` and
+`block_miss = 1` number exactly zero across the entire executed matrix, as one absolute build gate, is
+replaced by `M1_false_robust_count`'s pool-split decision rule above — a nonzero count fails the build
+on HELD-OUT and opens an overfit-ledger entry on DEV. This also supersedes Part I section 5.3 H0 and
+section 5.4 for the DEV pool: a DEV false ROBUST is no longer a corpus-wide falsification filed to
+`research/results/falsifications/`. An implementer following Part I would stop the build on exactly
+the DEV cells that 70.7 expects to be diagnosed and recorded as a `CORRECTION`, `COVERAGE` or
+`THRESHOLD` change.
+
+OVERRIDES Part I section 5.7: the prohibition on the words "accuracy", "detection rate", "precision"
+and "recall" for ECLIPSE outputs — permitted only when scoped by name to the optional ML anomaly
+baseline — is replaced by the metric ids declared above; `M4_premium_precision`, `M4b_premium_recall`
+and `M5_chain_edge_f1` are computed over `A_eclipse` and are the headline, and no ML anomaly baseline
+is among the arms 70.9 requires. An implementer who also builds the Part I section 8.6 string linter
+over UI strings, API schemas and report templates would have it reject this section's primary metrics.
 
 ```toml
 [[hypothesis]]
@@ -207,6 +240,15 @@ falsified_if = "the prior matches the kernel; then the result is 'the catalog is
                 kernel reconstructs'."
 ```
 
+OVERRIDES Part I section 5.3: the hypotheses bound to the ids H1, H2 and H3 in
+`research/questions.toml` (premium strictly increasing in telemetry loss and zero at 100%
+completeness; every premium control attributable to a License, removed on re-run in at least 80% of
+attributed instances; `|D| <= 3` on at least half of the degraded runs) are replaced, under the same
+ids, by the three statements declared above, and it is these that `<<VERDICT:H1>>`, `<<VERDICT:H2>>`
+and `<<VERDICT:H3>>` in 70.12 resolve to. An implementer following Part I would bind the section 5.4
+falsifier rows, the section 5.6 `[[H1]]` claim markers and the section 8.8 `LIMITATIONS.md` status
+table to these ids and report a verdict about a different hypothesis than the one measured.
+
 Negative requirement: no metric may be a confidence, probability, severity, risk score, likelihood or
 any scalar that collapses a set-valued output. Residual reachability is a set (§4H of the ECLIPSE spec
 as amended by the solver well-definedness section) and appears in `results.jsonl` as a sorted list of
@@ -220,6 +262,13 @@ and the results schema for the banned nouns and fails on a hit.
 A single run per cell is not a result. The binding minimum is five replicates per cell (binding
 constraint, not a measurement); raise it in the pre-registration only, never in a commit that also
 touches the harness.
+
+OVERRIDES Part I section 49.7 item 14: the minimum of `n = 10` seeds per reported cell, below which a
+claim is not publishable and the renderer emits `NOT REPORTABLE`, is replaced by the five-replicate
+minimum above, and the `sample_size_min = 40` field of the Part I section 5.5 research registry does
+not bind rows produced under this protocol. An implementer who builds the section 49.7 floor would
+have the renderer refuse every held-out cell this section mandates, including the `n=5` headline rows
+in 70.12.
 
 Seed derivation is a pure function so that no RNG state is shared between cells and any cell can be
 re-run in isolation and byte-identically:
@@ -271,6 +320,15 @@ research/heldout/
    to a path recorded in `sealed.manifest` as a name only.
 4. Writes `sealed.manifest`, `SEALED`, deletes the plaintext.
 5. Fails if the working tree contains `rules/rules.toml`, `axioms/*` or `controls.toml`.
+
+OVERRIDES Part I section 51.4 item 7: the held-out scenario set (`S80..S85`) authored **after the rule
+table is frozen** is replaced by a held-out pool generated and sealed before any rule table, axiom
+file or control catalog exists, as guard 5 above enforces. The same reordering supersedes Part I
+section 8.2 IV5 and section 8.4 M3, whose held-out fixture family from unseen seeds is re-run in every
+release job: here the pool is opened once, by the UNSEAL event, and never resealed. An implementer
+following Part I would author the held-out set after the freeze, at which point `make prereg-check`
+and `make seal-heldout` both refuse it and the protocol cannot be recovered without a new
+pre-registration.
 
 Because generation is deterministic, anyone can later re-derive the plaintext from `spec.toml` and the
 generator at the sealing commit and confirm it hashes to `sealed.manifest.plaintext_blake3`. That is
@@ -429,6 +487,21 @@ Pool labels travel with the data, not with the prose. Every results row:
  "unseal_index":1,"tuned_inputs":false}
 ```
 
+OVERRIDES Part I sections 48.6 and 48.2: the Pydantic v2 results schema at one row per (scenario, arm,
+seed, operator, completeness, repeat), written to `bench/results/<run_id>/results.jsonl` plus
+`results.parquet` under a DuckDB DDL whose `eclipse_verdict VARCHAR` holds a bare
+`ROBUST|OPTIMISTIC_ONLY|UNSAFE|null`, in a directory git-ignored except `results/INDEX.json`, is
+replaced by the committed, accumulating `results/results.jsonl` above, keyed per metric by
+`result_id`, whose schema rejects a bare `ROBUST` in `safety`. An implementer following Part I would
+git-ignore the artifact that every `README.md` and `docs/` numeral must resolve into, so no
+`result_id` resolves in a fresh clone.
+
+OVERRIDES Part I section 48.8: rendering each document from the `results.parquet` of a single run,
+under "do not copy a number from an older run into a newer document", is replaced by rendering every
+table and figure from the complete `results/results.jsonl` across runs and generations. An implementer
+following Part I would drop the superseded rows that 70.6 requires to stay renderable, because they
+belong to an earlier run than the one being rendered.
+
 Rules, all gated:
 
 - `make docs` renders every table and figure programmatically from the complete
@@ -443,6 +516,11 @@ Rules, all gated:
 - Any numeral appearing anywhere in `README.md`, `docs/`, the UI, the demo script or a figure caption
   must resolve to a `result_id`. Hard-coded numerals fail the build. This closes the Part I defect
   where illustrative figures in the prompt itself were copied into documentation as if measured.
+  OVERRIDES Part I section 48.8 item 24: the `scripts/check_generated.py` exemptions that allow a
+  numeric literal outside a GENERATED region when it sits in a `codeblock`, in a version string, or on
+  a line ending with `<!-- static: <reason> -->` are removed for these surfaces; there is no
+  exemption. An implementer who keeps the `<!-- static: -->` hatch reopens the defect this rule
+  closes, because an illustrative figure passes the check by carrying a stated reason.
 - Verdict strings in results and UI carry their scope binding, per the verdict algebra section; a
   results row whose `safety` field is a bare `ROBUST` string is rejected by the schema.
 
@@ -486,6 +564,13 @@ only those paths. An arm that opens a path outside its set fails the run.
 | generator ground truth | – | – | – | – | – | – | – | – |
 | deterministic step budget | identical across arms, declared in `prereg.toml` | | | | | | | |
 | seeds | identical `seed(cell)` per replicate, arm id included in the derivation | | | | | | | |
+
+OVERRIDES Part I section 49.2 item 4: the requirement that every arm sees the perturbed bundle and
+never the pristine one, with the resulting `bundle_hash` asserted equal across arms and a projection
+violation aborting the cell, is replaced by the rows above, in which `C_ceiling_clean` alone reads the
+undegraded `bundle.jsonl` and therefore necessarily carries a different `bundle_hash`. The equal-hash
+assertion still holds across the other eight arms; an implementer carrying section 49.2 forward
+unchanged would abort every cell of a mandatory arm.
 
 Additional binding clauses:
 
@@ -629,6 +714,12 @@ wrote results/results.jsonl (+<<MEASURED:rows_n>> rows, pool=HELD-OUT, generatio
    convenience target that does so.
 3. Do not edit a rule, axiom, guard, threshold or ER heuristic in response to a held-out failure.
    Held-out failures are results. Record them and publish them.
+   OVERRIDES Part I section 50.7 item 13: for a held-out failure, the instruction to stop, do not
+   publish, write the counterexample cell to `bench/results/<run_id>/VIOLATIONS.json`, add it as a
+   regression fixture and fix the kernel is replaced by recording and publishing the failure with the
+   frozen artifacts untouched. An implementer following Part I would fix the kernel, which under 70.6
+   forces `make refreeze` and marks every held-out row `superseded=true`, burning the sealed pool
+   while withholding the result this section requires to be published.
 4. Do not delete a results row. Supersede it.
 5. Do not modify or reorder a line in the overfit ledger. Append only.
 6. Do not report a DEV-pool number in `README.md`, in the demo, in the UI header, in a commit message
