@@ -83,7 +83,7 @@ workshop paper. Recorded machine-readably in `mpc.toml`, one `[[component]]` per
 | ID | Component | Done means |
 |---|---|---|
 | **C1** | Seeded synthetic generator | Pure function `(seed, scenario_id, degradation_spec) → bundle.jsonl + ground_truth.json` |
-| **C2** | Ingest + canonical event schema | Every raw record parsed or quarantined with a reason code; zero silent drops; hardening limits enforced |
+| **C2** | Ingest + canonical record schema | Every raw record parsed or quarantined with a reason code; zero silent drops; hardening limits enforced |
 | **C3** | Entity resolution + quality contract | Deterministic; precision/recall published against C1 ground truth across the matrix |
 | **C4** | Rule table + guard language + codegen | One canonical AST, one AST hash, both backends assert equal hash |
 | **C5** | Kernel stages A–E | Liveness, semi-naive grounding with provenance, silent envelope, Dowling–Gallier fixpoint under cut, hitting-set loop |
@@ -91,7 +91,7 @@ workshop paper. Recorded machine-readably in `mpc.toml`, one `[[component]]` per
 | **C7** | One end-to-end scenario | One **held-out** scenario runs clone → generate → ingest → resolve → prove → verify with no manual step |
 | **C8** | Degradation matrix | Completeness axis defined; per-operator seeds; ground-truth re-linking under perturbation defined |
 | **C9** | Held-out / overfit protocol | Rules frozen and hash-pinned before each scenario family; TUNED vs HELD-OUT published separately |
-| **C10** | UI: one investigation, one counterfactual | Four screens: control toggles + PROVE, scoped verdict header, indented derivation, evidence inspector |
+| **C10** | UI: one investigation, one counterfactual | Four screens: control toggles + PROVE, scoped verdict header, indented counterexample tree with the GHOST distinction, degradation strip |
 
 Hard rules: there is **no eleventh component** — adding one requires deleting one, recorded in
 `BUILD_LOG.md`. A component is never green on a test written after seeing the implementation's
@@ -124,7 +124,9 @@ ahead because a higher rung is easier to cut.
 | **D12** | The four UI screens → a recorded, CI-regenerated CLI transcript showing the same investigation and counterfactual. |
 
 **Never cut under any schedule pressure:** C5 (kernel A–E); C6, a checker of *some* scope with its
-scope stated truthfully; and C8's zero-false-ROBUST invariant on declared suppression classes.
+scope stated truthfully; C8's zero-false-ROBUST invariant on declared suppression classes; C9, the
+held-out protocol; the determinism charter; the claims-to-gate binding linter; and
+`LIMITATIONS.md`.
 Below D12 the project is not publishable, and the honest response is to publish less — not to
 publish weaker claims in a stronger frame.
 
@@ -135,7 +137,7 @@ gets a `DESCOPE` entry in `BUILD_LOG.md`.
 
 ## 5. Language tiering
 
-The 40+ language surface is a deliberate goal, not accidental scope. It is kept, and made honest by
+The polyglot surface is a deliberate goal, not accidental scope. It is kept, and made honest by
 enforcement rather than by a rationale table. Tiers are completed **in order** — A, B, C, D — so an
 unfinished repository is coherent rather than half-scaffolded everywhere.
 
@@ -178,16 +180,16 @@ inflate the bar.
 | B | C# | `dotnet/` | Resource/service host in the observed estate, dual-instrumented |
 | B | x86-64 Assembly | `fixtures/asm/` | Syscall-trace fixture emitter, byte-exact |
 | C | Kotlin | *(role superseded)* | API gateway; emits logback JSON |
-| C | PHP | `lab/legacy-portal/` | Legacy self-service web app; emits `error_log` + access logs |
-| C | Ruby | `lab/automation-runner/` | Internal admin console; Rails-style tagged logger |
-| C | Perl | `perl/` | Cron/rotation utility; plain syslog lines, no field structure |
-| C | Lua | `lab/transformers/` | OpenResty reverse proxy; nginx `log_format` |
+| C | PHP | `estate/php-portal/` (proposed, decision 4) | Legacy self-service web app; emits `error_log` + access logs |
+| C | Ruby | `estate/ruby-console/` (proposed, decision 4) | Internal admin console; Rails-style tagged logger |
+| C | Perl | `estate/perl-rotator/` (proposed, decision 4) | Cron/rotation utility; plain syslog lines, no field structure |
+| C | Lua | `estate/lua-proxy/` (proposed, decision 4) | OpenResty reverse proxy; nginx `log_format` |
 | C | Scala | *(role superseded)* | Nightly batch reconciliation; log4j2 pattern layout |
-| C | Groovy | `gradle/`, `scenario-dsl/` | Build pipeline; emits build/deploy events |
+| C | Groovy | `estate/groovy-pipeline/` (proposed, decision 4) | Build pipeline; emits build/deploy events |
 | C | Swift | *(role superseded)* | Linux-hosted session service; swift-log structured output |
 | C | Objective-C | *(role superseded)* | Legacy agent, clang + GNUstep on Linux |
-| C | Dart | `mobile/analyst-console/` | Desktop client issuing API calls |
-| C | PowerShell | `scripts/win/` | Admin host automation running as `pwsh` on Linux |
+| C | Dart | `estate/dart-client/` (proposed, decision 4) | Desktop client issuing API calls |
+| C | PowerShell | `estate/pwsh-host/` (proposed, decision 4) | Admin host automation running as `pwsh` on Linux |
 | D | R | `analysis/r/` | Degradation-matrix statistics: median, IQR, bootstrap |
 | D | Julia | `analysis/julia/` | Independent re-implementation of the same degradation statistics |
 | D | GNU Octave | `octave/` | Inter-arrival quantile sensitivity (q95/q99/q999) |
