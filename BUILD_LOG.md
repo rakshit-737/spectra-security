@@ -468,3 +468,119 @@ variable. If the path is not visible in the commit invocation, it is not staged.
 This is the sixth verification-shaped failure in this log, and the second of exactly this kind.
 
 ---
+
+## INC-0008  repairing the instrument, and what the control arm actually shows
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### Goal
+
+INC-0007 found the two-cell demonstration did not show what it was designed to show, and read four
+causes off the artifacts. Repair the instrument where the cause was a defect, run once, and report.
+
+### Repairs made, each justified by an artifact and not by the result it would produce
+
+1. **`m_min` 3 -> 2.** The breakpoint grid places a breakpoint at every record instant, so an
+   elementary interval brackets exactly two records; 3 made LIVE unconstructible. 2 is the largest
+   value the grid admits.
+2. **The bulk read made bulk.** Rule r0003 heads the goal and needs three distinct resources within
+   ten minutes; the scenario read one. The scenario was changed to match its own description, not
+   the rule weakened to match the scenario - lowering r0003's `n` to 1 would have run and would
+   have been fitting.
+3. **Goal derivability over the whole goal library** (kernel bug, see below).
+4. **Over-deep witnesses refused rather than fatal** (see below).
+5. **Two diagnostic lines stopped asserting causes they never checked**, and the LIVE metric
+   changed from a window count to coverage.
+
+### Kernel bug: a false severance
+
+With route A now able to fire, P_min held one derived goal fact while Psi_min held zero corridors
+with `complete=True`. That combination is a contradiction.
+
+Cause: reachability decided derivability over ONE goal key, the bytewise-least member of the goal
+library, which is the union of goal facts either program derives. At full telemetry that key was a
+fact only P_max derives. The corridor search over P_min asked about a fact P_min cannot reach,
+found it unreachable under the empty cut, and reported that the empty cut severs the attack -
+while P_min derived the other goal fact through route A.
+
+`docs/vocab.toml` already defined the goal as a set. The code did not follow it. Fixed: any member
+derivable means the objective is reached; a cut severs only when every member is underivable. Five
+regression tests, written and seen failing before the fix.
+
+It never became a false safety verdict, because the certificate re-checks every goal: it listed
+route A's fact as `derivable: True` and the verdict came out OPTIMISTIC_ONLY. The false claim stayed
+inside the cut, Psi_min and the premium.
+
+### Consequence of that fix: the first real witness, and a contract limit
+
+Route A becoming derivable produced the first multi-step witness tree to reach the emitter. The
+certificate contract caps nesting at 8 containers, which admits a root and one level of children;
+route A is three levels. `cert.emit` refused it and the refusal aborted the whole run. Now the
+pipeline measures depth first and drops the one witness through the existing reported path.
+
+Recorded, not fixed: **under this contract no real multi-step attack can ever carry a published
+witness.** Nested encoding makes certificate depth grow with proof length. The fix is a flat
+encoding (nodes plus parent indices). It is a contract change on the emitter AND the checker and
+needs its own ADR.
+
+### Commands run
+
+```
+$ python scripts/demo.py
+full telemetry   |Psi_min|=1 |Psi_max|=2  licences=3   premium=ctl:priv_approval
+degraded cell    |Psi_min|=0 |Psi_max|=0  licences=54  premium=EMPTY
+
+LIVE share of source-time:  c=100% 83.1%   c=70% 56.1%
+
+$ <every suite>
+18 suites passing, 0 failing
+```
+
+Psi_min went from 0 to 1 at full telemetry. The control arm is still not clean.
+
+### The finding: full telemetry is not zero blindness
+
+Four hypotheses were tested against the artifacts for why the premium is non-empty at full
+telemetry. Three were wrong, and each was checked before anything was changed:
+
+- "More LIVE windows at 70% than at 100%, so liveness is broken." Wrong. The metric counted
+  windows; coverage falls from 83.1% to 56.1% as it should.
+- "Step k7 carries no `role`, so the escalation cannot bind." Wrong. The pipeline binds `role` from
+  `credential`, and entity resolution produced the binding correctly.
+- "The escalation rule is broken." Wrong. Its absence guard sees the real approval at +4499 s and
+  correctly refuses to fire in P_min.
+
+The fourth held. **All 80 licensed escalations in P_max sit in the first 10 s or the last 10 s of
+the horizon; none in the middle.**
+
+A finite observation window is always blind at its edges: liveness cannot be proved before the
+first record or after the last. r0004's absence lookback is 72 h against a 2 h horizon - 36 times
+longer - so for an escalation in the leading edge almost the whole lookback lies before observation
+began and the absence can never be falsified. The envelope therefore correctly admits that some
+principal escalated in the unobservable first second, route B becomes derivable in P_max, and
+`ctl:priv_approval` lands in the premium. **Correctly**: it genuinely is needed only on account of
+blindness. The blindness is the edge of the window.
+
+The design assumption that failed is that full telemetry means zero blindness. It never does.
+
+### Decision left open, deliberately
+
+Making the control arm clean needs a methodology choice, and that choice determines the result:
+
+- a burn-in period so the horizon begins at least one lookback before the attack window;
+- bounding absence lookbacks to the observed horizon, and recording the truncation;
+- or treating edge windows as out of scope and saying so in every certificate.
+
+None was made. Choosing one after seeing which produces a clean control arm is fitting, and this
+log exists to make that visible. It is recorded in `docs/plan/DECISIONS.md` for a human decision.
+
+### The pattern across this increment
+
+Each fix exposed the next layer. The goal-set bug was invisible until the scenario fix let route A
+fire; the witness limit was invisible until the goal-set fix made route A derivable. Earlier runs
+were failing early enough that most of the kernel never executed. A green suite of 860 unit tests
+said nothing about that, because every module had only ever been exercised in isolation.
+
+---
