@@ -7,16 +7,17 @@
 # row here is a defect, not a gate. The tier model is documented once, in
 # .github/workflows/README.md; it is not repeated here.
 #
-# STATUS: not started. Exactly three gates below are IMPLEMENTED: G-SKELETON-001,
+# STATUS: not started. Exactly four gates below are IMPLEMENTED: G-SKELETON-001,
 # which gates this skeleton and nothing else; G-PYREF-001, which runs every unit
-# suite of the Python reference slice (ADR-0013); and G-WIN-001, which is the
-# Makefile sandbox guard, evaluates on every make invocation in this repository,
-# and is enforced before every commit by .pre-commit-config.yaml. Every other gate
-# below is DECLARED only. Declaring a gate does not make it run; the tier
-# workflows carry the enablement state, and every job except the skeleton and
-# reference jobs is explicitly skipped with its reason and its enabling milestone
-# stated there. No gate below other than those three has ever passed, because no
-# gate below other than those three has ever run.
+# suite of the Python reference slice (ADR-0013); G-VS-PREREG-0001, which re-runs
+# the slice's one pre-registered prediction end to end; and G-WIN-001, which is
+# the Makefile sandbox guard, evaluates on every make invocation in this
+# repository, and is enforced before every commit by .pre-commit-config.yaml.
+# Every other gate below is DECLARED only. Declaring a gate does not make it run;
+# the tier workflows carry the enablement state, and every job except the
+# skeleton, reference and prereg jobs is explicitly skipped with its reason and
+# its enabling milestone stated there. No gate below other than those four has
+# ever passed, because no gate below other than those four has ever run.
 #
 # FIELDS (74.4)
 #   id             stable identifier, referenced by docs, workflows and the ledger
@@ -30,7 +31,7 @@
 #   budget_s       a DECLARED CEILING enforced by a per-job timeout, never a measurement
 #
 # UNRECONCILED: MOST make_target VALUES NAME NO RULE IN THE MAKEFILE
-#   176 of the 202 rows below name a make_target with no rule in the Makefile.
+#   176 of the 203 rows below name a make_target with no rule in the Makefile.
 #   G-REG-001, once implemented, fails on this registry as written. That is the
 #   gate working, not the gate misconfigured.
 #
@@ -961,6 +962,28 @@ budget_s = 600  # illustrative, not a target
 # by anyone rather than asserted from one machine. It runs the PYTHON reference
 # implementation (ADR-0013, ADR-0014); it exercises no Rust kernel and no Go
 # checker, because neither exists.
+
+[[gate]]
+id = "G-VS-PREREG-0001"
+title = "pre-registration 0001 holds when the Python reference slice is re-run end to end: every registered falsifier passes and the separate checker accepts every certificate (one simulated data point; no milestone turns green)"
+tier = "T1"
+owner_section = 70
+make_target = "vs-prereg-0001"
+sampled = false
+soundness = false
+artifact = "vs-prereg-0001.log"
+budget_s = 480  # illustrative, not a target
+# NOTE: Added 2026-09-21. The registration is
+# docs/research/prereg-0001-blackout-cell.md and its result record is
+# docs/research/prereg-0001-result.md. The result was first observed on the
+# development machine (CPython 3.14, Windows); this gate is what makes it
+# checkable on the interpreter the repository declares. It is not the
+# section-70 protocol: that protocol requires the registration to precede every
+# rule, and this one did not. The recipe prints the artifact hashes so runs on
+# different platforms can be compared; it does not yet compare them, because
+# nothing has established that they should agree across platforms.
+# budget_s: the demonstration took 4 min 6.6 s wall clock on the development
+# machine, once. That is one observation on other hardware, not a CI measurement.
 
 [[gate]]
 id = "G-REG-001"
@@ -2419,15 +2442,17 @@ budget_s = 3600  # illustrative, not a target
 # ==========================================================================
 # Reproduced here for readers. `make ci-budget` is the authority and
 # G-BUDGET-001 is the gate. Every sum below is a sum of DECLARED CEILINGS.
-# No gate in this registry has run, so no runtime has been measured.
+# Three T1 gates run in CI (G-SKELETON-001, G-PYREF-001, G-VS-PREREG-0001).
+# Their runtimes are recorded by the CI provider and are not transcribed here,
+# so no runtime below is stated.
 #
 #   TIER  GATES  CEILING(s)  SUM(budget_s)  STATUS                MEASURED RUNTIME
 #   ----  -----  ----------  -------------  --------------------  ----------------
 #   T0        3          60             18  within ceiling        not measured
-#   T1       96        1200           1645  OVER by 445 s         not measured
+#   T1       98        1200           2725  OVER by 1525 s        not measured
 #   T2       88        5400          30613  OVER by 25213 s       not measured
 #   T3       14       21600          44820  OVER by 23220 s       not measured
-#   ALL     201           -              -  -                     not measured
+#   ALL     203           -              -  -                     not measured
 #
 # STATUS: NOT RECONCILED. Tiers over ceiling: T1, T2, T3.
 # G-BUDGET-001, once implemented, fails on this registry as written. That
@@ -2435,8 +2460,14 @@ budget_s = 3600  # illustrative, not a target
 # head of this file for the three permitted remedies. Until it is
 # reconciled, no tier workflow beyond the skeleton job may be enabled.
 #
+# RECORDED EXCEPTION: the reference job (G-PYREF-001) and the prereg job
+# (G-VS-PREREG-0001) were enabled before reconciliation. The overflow comes
+# from declared rows that have no job; the enabled T1 jobs' ceilings sum to
+# 30 + 600 + 480 = 1110 s, inside the 1200 s ceiling on their own. This
+# exception is not a reconciliation and does not extend to any other job.
+#
 # Estimated monthly CI minutes: not measured. No estimate is recorded here
-# because no gate has run; ci/budget.toml carries the declared monthly
+# because no runtime has been transcribed; ci/budget.toml carries the declared monthly
 # ceiling that G-BUDGET-001 compares against once there is something to
 # compare. Do not fill this in from the declared ceilings: a ceiling is not
 # a measurement (74.11.9).
