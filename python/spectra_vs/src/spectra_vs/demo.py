@@ -190,10 +190,30 @@ def render_cell(rendered: Rendered) -> str:
     add("  proving with S = the cut over P_max:")
     for line in cert_mod.render_long(prove.verdict_at_cut_max, prove.scope).splitlines():
         add(f"    {line}")
+    robust = cert_mod.Safety.ROBUST
+    if not liveness_mod.TAMPER_PASS_IMPLEMENTED and robust in (
+        prove.verdict_at_cut_min.safety,
+        prove.verdict_at_cut_max.safety,
+    ):
+        add(
+            "  ROBUST requires a NoTamperToken. This slice mints it WITHOUT a tamper check, "
+            "because the backdating pass does not exist."
+        )
     add("")
 
     add("FLAGS SET")
     add(f"  {', '.join(prove.flags) if prove.flags else 'none'}")
+    # liveness.py: an absent check must never be rendered as a clean result. A reader of
+    # "none" alone would take it for "no tampering found".
+    if not liveness_mod.TAMPER_PASS_IMPLEMENTED:
+        add(
+            "  No source can be tamper_suspected and license_voided_by_suspected_tampering "
+            "can never be set: the pass that would set them"
+        )
+        add(
+            "  is NOT IMPLEMENTED. 'none' is the absence of that check, not a finding that "
+            "any record stream is untampered."
+        )
     add("")
 
     add("BLINDNESS PREMIUM   B = NEC(Psi_max) \\ OCC(Psi_min)")
