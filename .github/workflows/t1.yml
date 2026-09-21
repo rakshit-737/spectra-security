@@ -71,12 +71,11 @@ defaults:
 jobs:
 
   # ENABLED.
-  # The only gate this directory runs. It is not the only implemented gate in
-  # the repository: G-WIN-001 (T0) is implemented too, as the sandbox guard at
-  # Makefile lines 51-61, and is enforced locally by .pre-commit-config.yaml
-  # rather than here.
-  # It gates the skeleton and nothing else: it does not build, exercise or
-  # verify any part of the platform, because no part of the platform exists.
+  # One of two gates this directory runs; the other is `reference` below.
+  # G-WIN-001 (T0) is implemented too, as the sandbox guard in the Makefile, and
+  # is enforced locally by .pre-commit-config.yaml rather than here.
+  # It gates the skeleton and nothing else: it checks that paths exist, not what
+  # they contain.
   skeleton:
     name: T1 skeleton / G-SKELETON-001
     runs-on: ubuntu-24.04
@@ -92,6 +91,32 @@ jobs:
           persist-credentials: false
       - name: make skeleton-verify
         run: make skeleton-verify
+
+  # ENABLED.
+  # Runs every unit suite of the Python reference slice (ADR-0013, ADR-0014).
+  # It exists so "the suites pass" is a claim anyone can check, not one asserted
+  # from the development machine, which has no make.
+  #
+  # It uses the runner's system python3 - 3.12 on ubuntu-24.04, the version the
+  # workspace pins in pyproject.toml - rather than the 3.14 the slice was
+  # written and run on. That difference is deliberate: it is the first test of
+  # whether the code runs on the interpreter the repository actually declares.
+  #
+  # A green run does not make any milestone green, does not exercise the
+  # specified Rust kernel or Go checker (neither exists), and does not run the
+  # end-to-end demonstration.
+  reference:
+    name: T1 reference / G-PYREF-001
+    runs-on: ubuntu-24.04
+    # G-PYREF-001 declares budget_s = 600 (illustrative, not a target). The job
+    # timeout is larger because it also covers checkout.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: make test-reference
+        run: make test-reference
 
   # NOT IMPLEMENTED - skipped, not passing.
   # Class: gate registry, CI budget, flake policy, sampling scope (74.4-74.9)
