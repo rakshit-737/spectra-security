@@ -5,7 +5,7 @@
 name = "spectra-vs"
 version = "0.0.0"
 description = "SPECTRA vertical slice stages. Python reference implementation."
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
 dependencies = []
 
