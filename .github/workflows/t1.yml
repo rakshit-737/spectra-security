@@ -8,9 +8,9 @@
 #
 # STATUS: not started.
 #
-# Exactly one job below runs: `skeleton`. Every other job is declared and
-# explicitly skipped with `if: false`, a stated reason and the milestone that
-# enables it. A skipped job renders grey in the GitHub UI. It is not a pass, it
+# Exactly three jobs below run: `skeleton`, `reference` and `prereg`. Every
+# other job is declared and explicitly skipped with `if: false`, a stated
+# reason and the milestone that enables it. A skipped job renders grey in the GitHub UI. It is not a pass, it
 # must never be added to the branch-protection required-check list, and it must
 # never be described as green. None of these gates has ever run, so none of them
 # has ever passed.
@@ -71,7 +71,8 @@ defaults:
 jobs:
 
   # ENABLED.
-  # One of two gates this directory runs; the other is `reference` below.
+  # One of three gates this directory runs; the others are `reference` and
+  # `prereg` below.
   # G-WIN-001 (T0) is implemented too, as the sandbox guard in the Makefile, and
   # is enforced locally by .pre-commit-config.yaml rather than here.
   # It gates the skeleton and nothing else: it checks that paths exist, not what
@@ -117,6 +118,31 @@ jobs:
           persist-credentials: false
       - name: make test-reference
         run: make test-reference
+
+  # ENABLED.
+  # Re-runs the demonstration end to end and fails unless pre-registration 0001
+  # (docs/research/prereg-0001-blackout-cell.md) holds and the separate checker
+  # accepts every certificate. The result was first observed on the development
+  # machine under CPython 3.14; this job is the check on the 3.12 the repository
+  # declares. It prints the artifact hashes so they can be compared with the
+  # ones in docs/research/prereg-0001-result.md, and does not compare them
+  # itself: nothing has yet established that they should agree across
+  # platforms.
+  #
+  # A green run reproduces one simulated data point. It measures nothing and
+  # makes no milestone green.
+  prereg:
+    name: T1 prereg / G-VS-PREREG-0001
+    runs-on: ubuntu-24.04
+    # G-VS-PREREG-0001 declares budget_s = 480 (illustrative, not a target). The
+    # job timeout is larger because it also covers checkout.
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: make vs-prereg-0001
+        run: make vs-prereg-0001
 
   # NOT IMPLEMENTED - skipped, not passing.
   # Class: gate registry, CI budget, flake policy, sampling scope (74.4-74.9)
