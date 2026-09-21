@@ -1,4 +1,4 @@
-"""THE DEMONSTRATION: two completeness cells, side by side, and the difference between them.
+"""THE DEMONSTRATION: two completeness cells and one pre-registered blackout cell.
 
 WHY THIS FILE EXISTS. The slice exists to show two things and nothing else:
 
@@ -13,6 +13,14 @@ cell demonstrates nothing, because a premium that is non-empty everywhere is not
 about blindness. If the premium at the degraded cell is empty, that is printed as the
 result it is; the scenario, the seed, the thresholds and the completeness levels are not
 adjusted to produce a prettier one.
+
+The headline compares the control arm with the BLACKOUT CELL: one sensor taken offline over
+one window, registered with its predictions in docs/research/prereg-0001-blackout-cell.md
+before the operator existed. The falsifiers are evaluated in code, only for the seeds the
+prediction was made for. The random 70% cell is kept as a degradation-matrix cell.
+
+EXIT STATUS. 0 when every certificate is accepted and the prediction held or was not
+evaluated; 1 when the separate checker rejects a certificate; 2 when the prediction failed.
 
 WHAT NOTHING HERE MEANS. No number printed below is measured. There is no Rust kernel, no
 Go checker, no C guard VM and no Docker range; telemetry is the output of a seeded
@@ -275,6 +283,19 @@ PREREG_0001_PSI_MIN: int = 1
 PREREG_0001_PSI_MAX: int = 2
 PREREG_0001_PREMIUM: tuple[str, ...] = ("ctl:priv_approval",)
 
+#: The registration fixes "the same generator seed" and "the same calibration profile" as the
+#: full-telemetry cell, which was run with the defaults of the day. They are pinned here as
+#: literals, so that changing a default does not silently point the prediction at a run it was
+#: never made for. Under any other seed the prediction is not evaluated at all.
+PREREG_0001_ANALYSIS_SEED: int = 7
+PREREG_0001_CALIBRATION_SEED: int = 1000007
+
+#: Exit statuses of `main`, distinct so a gate can tell a rejected certificate from a failed
+#: prediction without parsing the transcript.
+EXIT_OK: int = 0
+EXIT_CHECKER_REJECTED: int = 1
+EXIT_PREDICTION_FAILED: int = 2
+
 
 def prereg_0001_blackout(epoch_ns: int) -> degrade_mod.Blackout:
     """The intervention exactly as registered: one source, one window, nothing else."""
@@ -286,8 +307,13 @@ def prereg_0001_blackout(epoch_ns: int) -> degrade_mod.Blackout:
     )
 
 
-def render_prereg_0001(cell: Rendered) -> str:
-    """Evaluate each registered falsifier against the blackout cell, in code."""
+def prereg_0001_applies(*, seed: int, calibration_seed: int) -> bool:
+    """Whether this run is the one the prediction was registered for."""
+    return seed == PREREG_0001_ANALYSIS_SEED and calibration_seed == PREREG_0001_CALIBRATION_SEED
+
+
+def prereg_0001_checks(cell: Rendered) -> tuple[tuple[str, bool, str], ...]:
+    """Each registered falsifier as (name, passed, observed), evaluated in code."""
     prove = cell.cell.prove
     psi_min = len(prove.bracket.lower.psi.corridors)
     psi_max = len(prove.bracket.upper.psi.corridors)
@@ -303,6 +329,16 @@ def render_prereg_0001(cell: Rendered) -> str:
         (f"|Psi_min| == {PREREG_0001_PSI_MIN}", psi_min == PREREG_0001_PSI_MIN, f"{psi_min}"),
         (f"|Psi_max| == {PREREG_0001_PSI_MAX}", psi_max == PREREG_0001_PSI_MAX, f"{psi_max}"),
     )
+    return checks
+
+
+def prereg_0001_held(cell: Rendered) -> bool:
+    return all(ok for _, ok, _ in prereg_0001_checks(cell))
+
+
+def render_prereg_0001(cell: Rendered) -> str:
+    """Render the falsifiers and the verdict on the prediction."""
+    checks = prereg_0001_checks(cell)
     out = [
         _RULE,
         "PRE-REGISTRATION 0001 -- predictions committed in ce8ed9c before the intervention existed",
@@ -614,9 +650,23 @@ def main(
     rendered.insert(1, blackout_entry)
     print(render_difference(tuple(rendered)), file=out, flush=True)
     print("", file=out, flush=True)
-    print(render_prereg_0001(blackout_entry), file=out, flush=True)
-    failed = [r for r in rendered if r.cell.verify_exit not in (None, 0)]
-    return 1 if failed else 0
+    applies = prereg_0001_applies(seed=seed, calibration_seed=calibration_seed)
+    if applies:
+        print(render_prereg_0001(blackout_entry), file=out, flush=True)
+    else:
+        print(
+            f"{_RULE}\nPRE-REGISTRATION 0001 NOT EVALUATED: it was registered for analysis seed "
+            f"{PREREG_0001_ANALYSIS_SEED} and calibration seed {PREREG_0001_CALIBRATION_SEED}, "
+            "and this run used others.\nA prediction is not transferred to a run it was not "
+            f"made for.\n{_RULE}",
+            file=out,
+            flush=True,
+        )
+    if any(r.cell.verify_exit not in (None, 0) for r in rendered):
+        return EXIT_CHECKER_REJECTED
+    if applies and not prereg_0001_held(blackout_entry):
+        return EXIT_PREDICTION_FAILED
+    return EXIT_OK
 
 
 if __name__ == "__main__":
