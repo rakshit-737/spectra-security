@@ -761,3 +761,72 @@ and D-RUN-01 is withdrawn with its original text kept beneath the notice, so the
 readable.
 
 ---
+
+## INC-0011  pre-registration 0001 held; its named confound was never testable
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### What was run
+
+The blackout cell registered in `ce8ed9c` - a whole-source blackout of `src:iam_audit` over
+`[+4200 s, +4800 s)`, everything else as in the control arm - was built in the four commits that
+follow the registration and run through the demo, which evaluates the five falsifiers mechanically.
+
+### Commands run
+
+```
+$ python scripts/demo.py
+full telemetry   |Psi_min|=1 |Psi_max|=1  r_min=1 r_max=1  licences=3  premium=EMPTY
+blackout cell    |Psi_min|=1 |Psi_max|=2  r_min=1 r_max=2  licences=4  premium=ctl:priv_approval
+PASS  premium published
+PASS  premium non-empty
+PASS  premium == ('ctl:priv_approval',)
+PASS  |Psi_min| == 1
+PASS  |Psi_max| == 2
+PREDICTION HELD.
+```
+
+### Measured
+
+All five falsifiers passed. The blackout produced a SUPPRESSED licence, `S_CHAIN_SEQ_GAP`, on
+`src:iam_audit` over the 10 minutes bracketing the window, which is the mechanism the registration
+named. S11 accepted the certificate. The demo was run three times on this machine; four artifacts in
+each of the two cells were byte-identical every time. The full record, with hashes, is
+`docs/research/prereg-0001-result.md`. The registration itself is unedited.
+
+### The confound that could not fire
+
+The registration named one confound: a chained source with records missing may be marked
+`tamper_suspected`, which would block ROBUST. No flag was set, and a ROBUST verdict was printed for
+the cut over P_max.
+
+That is not a finding. `liveness.TAMPER_PASS_IMPLEMENTED` is `False`; the pass that would set the
+flag does not exist, and the liveness types refuse a true value. The confound was named without
+checking whether the code could produce it. Two things followed from noticing:
+
+- The demo printed "FLAGS SET none" and a ROBUST verdict with no caveat, which is exactly what the
+  liveness module says no rendering may do: present an absent check as a clean result. Both now
+  carry the caveat.
+- The pipeline minted the no-tamper token from literals - an empty tuple and `False` - instead of
+  reading the liveness document. Identical today, since nothing can be flagged; silently wrong the
+  day the pass exists. It now reads the document, and `test_pipeline_verdict.py` pins which object
+  it consults.
+
+### Also found while reading the output
+
+The demo's list of findings used fixed numbers, so withdrawing finding 2 in INC-0010 had left it
+reading "1, 3". It printed `c=100%=83.1%` and referred to "the degraded cell" when there are now two.
+Fixed.
+
+### What this result does not show
+
+It is a prediction about the author's own code, made just after tracing this mechanism in INC-0010,
+with a window chosen from the scenario definition. It tests the implementation against the author's
+understanding, not the understanding itself. It is one scenario, one seed and one window of
+simulated telemetry, and it is not a pre-registration under `docs/research/preregistration.md`,
+whose protocol required the registration to precede every rule. The certificate carries no witness
+tree for `ctl:priv_approval` (D-RUN-02).
+
+---
