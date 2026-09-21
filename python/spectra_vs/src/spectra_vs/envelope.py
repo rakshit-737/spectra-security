@@ -24,11 +24,20 @@ THE TWO WAYS A SILENT INSTANCE ARISES.
      `permanent_blind_spot` instead, which is the honest admission that the step is
      invisible rather than a pretty inferred node.
 
-WHAT THE ENVELOPE DOES NOT DO. It does not evaluate the temporal operators against a
-licensed fact's tick. That tick is a representative of an interval, not an observation, so
-comparing it against a window would either invent precision or drop a real possibility;
-skipping the comparison is the over-approximating direction and is what keeps `P_max` a
-superset of the union over realizable worlds.
+HOW TEMPORAL OPERATORS TREAT A LICENSED FACT. A licensed fact's tick is a representative of
+a blind window, not an observation, so comparing that single tick against a time bound would
+either invent precision or drop a real possibility. The envelope therefore hands the engine
+the window itself, and `seq` asks whether SOME placement inside it satisfies the bound (see
+`ground.seq_feasible`). That keeps `P_max` a superset of every realizable world while no
+longer admitting a combination impossible for every placement.
+
+An earlier version skipped the comparison outright. That admitted an escalation licensed in
+the first second of the horizon paired with an export 76 minutes later under a 30-minute
+rule, which put a control in the blindness premium at full telemetry for no reason a sensor
+could explain.
+
+NOT YET INTERVAL-AWARE: `absence` and `distinct` still skip the comparison for a licensed
+fact. That remains sound - it over-approximates - but it is coarser than it needs to be.
 
 P_MAX IS A SUPERSET OF REALIZABLE WORLDS. It unions all licensed silent instances and
 ignores mutual-exclusion structure. A counterexample tree drawn from it may combine silent
@@ -460,6 +469,11 @@ def _add_silent_detect(
         # interval, the temporal operators are not evaluated against it, and enumerating
         # would multiply the fact base without adding a corridor.
         tick = window.t0_ns // rules_mod.TICK_NS
+        # The closed tick range the unobserved step could have occupied. The window is
+        # half-open, so its last tick is (t1 - 1). Handed to the engine so a temporal
+        # operator can test whether SOME placement satisfies it, instead of skipping the
+        # test and admitting placements that are impossible anywhere in the window.
+        span = (tick, max(tick, (window.t1_ns - 1) // rules_mod.TICK_NS))
         for bound in _silent_bindings(compiled, by_kind):
             if counter[0] >= MAX_SILENT_INSTANCES:
                 engine.record_cap(f"MAX_SILENT_INSTANCES={MAX_SILENT_INSTANCES} reached")
@@ -516,9 +530,9 @@ def _add_silent_detect(
                 ghost=False,
             )
             for premise, premise_fact in premises:
-                if engine.add_instance(premise, premise_fact):
+                if engine.add_instance(premise, premise_fact, span):
                     counter[0] += 1
-            if engine.add_instance(instance, head_fact):
+            if engine.add_instance(instance, head_fact, span):
                 counter[0] += 1
 
 
