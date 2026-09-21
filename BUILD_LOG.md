@@ -830,3 +830,104 @@ whose protocol required the registration to precede every rule. The certificate 
 tree for `ctl:priv_approval` (D-RUN-02).
 
 ---
+
+## INC-0012  the result reproduces on Linux, and certificates carry their witnesses
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### The gate's first run
+
+G-VS-PREREG-0001 (`make vs-prereg-0001`) ran on GitHub's ubuntu-24.04 runner under CPython 3.12.3.
+The prediction held there, with all five falsifiers passing. The job still failed, and it was right
+to: the S11 checker could not start.
+
+```
+S11 checker       exit 1 (REJECT)
+  | /usr/bin/python3: No module named spectra_vs_verify
+```
+
+The pipeline joined the checker's PYTHONPATH with a literal `;`, the Windows separator. On Linux that
+names one nonexistent directory. `test_verify.py` had the same defect and was fixed in INC-0009; this
+copy was missed. Fixed in `b6f0463` with `os.pathsep` and a test that runs on whichever platform CI
+uses. The next run was green, with the gate taking about 70 seconds.
+
+### Measured: the same bytes on two platforms
+
+The gate prints the sha256 of four artifacts per cell. All twelve from the CI run matched the
+development machine's byte for byte:
+
+| | Development machine | CI |
+| --- | --- | --- |
+| OS | Windows 11 | Ubuntu 24.04 |
+| Interpreter | CPython 3.14 | CPython 3.12.3 |
+| run ids | `vs-0049b1adfb705cb3`, `vs-8c9a9bf854d401bf`, `vs-02830d35a09ad406` | the same |
+| 12 artifact hashes | recorded in `docs/research/prereg-0001-result.md` | identical |
+
+That is two platforms and two interpreter versions, for these twelve files at one commit. It is not a
+claim about any other artifact, platform or commit.
+
+### D-RUN-02 closed: witnesses are published
+
+ADR-0015 publishes witness trees flat, as a pre-order node list with children as indices, and adds
+a LICENSED node kind for a licensed silent step that is not obligation-forced. Schema, min_checker
+and the checker move to 1.1 together. The pipeline's two refusals, one for depth (INC-0008) and one
+for licensed steps, are gone.
+
+### What publishing them exposed
+
+The first real witness to reach the checker was rejected:
+
+```
+FAIL O12: ev:0193e789a4573faada6d70411fe62fb3 does not recompute from the bundled record  [E-WITNESS-EVENT]
+```
+
+A bundle line spells `source_id` bare, and the event-id preimage is taken over the typed `src:` form.
+Ingest documents that at the one place it writes the bare spelling. The checker hashed the bare
+spelling unchanged, so **every one of the 21577 records** in the full-telemetry bundle failed to
+recompute. Nobody had noticed, because O12 had only ever checked the test fixture's witnesses, and
+the fixture wrote the typed spelling into its bundle, which real ingest never does. So the fixture
+agreed with the checker's mistake instead of with ingest.
+
+Fixed in `e7cc496`: the fixture writes the bare spelling, the checker re-types it and refuses a typed
+spelling in the file. Against the checker as it was, the corrected fixture fails the positive control
+and most of the adversarial corpus.
+
+The same session's demo output also labelled a GHOST step with its rule's head predicate
+(`privilege.escalated`) instead of the fact it heads (`iam.role_assumed`). That was caught while
+reading the first rendering, before it was committed.
+
+### Measured
+
+```
+$ python scripts/demo.py
+suites: 20 passing, 0 failing
+S11 checker  exit 0 (ACCEPT)   O12: 1 tree(s)   full telemetry
+S11 checker  exit 0 (ACCEPT)   O12: no witness tree is published   c=70%
+S11 checker  exit 0 (ACCEPT)   O12: 2 tree(s)   blackout cell
+PREDICTION HELD.
+```
+
+The blackout cell's certificate now carries the witness the registration's mechanism describes:
+
+```
+without ctl:priv_approval: 3 step(s), 2 unobserved
+  rl:r0005 exfil.bulk_read      OBSERVED  cites 1 record(s)
+    rl:r0004 privilege.escalated  LICENSED  unobserved, licensed silent step; licence lic:c2de54bf5f92f9c0
+      rl:r0004 iam.role_assumed     GHOST     unobserved, obligation-forced; licence lic:c2de54bf5f92f9c0
+```
+
+`lic:c2de54bf…` is the SUPPRESSED licence on `iam_audit` from the blackout. Only the three
+`cert.spcert` files changed bytes; `p_max.json`, `psi_max.json` and `premium.json` did not. The gate's
+CI run at `24b5a6f` was green and printed the same new certificate hashes as the development machine.
+
+### The pattern
+
+Two defects in this increment passed every unit suite. A path separator that happens to be right
+on Windows was found by running the real pipeline on a second platform. A fixture that agreed with
+the checker instead of with ingest was found by giving the checker real input for the first time.
+A fixture written against the code it tests can confirm that code's mistake; each of these was
+broken by something the author did not write: another operating system, or the actual bundle.
+
+---
