@@ -145,7 +145,8 @@ visible numeral.
 | [0010](0010-correct-the-conflict-count-in-adr-0006.md) | Correct the conflict count recorded in ADR-0006 | Accepted | `docs/plan/CONFLICTS.md` totals 453 rows, not the 353 ADR-0006 cites; its decision restated in force. |
 | [0011](0011-correct-the-stale-artifact-named-in-adr-0003.md) | Correct the stale artifact named in ADR-0003 | Accepted | `spectra.toml` agrees; `go/verify/go.mod`'s header comment is stale. Naming restated in force. |
 | [0012](0012-correct-the-tier-cadence-in-adr-0007.md) | Correct the CI cadence recorded in ADR-0007 | Accepted | Tiers B, C and D run nightly in T2, not per change; the mutation audit restated in force. |
-| [0013](0013-the-slice-is-a-python-reference-implementation.md) | The vertical slice is a Python reference implementation | Accepted | No Rust, Go, Docker or make on this machine; what that costs the independence claim. |
+| [0013](0013-the-slice-is-a-python-reference-implementation.md) | The vertical slice is a Python reference implementation | Superseded by ADR-0014 | No Rust, Go, Docker or make on this machine; what that costs the independence claim. |
+| [0014](0014-correct-the-make-claim-in-adr-0013.md) | Correct the claim in ADR-0013 that make has never run here | Accepted | make is absent locally but has run in CI on every push; M0 is not blocked by it. |
 
 Add the index row in the same change that adds the record. An ADR file with no index row, or an
 index row with no file, is an error.
