@@ -2,10 +2,12 @@
 
 This exists because `make` is not installed on this machine, so `make vs-demo` is not a
 thing a reader can type. It does the sys.path wiring the workspace needs (no package here
-is installed, there is no pip and no network) and then runs the two-cell demonstration.
+is installed, there is no pip and no network) and then runs the demonstration: two
+completeness cells and the blackout cell pre-registered in
+docs/research/prereg-0001-blackout-cell.md.
 
-    python scripts/demo.py                # both cells, then run the separate checker
-    python scripts/demo.py --no-verify    # both cells, skip S11
+    python scripts/demo.py                # all three cells, then run the separate checker
+    python scripts/demo.py --no-verify    # all three cells, skip S11
 
 SPECTRA-VS is a PYTHON REFERENCE IMPLEMENTATION. No Rust kernel, no Go checker, no C guard
 VM and no Docker cyber range exists or is built by this script. The telemetry it analyses
@@ -35,7 +37,8 @@ def main(argv: list[str] | None = None) -> int:
         prog="python scripts/demo.py",
         description=(
             "Run the SPECTRA vertical slice at two completeness levels with nested "
-            "deletion sets and print the two cells side by side."
+            "deletion sets and in the pre-registered blackout cell, then print the "
+            "comparison and whether the pre-registered prediction held."
         ),
         epilog=(
             "The completeness levels, the seeds and the thresholds are fixed by the "

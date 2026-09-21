@@ -188,7 +188,7 @@ The slice needs only Python 3.12 or later and its standard library - no `make`, 
 network, no third-party package:
 
 ```
-python scripts/demo.py                                  # the two-cell demonstration
+python scripts/demo.py                                  # three cells + pre-registration 0001
 python python/spectra_vs/tests/test_reach.py            # any one suite
 python tools/claims_check.py --summary                  # the honesty-rule checker
 ```

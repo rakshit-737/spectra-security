@@ -461,7 +461,7 @@ _SUBCOMMANDS: tuple[tuple[str, str], ...] = (
     ("prove", "S10: the two-sided bracket, the premium and the certificate"),
     ("verify", "S11: re-check a certificate with the separate checker package"),
     ("run", "S1..S11 for one completeness cell"),
-    ("demo", "the two completeness cells, side by side"),
+    ("demo", "the completeness cells and the pre-registered blackout cell"),
 )
 
 _HANDLERS = {

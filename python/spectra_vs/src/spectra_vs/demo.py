@@ -397,6 +397,15 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
     value it names was changed once the result was known.
     """
     lines: list[str] = ["  WHY, read off the artifacts:"]
+    number = 0
+
+    # Findings are numbered as they are emitted, so one that does not apply to this run
+    # leaves no gap. The numbers were once fixed text, and dropping a finding left "1, 3".
+    def item(first: str, *rest: str) -> None:
+        nonlocal number
+        number += 1
+        lines.append(f"    {number}. {first}")
+        lines.extend(f"       {line}" for line in rest)
 
     # LIVE is reported as COVERAGE - the share of source-time proved observed - and not as
     # a count of LIVE intervals. Intervals are RLE-merged runs, so a fully live source is
@@ -417,23 +426,17 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
     live_counts = {label: live for label, (live, _total) in coverage.items()}
     if all(count == 0 for count in live_counts.values()):
         m_min = cells[0].cell.liveness.document.m_min
-        lines.append(
-            f"    1. NO SOURCE IS LIVE IN EITHER CELL. With m_min = {m_min} and a "
-            "breakpoint at every record instant, an elementary interval"
+        item(
+            f"NO SOURCE IS LIVE IN ANY CELL. With m_min = {m_min} and a "
+            "breakpoint at every record instant, an elementary interval",
+            "brackets exactly two records, so R9 (n_records_in_span < m_min -> "
+            "BLIND, B_WINDOW_UNDERSAMPLED) fires on every interval and",
+            "R11, the only construction site of LIVE, is unreachable. "
+            "config/vs/liveness.toml states this contradiction in its own",
+            "comment and ships the value anyway. Blindness is therefore TOTAL AT "
+            "EVERY COMPLETENESS LEVEL, and the full-telemetry cell",
+            "cannot be a control arm for blindness.",
         )
-        lines.append(
-            "       brackets exactly two records, so R9 (n_records_in_span < m_min -> "
-            "BLIND, B_WINDOW_UNDERSAMPLED) fires on every interval and"
-        )
-        lines.append(
-            "       R11, the only construction site of LIVE, is unreachable. "
-            "config/vs/liveness.toml states this contradiction in its own"
-        )
-        lines.append(
-            "       comment and ships the value anyway. Blindness is therefore TOTAL AT "
-            "EVERY COMPLETENESS LEVEL, and the full-telemetry cell"
-        )
-        lines.append("       cannot be a control arm for blindness.")
     else:
         def _permille(live: int, total: int) -> str:
             # Integer arithmetic only: tenths of a percent, rounded down.
@@ -442,59 +445,54 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
             tenths = live * 1000 // total
             return f"{tenths // 10}.{tenths % 10}%"
 
-        lines.append(
-            "    1. LIVE share of source-time per cell (every declared source, including "
+        # In cell order, so the control arm reads first. A label such as "c=100%" already
+        # carries an "=", so the share follows a colon rather than a second "=".
+        item(
+            "LIVE share of source-time per cell (every declared source, including "
             "any that never emits): "
             + ", ".join(
-                f"{label}={_permille(live, total)}"
-                for label, (live, total) in sorted(coverage.items())
+                f"{label}: {_permille(live, total)}"
+                for label, (live, total) in coverage.items()
             )
         )
 
     if all(not r.cell.prove.bracket.lower.psi.corridors for r in cells):
-        lines.append(
-            "    2. Psi_min IS EMPTY IN BOTH CELLS, so OCC(Psi_min) is empty and B "
-            "degenerates to NEC(Psi_max). The premium then cannot"
-        )
-        lines.append(
-            "       distinguish a control needed because of blindness from a control "
-            "needed at all."
-        )
         # This branch checks a SYMPTOM. It must not assert a cause it did not check: an
         # earlier version named one specific cause here as fixed text, which stayed on
         # screen after that cause had been repaired and became a false statement about the
         # scenario. Name only what was measured, and point at where the cause is found.
-        lines.append(
-            "       CAUSE NOT ESTABLISHED BY THIS REPORT. Inspect p_min.json for which "
-            "goal facts P_min derives, and psi_min.json for the corridors."
+        item(
+            "Psi_min IS EMPTY IN EVERY CELL, so OCC(Psi_min) is empty and B "
+            "degenerates to NEC(Psi_max). The premium then cannot",
+            "distinguish a control needed because of blindness from a control "
+            "needed at all.",
+            "CAUSE NOT ESTABLISHED BY THIS REPORT. Inspect p_min.json for which "
+            "goal facts P_min derives, and psi_min.json for the corridors.",
         )
 
-    degraded = cells[-1]
-    if not degraded.cell.prove.goal_resolved:
-        lines.append(
-            "    3. At the degraded cell the goal library is EMPTY: neither program "
-            "derives a goal fact, so the premium there says nothing"
-        )
-        lines.append(
-            "       about what a sensor could see. CAUSE NOT ESTABLISHED BY THIS REPORT. "
-            "Compare truth.jsonl against the degradation manifest"
-        )
-        lines.append(
-            "       to see which attack records the deletion removed."
+    # Every cell is checked, and named: with a blackout cell beside the random one, "the
+    # degraded cell" no longer identifies anything.
+    for rendered in cells:
+        if rendered.cell.prove.goal_resolved:
+            continue
+        item(
+            f"At {rendered.label.split()[0]} the goal library is EMPTY: neither program "
+            "derives a goal fact, so the premium there says nothing",
+            "about what a sensor could see. CAUSE NOT ESTABLISHED BY THIS REPORT. "
+            "Compare truth.jsonl against the degradation manifest",
+            "to see which attack records the degradation removed.",
         )
 
     for rendered in cells:
         for entry in rendered.cell.prove.premium_entries:
             share = entry.calibration_deficiency
             if share > 0:
-                lines.append(
-                    f"    4. {entry.control_id} at {rendered.label.split()[0]} rests "
+                item(
+                    f"{entry.control_id} at {rendered.label.split()[0]} rests "
                     f"{share.numerator}/{share.denominator} on calibration-deficiency "
-                    "licences, so the supported"
-                )
-                lines.append(
-                    "       sentence is 'needed because this run was not calibrated for "
-                    "this source', NOT 'needed because a sensor could not see'."
+                    "licences, so the supported",
+                    "sentence is 'needed because this run was not calibrated for "
+                    "this source', NOT 'needed because a sensor could not see'.",
                 )
     return tuple(lines)
 
@@ -504,7 +502,8 @@ def _preamble(layout: pipeline_mod.Layout) -> str:
     return "\n".join(
         (
             _RULE,
-            "SPECTRA vertical slice -- the two completeness cells",
+            "SPECTRA vertical slice -- two completeness cells and one pre-registered "
+            "blackout cell",
             _RULE,
             "PYTHON REFERENCE IMPLEMENTATION. No Rust kernel, no Go checker, no C guard VM",
             "and no Docker range exists or was built. Telemetry is the output of a seeded",
@@ -528,7 +527,8 @@ def main(
     verify: bool = True,
     stream=None,
 ) -> int:
-    """Run both cells with NESTED deletion sets and print the comparison."""
+    """Run the two completeness cells (NESTED deletion sets) and the pre-registered
+    blackout cell, then print the comparison and the pre-registration's verdict."""
     out = stream if stream is not None else sys.stdout
     layout = pipeline_mod.Layout(repo_root=repo_root)
 
