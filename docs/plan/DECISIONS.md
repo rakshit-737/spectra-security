@@ -635,7 +635,15 @@ window?**
   control arm would be fitting, so the choice must be made on its merits and recorded before the
   next run, not after it.
 
-### D-RUN-02 · MEDIUM · witness encoding
+### D-RUN-02 · MEDIUM · witness encoding — CLOSED 2026-09-21 by ADR-0015
+
+**Closed: flat.** Witness trees are published as a pre-order node list with children as indices,
+and a licensed silent step gets its own node kind, LICENSED. The default below was declined because
+pre-registration 0001's certificate could carry no witness at all under it: one tree was too deep
+and the other ran through a licensed silent step the alphabet had no word for. Schema 1.0 becomes
+1.1 on the emitter and the checker together. See
+[ADR-0015](../adr/0015-witness-trees-are-published-flat.md) and `BUILD_LOG.md` INC-0012. The
+question as first recorded is kept below.
 
 **Should the certificate carry witness trees in a flat encoding (nodes plus parent indices) rather
 than nested?**
