@@ -465,5 +465,78 @@ class TestTheTwoCells(unittest.TestCase):
         self.assertEqual(self.partial.nested_parent_manifest_hash, self.full.manifest_hash())
 
 
+class TestBlackout(unittest.TestCase):
+    """WHOLE_SOURCE_BLACKOUT: a controlled, single-variable intervention.
+
+    The random completeness operator deletes across every source, so a demonstration that
+    uses it cannot say which sensor's absence produced an effect. The blackout removes one
+    named source over one named window and nothing else; these tests pin exactly that.
+    """
+
+    T0 = _EPOCH + _SPAN // 4
+    T1 = _EPOCH + _SPAN // 2
+
+    def setUp(self) -> None:
+        self.spec = dg.Blackout(sources=("iam_audit",), t0_ns=self.T0, t1_ns=self.T1)
+        self.result = dg.blackout(RAW, self.spec)
+
+    def _covered(self, r: gen.RawEvent) -> bool:
+        return scn.source_key(r.source_id) == "iam_audit" and self.T0 <= r.t_evt_ns < self.T1
+
+    def test_it_removes_exactly_the_covered_records(self) -> None:
+        expected = {(scn.source_key(r.source_id), r.seq) for r in RAW if self._covered(r)}
+        self.assertTrue(expected)
+        self.assertEqual(self.result.removed_keys, frozenset(expected))
+
+    def test_every_other_source_is_untouched(self) -> None:
+        for name in ("gw_access", "res_access"):
+            before = [r for r in RAW if scn.source_key(r.source_id) == name]
+            after = [r for r in self.result.raw if scn.source_key(r.source_id) == name]
+            self.assertEqual(before, after, name)
+
+    def test_the_blacked_out_source_is_untouched_outside_the_window(self) -> None:
+        outside = [
+            r for r in RAW
+            if scn.source_key(r.source_id) == "iam_audit" and not self._covered(r)
+        ]
+        kept = [r for r in self.result.raw if scn.source_key(r.source_id) == "iam_audit"]
+        self.assertEqual(outside, kept)
+
+    def test_the_window_is_half_open(self) -> None:
+        at_t1 = [r for r in RAW if scn.source_key(r.source_id) == "iam_audit" and r.t_evt_ns == self.T1]
+        for r in at_t1:
+            self.assertIn(r, self.result.raw)
+
+    def test_it_is_seedless_and_deterministic(self) -> None:
+        again = dg.blackout(RAW, self.spec)
+        self.assertEqual(self.result.raw_bytes, again.raw_bytes)
+        self.assertEqual(self.result.manifest_hash(), again.manifest_hash())
+
+    def test_the_manifest_names_the_operator_and_the_window(self) -> None:
+        m = self.result.manifest()
+        self.assertEqual(m["operators"], ["whole_source_blackout"])
+        self.assertEqual(m["blackout"]["sources"], ["iam_audit"])
+        self.assertEqual(m["blackout"]["t0_ns"], str(self.T0))
+        self.assertEqual(m["blackout"]["t1_ns"], str(self.T1))
+
+    def test_a_random_deletion_manifest_is_unchanged(self) -> None:
+        """Adding the operator must not alter what a random-deletion manifest says."""
+        m = dg.degrade(RAW, dg.Completeness.of(7, 10), DSEED).manifest()
+        self.assertEqual(m["operators"], ["delete"])
+        self.assertNotIn("blackout", m)
+
+    def test_an_empty_or_inverted_window_is_refused(self) -> None:
+        with self.assertRaises(SchemaError):
+            dg.Blackout(sources=("iam_audit",), t0_ns=self.T1, t1_ns=self.T1)
+        with self.assertRaises(SchemaError):
+            dg.Blackout(sources=("iam_audit",), t0_ns=self.T1, t1_ns=self.T0)
+
+    def test_sources_must_be_unique_and_ordered(self) -> None:
+        with self.assertRaises(SchemaError):
+            dg.Blackout(sources=("res_access", "iam_audit"), t0_ns=self.T0, t1_ns=self.T1)
+        with self.assertRaises(SchemaError):
+            dg.Blackout(sources=(), t0_ns=self.T0, t1_ns=self.T1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
