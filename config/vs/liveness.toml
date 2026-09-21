@@ -36,15 +36,28 @@ n_floor = 30
 #
 # READ THIS BEFORE CHANGING IT, AND READ IT BEFORE RELYING ON IT. The breakpoint grid
 # places a breakpoint at every t_evt_ns of the source, so an elementary interval
-# between two adjacent records brackets exactly two records. With m_min = 3 rule R9
-# therefore fires on every elementary interval of a source whose records are distinct
-# in time, and no interval can reach R11. That is fail-closed and it is what the
-# operative specification's CONFIG block states, so it is what ships. It is also
-# almost certainly not what the specification's minimum-viable scenario assumes, since
-# that scenario requires iam_audit to be LIVE at completeness 1.0. The contradiction
-# is recorded rather than patched: lowering this value is a config edit, it changes
-# the hash, and it is visible in every certificate that follows.
-m_min = 3
+# between two adjacent records brackets exactly two records. m_min is therefore
+# bounded above by 2: any larger value makes rule R9 fire on every elementary interval
+# of a source whose records are distinct in time, R11 unreachable, and LIVE
+# unconstructible for every source at every completeness level.
+#
+# CHANGED 2026-09-21, from 3 to 2, and why. The value 3 shipped first because the
+# operative specification's CONFIG block states it, with this comment recording that
+# it contradicts the same specification's minimum-viable scenario, which requires
+# iam_audit to be LIVE at completeness 1.0. The first end-to-end run resolved the
+# contradiction empirically: no source was LIVE in either cell, blindness was total at
+# every completeness level, and the full-telemetry cell could not serve as a control
+# arm for blindness because nothing in it could see. INC-0007 in BUILD_LOG.md records
+# the run and the diagnosis.
+#
+# The repair is to the instrument, not to the result. 2 is the largest value the
+# breakpoint grid admits, so it is the strictest setting under which LIVE exists at
+# all; it was not chosen by trying values until the premium looked right. Lowering it
+# further to 1 would admit a window bracketing a single record, which is weaker.
+#
+# This edit changes the hash of this file, therefore the liveness digest, therefore
+# every certificate that follows. That visibility is the point.
+m_min = 2
 
 # Cap on the exact search in the decisive-observation stage, consumed by S10 not S7.
 mcs_exact_cap = 64
