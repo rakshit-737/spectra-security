@@ -133,3 +133,33 @@ It is **not**:
   and no error bar.
 - **A statement about a real system.** Every verdict is scoped to this rule table, this control
   catalog, these licences, the telemetry ingested, and a non-adaptive attacker.
+
+## Addendum, 2026-09-21: the CI gate and ADR-0015
+
+Added after the record above was committed. The text above is left as it was written.
+
+**The result reproduces on a second platform.** Gate G-VS-PREREG-0001 now re-runs this
+pre-registration on every push, on Ubuntu 24.04 under CPython 3.12.3. The prediction held there, and
+the twelve artifact hashes the gate printed matched the table above byte for byte. The sentences
+above saying that CI does not run the demonstration, and that nothing shows the same bytes on
+another platform, were true when written and are not true now. The first run of the gate also found
+a defect on the Linux path, recorded in `BUILD_LOG.md` INC-0012.
+
+**The certificate now carries its witnesses.** ADR-0015 publishes witness trees flat and adds a
+LICENSED node kind, so the two trees refused above are now published, and the checker accepts them.
+The tree behind `ctl:priv_approval` is the mechanism the registration named: the observed export,
+derived through a licensed `privilege.escalated` step, which rests on an obligation-forced
+`iam.role_assumed` premise, both under the SUPPRESSED `iam_audit` licence. Publishing real witnesses
+also exposed a checker defect in event-id recomputation, fixed before this result was re-run.
+
+The change altered the bytes of every `cert.spcert`. The other nine hashes in the table are
+unchanged. The certificates' hashes after ADR-0015, the same on the development machine and in
+the gate's run on CI at `24b5a6f`, are:
+
+| Cell | Artifact | SHA-256 |
+| --- | --- | --- |
+| blackout | `cert.spcert` | `aa50c34146ecf548f360797d41f5ba60983c144866c5c239cd6533065d869606` |
+| full telemetry | `cert.spcert` | `c85bffc50e8aed6febc0155fc2f4ef0a86de3d16c2f58d88147af98e73a62393` |
+
+None of this changes the outcome or the falsifiers. It supersedes the paragraph above that begins
+"No witness tree is published" and the two sentences about CI and other platforms.
