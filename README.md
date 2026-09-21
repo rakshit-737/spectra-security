@@ -180,7 +180,7 @@ green for work that was not performed.
 
 ### Running the reference slice
 
-The slice needs only Python 3.11 or later and its standard library - no `make`, no Docker, no
+The slice needs only Python 3.12 or later and its standard library - no `make`, no Docker, no
 network, no third-party package:
 
 ```
