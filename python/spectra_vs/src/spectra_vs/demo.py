@@ -385,29 +385,29 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
         )
         lines.append(
             "       distinguish a control needed because of blindness from a control "
-            "needed at all. The goal is underivable in P_min because rule"
+            "needed at all."
         )
+        # This branch checks a SYMPTOM. It must not assert a cause it did not check: an
+        # earlier version named one specific cause here as fixed text, which stayed on
+        # screen after that cause had been repaired and became a false statement about the
+        # scenario. Name only what was measured, and point at where the cause is found.
         lines.append(
-            "       r0003 requires distinct(resource) >= 3 over res.read inside ten "
-            "minutes while config/vs/scenario.toml emits exactly one"
-        )
-        lines.append(
-            "       res_read record (attack step k4), so the observed route never fires."
+            "       CAUSE NOT ESTABLISHED BY THIS REPORT. Inspect p_min.json for which "
+            "goal facts P_min derives, and psi_min.json for the corridors."
         )
 
     degraded = cells[-1]
     if not degraded.cell.prove.goal_resolved:
         lines.append(
-            "    3. At the degraded cell the goal library is EMPTY. The delete-only "
-            "degrader empties whole 20-minute outage blocks, and the block"
+            "    3. At the degraded cell the goal library is EMPTY: neither program "
+            "derives a goal fact, so the premium there says nothing"
         )
         lines.append(
-            "       holding the escalation route's observed leaf went with it, so P_max "
-            "derives no goal fact at all. Degradation removed the route"
+            "       about what a sensor could see. CAUSE NOT ESTABLISHED BY THIS REPORT. "
+            "Compare truth.jsonl against the degradation manifest"
         )
         lines.append(
-            "       rather than licensing it: the premium is empty there for a reason "
-            "that has nothing to do with what a sensor could see."
+            "       to see which attack records the deletion removed."
         )
 
     for rendered in cells:
