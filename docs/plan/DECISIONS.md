@@ -601,7 +601,22 @@ Answerable later. Listed so none is lost.
 These were found by executing the reference slice end to end. They are not among the 140
 specification conflicts above; they are decisions the running system has shown to be necessary.
 
-### D-RUN-01 · HIGH · the control arm
+### D-RUN-01 · HIGH · the control arm — WITHDRAWN 2026-09-21: it was a bug, not a decision
+
+**Withdrawn.** The premise below was wrong. The non-empty premium at full telemetry was caused by a
+grounding defect, not by the horizon edges. Rule r0005 requires an escalation to precede an export
+by at most 30 minutes; the envelope skipped that check for any licensed fact, so it paired an
+escalation licensed in the first second with an export 76 minutes later, and one licensed in the
+last second with an export that came before it. Both are impossible for every placement. With the
+check made interval-aware (`ground.seq_feasible`), the full-telemetry premium is EMPTY and no
+methodology choice was needed. See `BUILD_LOG.md` INC-0010.
+
+The edge licences themselves are real and remain: liveness cannot be proved before the first
+record or after the last. They simply cannot reach the export under the rule's time bound.
+
+The original entry is kept below unedited, because it records what was believed and acted on.
+
+---
 
 **How is a finite observation window's blind edge handled, given absence lookbacks longer than the
 window?**
