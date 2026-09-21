@@ -265,17 +265,23 @@ builds from a clean clone with networking disabled.
 | Rust (`cargo`, `rustc`) | **absent** | the kernel cannot be compiled |
 | Go | **absent** | the independent checker cannot be compiled |
 | Docker | **absent** | the range cannot run; the devcontainer cannot start |
-| `make` | **absent** | no target has ever been executed |
+| `make` | **absent locally**; present on the CI runner | targets run in CI on every push, not on this machine |
 | WSL distribution | **none installed** | the host guard cannot be satisfied |
 
-Three consequences, recorded because they change what any status in this plan can mean.
+Consequences, recorded because they change what any status in this plan can mean.
 
-**`make` has never run in this repository.** Every statement made about the Makefile — that 57
-targets exit non-zero through a shared macro, that four do real work, that the host guard aborts at
-parse time — comes from reading the file, not from executing it. Those claims are unverified.
+**`make` is absent on this machine, and has been running in CI all along.** CORRECTED 2026-09-21.
+An earlier version of this section said "`make` has never run in this repository". That was false:
+it generalised from the development machine to the repository without checking the remote. The T1
+workflow runs `make skeleton-verify` on a GitHub Ubuntu runner on every push, and has since the first
+CI commit. Its first eleven runs FAILED, correctly, reporting exactly the eleven required paths that
+were then missing; it went green once they existed. That is the strongest evidence in this
+repository that a gate works, and it was produced by a machine this session did not control. Every
+Makefile target other than `skeleton-verify` and `guard-sandbox` is still unexecuted.
 
-**M0 cannot close.** Its gate is `make m0-verify`. No amount of working Python changes that, and
-the milestone table must keep saying `not started` however much of the slice runs.
+**M0 is not blocked by the missing local `make`.** Its gate `make m0-verify` can run in CI. It is
+blocked because `m0-verify` is not implemented, which is a different and smaller problem. The
+milestone table keeps saying `not started` until that gate exists and passes.
 
 **The kernel and checker are Python.** ADR-0013 records the decision and its cost: two Python
 modules written in one session do not give the checker the independence the specification's design
