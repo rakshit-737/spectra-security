@@ -56,9 +56,11 @@ __all__ = [
     "DEGRADATION_SCHEMA",
     "MANIFEST_KIND",
     "OUTAGE_BLOCK_SPAN_NS",
+    "Blackout",
     "Completeness",
     "DegradationResult",
     "RemovedRef",
+    "blackout",
     "degrade",
     "write_degraded_raw",
     "write_manifest",
@@ -195,6 +197,49 @@ class RemovedRef:
 
 
 @dataclass(frozen=True, slots=True)
+class Blackout:
+    """WHOLE_SOURCE_BLACKOUT, specification Part II section 61.
+
+    Delete every record emitted by one of `sources` whose event time lies in the half-open
+    window `[t0_ns, t1_ns)`, and nothing else. It is a CONTROLLED intervention: it varies
+    exactly one thing, which is what a single demonstration needs and random completeness
+    does not provide. Random completeness remains the right operator for the degradation
+    matrix, where the question is how quality falls off across many cells.
+
+    It is deletion of records that were emitted, not a collector that never produced them;
+    the specification keeps those apart (SOURCE-SILENCE is the latter). On a chained source
+    the gap is therefore visible in the chain, and liveness may classify it as suppression.
+    """
+
+    sources: tuple[str, ...]
+    t0_ns: int
+    t1_ns: int
+
+    def __post_init__(self) -> None:
+        if not self.sources:
+            raise SchemaError("Blackout: at least one source is required")
+        if tuple(sorted(set(self.sources), key=canon.byte_order_key)) != self.sources:
+            raise SchemaError("Blackout: sources must be unique and in bytewise order")
+        canon.u64(self.t0_ns)
+        canon.u64(self.t1_ns)
+        if not self.t0_ns < self.t1_ns:
+            raise SchemaError("Blackout: the window must be non-empty, t0 < t1")
+
+    def covers(self, record: RawEvent) -> bool:
+        return (
+            source_key(record.source_id) in self.sources
+            and self.t0_ns <= record.t_evt_ns < self.t1_ns
+        )
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "sources": list(self.sources),
+            "t0_ns": str(self.t0_ns),
+            "t1_ns": str(self.t1_ns),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class DegradationResult:
     """The surviving stream and the manifest that accounts for every deletion."""
 
@@ -204,6 +249,7 @@ class DegradationResult:
     degradation_seed: int
     parent_raw_hash: str
     nested_parent_manifest_hash: str | None = None
+    blackout: Blackout | None = None
 
     @property
     def raw_bytes(self) -> bytes:
@@ -228,11 +274,15 @@ class DegradationResult:
         document: dict[str, Any] = {
             "completeness": self.completeness.to_scf(),
             "degradation_seed": canon.mask_hex(self.degradation_seed),
-            "operators": ["delete"],
+            # The operator that actually ran, so a manifest never describes a blackout as
+            # a random deletion or the reverse.
+            "operators": ["whole_source_blackout"] if self.blackout else ["delete"],
             "parent_raw_hash": self.parent_raw_hash,
             "removed": [r.to_scf() for r in self.removed],
             "schema": DEGRADATION_SCHEMA,
         }
+        if self.blackout is not None:
+            document["blackout"] = self.blackout.to_scf()
         if self.nested_parent_manifest_hash is not None:
             document["nested_parent_manifest_hash"] = self.nested_parent_manifest_hash
         return document
@@ -321,6 +371,42 @@ def degrade(
         degradation_seed=seed,
         parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
         nested_parent_manifest_hash=parent_hash,
+    )
+
+
+def blackout(raw: tuple[RawEvent, ...], spec: Blackout) -> DegradationResult:
+    """Apply WHOLE_SOURCE_BLACKOUT: delete exactly the records `spec` covers.
+
+    Deterministic and seedless - which records a blackout removes is fixed by the window and
+    the source list alone, so there is nothing for a seed to choose. `completeness` is
+    recorded as 1/1 because no random deletion happens; the blackout is carried separately
+    in the manifest, and `operators` names it.
+    """
+    if not isinstance(spec, Blackout):
+        raise SchemaError("blackout: spec must be a Blackout")
+    removed = tuple(
+        sorted(
+            (
+                RemovedRef(source_id=r.source_id, seq=r.seq, event_id=r.event_id)
+                for r in raw
+                if spec.covers(r)
+            ),
+            key=lambda ref: ref.sort_key(),
+        )
+    )
+    survivors = tuple(
+        sorted((r for r in raw if not spec.covers(r)), key=lambda r: r.sort_key())
+    )
+    canon.check_strictly_ascending(
+        [r.sort_key() for r in survivors], lambda k: k, where="blackout.raw"
+    )
+    return DegradationResult(
+        raw=survivors,
+        removed=removed,
+        completeness=Completeness.of(1, 1),
+        degradation_seed=0,
+        parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
+        blackout=spec,
     )
 
 
