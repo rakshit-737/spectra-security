@@ -344,15 +344,23 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
     """
     lines: list[str] = ["  WHY, read off the artifacts:"]
 
-    live_counts = {
-        rendered.label.split()[0]: sum(
-            1
-            for source in rendered.cell.liveness.document.sources
-            for interval in source.intervals
-            if str(interval.verdict) == "LIVE"
-        )
-        for rendered in cells
-    }
+    # LIVE is reported as COVERAGE - the share of source-time proved observed - and not as
+    # a count of LIVE intervals. Intervals are RLE-merged runs, so a fully live source is
+    # ONE interval and a fragmented one is many: deletion raises the count while lowering
+    # the coverage. An earlier version printed the count, which showed 6 at full telemetry
+    # and 144 at 70% and read as degradation making the timeline MORE observed.
+    def _coverage(rendered: Rendered) -> tuple[int, int]:
+        live = total = 0
+        for source in rendered.cell.liveness.document.sources:
+            for interval in source.intervals:
+                span = interval.t1_ns - interval.t0_ns
+                total += span
+                if str(interval.verdict) == "LIVE":
+                    live += span
+        return live, total
+
+    coverage = {rendered.label.split()[0]: _coverage(rendered) for rendered in cells}
+    live_counts = {label: live for label, (live, _total) in coverage.items()}
     if all(count == 0 for count in live_counts.values()):
         m_min = cells[0].cell.liveness.document.m_min
         lines.append(
@@ -373,9 +381,20 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
         )
         lines.append("       cannot be a control arm for blindness.")
     else:
+        def _permille(live: int, total: int) -> str:
+            # Integer arithmetic only: tenths of a percent, rounded down.
+            if total == 0:
+                return "n/a"
+            tenths = live * 1000 // total
+            return f"{tenths // 10}.{tenths % 10}%"
+
         lines.append(
-            "    1. LIVE intervals per cell: "
-            + ", ".join(f"{k}={v}" for k, v in sorted(live_counts.items()))
+            "    1. LIVE share of source-time per cell (every declared source, including "
+            "any that never emits): "
+            + ", ".join(
+                f"{label}={_permille(live, total)}"
+                for label, (live, total) in sorted(coverage.items())
+            )
         )
 
     if all(not r.cell.prove.bracket.lower.psi.corridors for r in cells):
