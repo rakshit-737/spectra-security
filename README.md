@@ -6,18 +6,20 @@ This is a statement about the model, not about what would have happened. The att
 
 [Limitations and known-unsound regions](LIMITATIONS.md) — [What SPECTRA does not do](docs/NON-GOALS.md)
 
-> **Status: pre-alpha. A Python reference slice runs end to end; its demonstration does
-> not yet show what it was designed to show.**
+> **Status: pre-alpha. A Python reference slice runs end to end, and in one
+> pre-registered cell of simulated telemetry its demonstration shows the effect it was
+> designed to show.**
 >
 > What exists: a seeded synthetic generator, ingest, entity resolution, a rule compiler,
 > grounding, liveness and licences, the silent envelope, reachability, a minimal-cut
 > search, a certificate emitter and a separate checker - all in Python, under
-> `python/spectra_vs/` and `python/spectra_vs_verify/`, with 18 test suites. One command,
-> `python scripts/demo.py`, runs the pipeline at two completeness levels and prints both.
+> `python/spectra_vs/` and `python/spectra_vs_verify/`, with 19 test suites. One command,
+> `python scripts/demo.py`, runs the pipeline in three cells - full telemetry, a random
+> 70% cell and a pre-registered sensor blackout - and prints whether the prediction held.
 >
 > What does not: the specified Rust kernel and Go checker (this machine has neither
 > toolchain; see [ADR-0013](docs/adr/0013-the-slice-is-a-python-reference-implementation.md)),
-> the container range, the database, the user interface, and every gate but two. No
+> the container range, the database, the user interface, and every gate but three. No
 > milestone is green. The checker shares an author, a language and a reading of the
 > specification with the emitter, so no certificate it accepts is independently verified.
 >
@@ -88,7 +90,7 @@ is green. Where code exists without its gate, the row says so rather than claimi
 | M0 | Skeleton and toolchain: a clone builds, lints and tests an empty system, offline | `make m0-verify` | not started |
 | M1 | Seeded synthetic generator and recorded ground truth | `make m1-verify` | implemented in Python; gate not built |
 | M2 | Ingest, entity resolution, event store | `make m2-verify` | ingest and entity resolution implemented in Python; no event store; gate not built |
-| M3 | Vertical slice: scenario to replayed control configuration, end to end | `make m3-verify` | runs end to end; demonstration not as designed (BUILD_LOG INC-0007, INC-0008); gate not built |
+| M3 | Vertical slice: scenario to replayed control configuration, end to end | `make m3-verify` | runs end to end; the pre-registered blackout cell shows the designed effect (BUILD_LOG INC-0011); gate not built |
 | M4 | Kernel stages A-D: liveness, licences, silent envelope, fixpoint | `make m4-verify` | implemented in Python, not in the specified Rust; gate not built |
 | M5 | Kernel stage E and the certificate object | `make m5-verify` | implemented in Python, not in the specified Rust; gate not built |
 | M6 | Independent Go checker and differential gates | `make m6-verify` | not started - a Python checker exists, the specified Go checker does not |
@@ -143,11 +145,24 @@ observation window. That explanation was wrong. The cause was a grounding defect
 rule's 30-minute time bound whenever one side was a licensed step, admitting combinations that were
 impossible for every placement. `BUILD_LOG.md` INC-0010 records the fix and the correction.
 
-The demonstration's degraded cell does not yet test anything: its random deletion removes the
-attack's observed steps outright, so neither program derives a goal. A controlled replacement -
-one sensor taken offline over a fixed window - is pre-registered, with its predictions, in
-[docs/research/prereg-0001-blackout-cell.md](docs/research/prereg-0001-blackout-cell.md). Until it
-runs, these are records of the instrument's behaviour, not measured results.
+The designed effect has now been shown once, under a prediction committed before the code that
+produces it. [Pre-registration 0001](docs/research/prereg-0001-blackout-cell.md) predicted that
+taking one sensor (`iam_audit`) offline for ten minutes would leave the observed attack route
+alone, open a second route through an unobserved privilege escalation, and add exactly one control
+to the blindness premium: `ctl:priv_approval`. All five falsifiers passed, the checker accepted the
+certificate, and three runs produced byte-identical artifacts.
+[The result record](docs/research/prereg-0001-result.md) states what that does not show. In short:
+
+- it is one scenario, one seed and one window of simulated telemetry - a data point, not a
+  measurement;
+- the author made the prediction right after tracing this mechanism, so it tests the code against
+  the author's understanding, not the understanding itself;
+- the confound the registration named - a tamper flag blocking ROBUST - could not fire, because the
+  tamper check does not exist in this slice;
+- the certificate carries no witness tree for why `ctl:priv_approval` is needed.
+
+The random 70% cell is kept as a degradation-matrix cell. Its deletion removes the attack's
+observed steps outright, so neither program derives a goal there and its premium says nothing.
 
 What will be measured, how, with which seeds and repetitions, and what would falsify each research
 question is committed in advance in [docs/research/preregistration.md](docs/research/preregistration.md).
