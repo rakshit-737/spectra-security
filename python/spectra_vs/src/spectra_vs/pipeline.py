@@ -1266,7 +1266,7 @@ def _build_verdict(
     minimality: model.Minimality,
     flags: tuple[str, ...],
     witness_has_ghost: bool,
-    tamper_sources: int,
+    liveness: liveness_mod.LivenessDocument,
 ) -> cert_mod.Verdict:
     witness_class: cert_mod.WitnessClass | None = None
     if safety is cert_mod.Safety.UNSAFE:
@@ -1286,10 +1286,16 @@ def _build_verdict(
     )
     token = None
     if safety is cert_mod.Safety.ROBUST:
+        # Read from the liveness document, never written here as constants. In this slice
+        # both are always empty and false, because the backdating pass does not exist
+        # (liveness.TAMPER_PASS_IMPLEMENTED); passing literals would have kept a future pass
+        # from blocking ROBUST without any test noticing.
         token = cert_mod.mint_no_tamper_token(
-            tamper_suspected_sources=(),
-            verdict_tamper_sensitive=False,
-            sources=tamper_sources,
+            tamper_suspected_sources=tuple(
+                str(entry.source_id) for entry in liveness.sources if entry.tamper_suspected
+            ),
+            verdict_tamper_sensitive=liveness.flags.verdict_tamper_sensitive,
+            sources=len(liveness.sources),
         )
     return cert_mod.Verdict.build(
         proposal, no_tamper_token=token, pmax_fixpoint_terminated=True
@@ -1534,14 +1540,14 @@ def s10_prove(
         minimality=bracket.upper.minimality,
         flags=flags,
         witness_has_ghost=witness_has_ghost,
-        tamper_sources=len(spec.sources),
+        liveness=liveness_stage.document,
     )
     verdict_min = _build_verdict(
         safety=safety_at_min,
         minimality=bracket.lower.minimality,
         flags=flags,
         witness_has_ghost=witness_has_ghost,
-        tamper_sources=len(spec.sources),
+        liveness=liveness_stage.document,
     )
 
     licences = envelope_stage.result.licences
