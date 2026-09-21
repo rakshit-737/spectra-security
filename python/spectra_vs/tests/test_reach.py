@@ -215,6 +215,112 @@ class TestIndexContract(unittest.TestCase):
         self.assertTrue(reach(program, 0).derivable)
 
 
+class TestGoalIsASet(unittest.TestCase):
+    """Regression for the false-severance found by the second end-to-end run.
+
+    The goal library is the union of every goal fact either program derives. The
+    pipeline picked ONE search target from it - the bytewise-least key - and asked each
+    program about that key alone. At full telemetry the least key happened to be a fact
+    only P_max derives, so the corridor search over P_min found it unreachable under the
+    empty cut, returned zero corridors with complete=True, and reported that the empty
+    cut severs the attack - while P_min derived the other goal fact through route A.
+
+    `docs/vocab.toml` already defines a goal as a SET ("goals are a set, verdicts are
+    per-goal"). The attack reaches its objective if ANY goal fact is derivable, so a cut
+    severs only when EVERY goal fact is underivable. These tests pin that.
+    """
+
+    def _two_goals_one_dead(self) -> tuple[ReachProgram, ids.FactHash, ids.FactHash, int]:
+        atoms = atom_table()
+        a = model.Fact.mint("exfil.bulk_read", (ids.EntityId.mint("resource", b"A"),), 1)
+        b = model.Fact.mint("exfil.bulk_read", (ids.EntityId.mint("resource", b"B"),), 1)
+        # Make the DEAD goal the bytewise-least key whatever the digests turn out to be,
+        # because the least key is exactly the one the buggy pipeline selected.
+        dead, live = sorted((a, b), key=lambda f: canon.byte_order_key(str(f.fact_key)))
+        blocker = 1 << atoms.literal_at(ids.ControlId.of("egress_seg"), 1).bit
+        inst = model.RuleInstance.mint(
+            rule_id=ids.RuleId.of("r0003"),
+            rule_version="1.0.0",
+            head=live.fact_key,
+            body=(),
+            blockers=(blocker,),
+            observed=model.Observation.OBSERVED,
+            tick=1,
+            evidence=(
+                model.EvidenceRef(
+                    binding="b",
+                    event_id=ids.EventId.mint(b"read"),
+                    source_id=ids.SourceId.of("res_access"),
+                    t_evt_ns=1_707_004_800_000_000_000,
+                ),
+            ),
+        )
+        program = ReachProgram.build(
+            kind=model.ProgramKind.P_MIN,
+            instances=(inst,),
+            axioms=(),
+            goal=dead.fact_key,
+            goals=tuple(sorted((dead.fact_key, live.fact_key), key=canon.byte_order_key)),
+        )
+        return program, dead.fact_key, live.fact_key, blocker
+
+    def test_any_derivable_goal_makes_the_goal_derivable(self) -> None:
+        program, _dead, _live, _blocker = self._two_goals_one_dead()
+        # The representative `goal` is the dead key. Under single-key semantics this
+        # returned False, which is the false severance.
+        self.assertTrue(reach(program, 0).derivable)
+
+    def test_severing_requires_every_goal_underivable(self) -> None:
+        program, _dead, _live, blocker = self._two_goals_one_dead()
+        self.assertTrue(reach(program, 0).derivable)
+        self.assertFalse(reach(program, blocker).derivable)
+
+    def test_witness_is_rooted_at_a_goal_that_was_actually_derived(self) -> None:
+        program, dead, live, _blocker = self._two_goals_one_dead()
+        result = reach(program, 0)
+        tree = witness_tree(program, 0, result)
+        self.assertEqual(str(tree.head), str(live))
+        self.assertNotEqual(str(tree.head), str(dead))
+
+    def test_a_single_goal_program_keeps_its_old_meaning(self) -> None:
+        atoms = atom_table()
+        head = model.Fact.mint("exfil.bulk_read", (ids.EntityId.mint("resource", b"S"),), 1)
+        inst = model.RuleInstance.mint(
+            rule_id=ids.RuleId.of("r0003"),
+            rule_version="1.0.0",
+            head=head.fact_key,
+            body=(),
+            blockers=(1 << atoms.literal_at(ids.ControlId.of("egress_seg"), 1).bit,),
+            observed=model.Observation.OBSERVED,
+            tick=1,
+            evidence=(
+                model.EvidenceRef(
+                    binding="b",
+                    event_id=ids.EventId.mint(b"single"),
+                    source_id=ids.SourceId.of("res_access"),
+                    t_evt_ns=1_707_004_800_000_000_000,
+                ),
+            ),
+        )
+        program = ReachProgram.build(
+            kind=model.ProgramKind.P_MIN, instances=(inst,), axioms=(), goal=head.fact_key
+        )
+        self.assertEqual(tuple(str(g) for g in program.goals), (str(head.fact_key),))
+        self.assertTrue(reach(program, 0).derivable)
+
+    def test_goals_must_contain_the_representative(self) -> None:
+        a = model.Fact.mint("exfil.bulk_read", (ids.EntityId.mint("resource", b"X"),), 1)
+        b = model.Fact.mint("exfil.bulk_read", (ids.EntityId.mint("resource", b"Y"),), 1)
+        with self.assertRaises(errors.SchemaError):
+            ReachProgram.build(
+                kind=model.ProgramKind.P_MIN,
+                instances=(),
+                axioms=(),
+                goal=a.fact_key,
+                goals=(b.fact_key,),
+            )
+
+
 class TestWitnessTree(unittest.TestCase):
     def setUp(self) -> None:
         self.atoms = atom_table()
