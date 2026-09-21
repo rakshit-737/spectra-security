@@ -1081,6 +1081,27 @@ class _UnrepresentableWitness(Exception):
     """A derivation the certificate's witness alphabet cannot express. See `_cert_witness`."""
 
 
+#: Containers the certificate spends before a witness tree's root node: the document,
+#: `body`, the `witnesses` list, the entry object and the `tree` object. Fixed by the
+#: certificate layout in cert.py, and stated there alongside MAX_DEPTH.
+_CONTAINERS_ABOVE_WITNESS_ROOT: Final[int] = 5
+
+#: The deepest witness tree, in NODE LEVELS, that the certificate contract can carry.
+#: Each level below the root costs two containers: the parent's `children` list and the
+#: child's own object. Derived from cert.MAX_DEPTH rather than written down, so that if the
+#: contract ever changes on both sides together this bound follows it.
+_MAX_WITNESS_LEVELS: Final[int] = (
+    (cert_mod.MAX_DEPTH - _CONTAINERS_ABOVE_WITNESS_ROOT - 1) // 2 + 1
+)
+
+
+def _witness_levels(node: cert_mod.WitnessNode) -> int:
+    """Height of a witness tree in node levels; a lone root is 1."""
+    if not node.children:
+        return 1
+    return 1 + max(_witness_levels(child) for child in node.children)
+
+
 def _cert_witness(
     node: reach_mod.WitnessNode, ghost_heads: frozenset[str]
 ) -> cert_mod.WitnessNode | None:
@@ -1446,6 +1467,21 @@ def s10_prove(
             )
             continue
         if node is None:
+            continue
+        levels = _witness_levels(node)
+        if levels > _MAX_WITNESS_LEVELS:
+            # The certificate contract caps nesting at cert.MAX_DEPTH containers, which
+            # admits a root and one level of children. A real multi-step derivation is
+            # deeper than that. Raising the cap on this side alone would emit a file the
+            # checker is obliged to reject, because the two share the constant; so the
+            # tree is not published and the omission is reported. Before this check the
+            # refusal happened inside cert.emit and aborted the whole run instead of
+            # dropping one witness.
+            complaints.append(
+                f"the derivation that re-appears when {control} is dropped is {levels} "
+                f"levels deep; the certificate contract carries at most "
+                f"{_MAX_WITNESS_LEVELS}, so no witness tree is published for that control"
+            )
             continue
         witness_has_ghost = witness_has_ghost or node.contains_ghost()
         witnesses.append(
