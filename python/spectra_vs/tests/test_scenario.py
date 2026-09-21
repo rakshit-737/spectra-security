@@ -118,14 +118,24 @@ class TestFixture(unittest.TestCase):
         declared = [s for s in self.spec.sources if s.nominal_period_ns is not None]
         self.assertEqual([scn.source_key(s.source_id) for s in declared], ["idp_auth"])
 
-    def test_two_routes_six_steps_one_unobservable(self) -> None:
+    def test_two_routes_eight_steps_one_unobservable(self) -> None:
         steps = self.spec.attack.steps
-        self.assertEqual([s.k for s in steps], [1, 2, 3, 4, 5, 6])
+        self.assertEqual([s.k for s in steps], [1, 2, 3, 4, 5, 6, 7, 8])
         unobservable = [s for s in steps if not s.observable]
         self.assertEqual(len(unobservable), 1)
         self.assertEqual(unobservable[0].k, 1)
         self.assertEqual(unobservable[0].emits, ())
         self.assertIsNone(unobservable[0].event_type)
+
+    def test_the_bulk_read_reads_three_distinct_resources_in_the_window(self) -> None:
+        """r0003 heads the goal and requires three distinct resources within ten
+        minutes.  A scenario that reads fewer cannot fire its own observed route,
+        which is what made Psi_min empty in the first end-to-end run."""
+        reads = [s for s in self.spec.attack.steps if s.action == "bulk_read"]
+        resources = {dict(s.attrs)["resource"] for s in reads}
+        self.assertGreaterEqual(len(resources), 3)
+        offsets = [int(s.t_offset_ns) for s in reads]
+        self.assertLess(max(offsets) - min(offsets), 600 * 10**9)
 
     def test_every_observable_step_emits_a_declared_event_type(self) -> None:
         for step in self.spec.attack.steps:
