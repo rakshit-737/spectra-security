@@ -245,6 +245,60 @@ def render_cell(rendered: Rendered) -> str:
     return "\n".join(out)
 
 
+#: Pre-registration 0001, docs/research/prereg-0001-blackout-cell.md. These values were
+#: committed in ce8ed9c BEFORE the blackout operator existed or ran. They are compared
+#: mechanically below and must not be edited to match a result; a different prediction is a
+#: new pre-registration.
+PREREG_0001_SOURCE: str = "iam_audit"
+PREREG_0001_WINDOW_S: tuple[int, int] = (4200, 4800)
+PREREG_0001_PSI_MIN: int = 1
+PREREG_0001_PSI_MAX: int = 2
+PREREG_0001_PREMIUM: tuple[str, ...] = ("ctl:priv_approval",)
+
+
+def prereg_0001_blackout(epoch_ns: int) -> degrade_mod.Blackout:
+    """The intervention exactly as registered: one source, one window, nothing else."""
+    lo, hi = PREREG_0001_WINDOW_S
+    return degrade_mod.Blackout(
+        sources=(PREREG_0001_SOURCE,),
+        t0_ns=epoch_ns + lo * 1_000_000_000,
+        t1_ns=epoch_ns + hi * 1_000_000_000,
+    )
+
+
+def render_prereg_0001(cell: Rendered) -> str:
+    """Evaluate each registered falsifier against the blackout cell, in code."""
+    prove = cell.cell.prove
+    psi_min = len(prove.bracket.lower.psi.corridors)
+    psi_max = len(prove.bracket.upper.psi.corridors)
+    premium = tuple(sorted(cell.premium)) if cell.premium_published else None
+    checks = (
+        ("premium published", premium is not None, f"{'published' if premium is not None else 'suppressed'}"),
+        ("premium non-empty", bool(premium), f"{premium or '()'}"),
+        (
+            f"premium == {PREREG_0001_PREMIUM}",
+            premium == PREREG_0001_PREMIUM,
+            f"{premium}",
+        ),
+        (f"|Psi_min| == {PREREG_0001_PSI_MIN}", psi_min == PREREG_0001_PSI_MIN, f"{psi_min}"),
+        (f"|Psi_max| == {PREREG_0001_PSI_MAX}", psi_max == PREREG_0001_PSI_MAX, f"{psi_max}"),
+    )
+    out = [
+        _RULE,
+        "PRE-REGISTRATION 0001 -- predictions committed in ce8ed9c before the intervention existed",
+        _RULE,
+    ]
+    for name, ok, observed in checks:
+        out.append(f"  {'PASS' if ok else 'FAIL'}  {name:<42} observed {observed}")
+    held = all(ok for _, ok, _ in checks)
+    out.append(_THIN)
+    out.append(
+        "  PREDICTION HELD." if held else
+        "  PREDICTION FAILED. Reported as the result it is; the window will not be moved."
+    )
+    return "\n".join(out)
+
+
 def render_difference(cells: tuple[Rendered, ...]) -> str:
     """The headline: what changed between the two cells, in one short block."""
     out: list[str] = []
@@ -254,7 +308,7 @@ def render_difference(cells: tuple[Rendered, ...]) -> str:
     add(_RULE)
 
     control, degraded = cells[0], cells[1]
-    for name, rendered in (("full telemetry", control), ("degraded cell", degraded)):
+    for name, rendered in (("full telemetry", control), ("blackout cell", degraded)):
         prove = rendered.cell.prove
         premium = (
             "ABSENT (" + str(prove.premium.suppressed_reason) + ")"
@@ -514,7 +568,33 @@ def main(
         print(render_cell(entry), file=out, flush=True)
         print("", file=out, flush=True)
 
+    # The pre-registered controlled cell. It is not part of the nested completeness chain:
+    # it varies one sensor over one window at completeness 1/1, so it takes no parent.
+    blackout = prereg_0001_blackout(int(spec.epoch_ns))
+    blackout_cell = pipeline_mod.run_cell(
+        layout,
+        completeness=degrade_mod.Completeness.of(1, 1),
+        seed=seed,
+        degradation_seed=degradation_seed,
+        calibration=calibration,
+        calibration_seed=calibration_seed,
+        verify=verify,
+        blackout=blackout,
+    )
+    lo, hi = PREREG_0001_WINDOW_S
+    blackout_entry = Rendered(
+        label=f"blackout {PREREG_0001_SOURCE} [+{lo} s, +{hi} s)  (PRE-REGISTERED 0001)",
+        cell=blackout_cell,
+    )
+    print(render_cell(blackout_entry), file=out, flush=True)
+    print("", file=out, flush=True)
+
+    # The headline compares the control arm with the controlled intervention. The random
+    # completeness cell stays in the output as a degradation-matrix cell.
+    rendered.insert(1, blackout_entry)
     print(render_difference(tuple(rendered)), file=out, flush=True)
+    print("", file=out, flush=True)
+    print(render_prereg_0001(blackout_entry), file=out, flush=True)
     failed = [r for r in rendered if r.cell.verify_exit not in (None, 0)]
     return 1 if failed else 0
 
