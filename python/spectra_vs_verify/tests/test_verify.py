@@ -283,24 +283,105 @@ class TestAdversarialCorpus(_Base):
 
     def test_witness_phantom_event(self) -> None:
         def mutate(body: dict[str, Any]) -> None:
-            body["witnesses"][0]["tree"]["evidence"] = ["ev:" + "ab" * 16]
+            body["witnesses"][0]["nodes"][0]["evidence"] = ["ev:" + "ab" * 16]
 
         self.assertRejects(self._mutate(mutate), "E-WITNESS-EVENT")
 
     def test_witness_cyclic(self) -> None:
+        """A node whose instance is its own ancestor: the flat encoding cannot loop by
+        index, but it can still spell a derivation that supports itself."""
+
         def mutate(body: dict[str, Any]) -> None:
-            tree = body["witnesses"][0]["tree"]
-            tree["children"] = [
-                {
-                    "children": [],
-                    "evidence": list(tree["evidence"]),
-                    "head": tree["head"],
-                    "instance_id": tree["instance_id"],
-                    "kind": tree["kind"],
-                }
-            ]
+            nodes = body["witnesses"][0]["nodes"]
+            root = nodes[0]
+            nodes.append({**root, "children": []})
+            root["children"] = [len(nodes) - 1]
 
         self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    # ADR-0015: the structural rules of the flat encoding. Each mutation breaks one.
+
+    def test_witness_child_index_points_backwards(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][1]["nodes"][1]["children"] = [0]
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_child_index_points_at_itself(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][1]["nodes"][1]["children"] = [1]
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_child_index_out_of_range(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][1]["nodes"][0]["children"] = [7]
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_child_index_is_not_an_integer(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][1]["nodes"][0]["children"] = ["1"]
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_node_with_two_parents(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][1]["nodes"][0]["children"] = [1, 1]
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_unreachable_node(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            nodes = body["witnesses"][1]["nodes"]
+            nodes.append({**nodes[1], "children": []})
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_with_no_nodes(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][0]["nodes"] = []
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-CYCLE")
+
+    def test_witness_in_the_nested_encoding(self) -> None:
+        """A 1.0-shaped entry, `tree` in place of `nodes`, is not read as a 1.1 one."""
+
+        def mutate(body: dict[str, Any]) -> None:
+            entry = body["witnesses"][0]
+            entry["tree"] = entry.pop("nodes")[0]
+
+        self.assertRejects(self._mutate(mutate), "E-SCHEMA-MISSING")
+
+    def test_witness_ghost_relabelled_licensed(self) -> None:
+        """The fixture's silent instance is obligation-forced. LICENSED is the wrong word."""
+
+        def mutate(body: dict[str, Any]) -> None:
+            body["witnesses"][1]["nodes"][1]["kind"] = "LICENSED"
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-EVENT")
+
+    def test_witness_observed_relabelled_ghost(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            node = body["witnesses"][0]["nodes"][0]
+            node["kind"] = "GHOST"
+            node["evidence"] = []
+
+        self.assertRejects(self._mutate(mutate), "E-GHOST-COUNT")
+
+    def test_witness_ghost_relabelled_observed(self) -> None:
+        def mutate(body: dict[str, Any]) -> None:
+            node = body["witnesses"][1]["nodes"][1]
+            node["kind"] = "OBSERVED"
+            node["evidence"] = list(body["witnesses"][1]["nodes"][0]["evidence"])
+
+        self.assertRejects(self._mutate(mutate), "E-WITNESS-EVENT")
+
+    def test_schema_version_one_point_zero(self) -> None:
+        self.assertRejects(
+            self._mutate(lambda body: body["schema"].__setitem__("v", "1.0")),
+            "E-SCHEMA-DOWNGRADE",
+        )
 
     def test_witness_wrong_cut(self) -> None:
         def mutate(body: dict[str, Any]) -> None:

@@ -224,7 +224,7 @@ There is no scalar residual. No field named residual_score/residual_pct/coverage
 File = {"body":{...},"cert_hash":"blake3:<64hex>"} in SCF-lite. First 26 bytes are exactly `{"body":{"schema":{"v":`.
 cert_hash = blake3(scf(body)). Only `body` is hashed.
 body = {
-  schema:{v:"1.0", min_checker:"1.0", profile:"eclipse-cert"},
+  schema:{v:"1.1", min_checker:"1.1", profile:"eclipse-cert"},   1.1 since ADR-0015 (was 1.0)
   scope:{ rules:"b3:<64hex>", controls:"b3:..", liveness:"b3:..", er:"b3:..",
           goal:"b3:..", bundle:"b3:..", attacker:"non-adaptive" },        exactly these seven members
   inputs:{ rules_hash, rules_text_hash, guard_ast_hash, controls_hash, catalog_bits_hash,
@@ -245,7 +245,8 @@ body = {
   instances:[InstRef] sorted by instance_id, InstRef = {instance_id, head, body, blockers, observed, license_ids},
   licenses:[License] sorted by (source_id,t0_ns,t1_ns),
   silent:[{instance_id, license_ids}] sorted by instance_id,
-  witnesses:[{ removed_control:str, tree:WitnessNode }] sorted by removed_control,
+  witnesses:[{ removed_control:str, nodes:[WitnessNode] }] sorted by removed_control,
+            nodes in pre-order, nodes[0] the root (ADR-0015; was a nested `tree`),
   psi:{ program:"PMax", complete:bool, corridors:[Corridor] sorted by corridor_id },
   premium:{ nec_max:[control_id] sorted, occ_min:[control_id] sorted, blindness_premium:[control_id] sorted,
             per_control:[{control_id, license_ids:[..], calibration_deficiency:{num:u32,den:u32}}] }
@@ -258,8 +259,13 @@ body = {
             exhaustive_ran:bool, exhaustive_cuts_tested:u32 },
   observed_event_count:u32, ghost_count:u32      two separate members; a single summed member is forbidden
 }
-WitnessNode = { instance_id, head:"fa:..", kind:"OBSERVED"|"GHOST",
-                evidence:["ev:.."] (empty iff GHOST), children:[WitnessNode] }
+WitnessNode = { instance_id, head:"fa:..", kind:"OBSERVED"|"GHOST"|"LICENSED",
+                evidence:["ev:.."] (empty iff GHOST or LICENSED), children:[u32] }
+              children are indices into `nodes`, each greater than the node's own index;
+              every node but the root has exactly one parent. A subtree used twice is
+              written twice. GHOST cites an obligation-forced instance (ghost:true);
+              LICENSED cites a licensed silent instance that is not (ghost:false,
+              observed:"LICENSED"). The nesting depth is seven for a witness of any length.
 body carries NO wall-clock time, no hostname, no username, no path, no pid, no duration, no `measured` member.
 
 ## liveness
@@ -719,7 +725,7 @@ Obligations run in EXACTLY this order, stopping at the first failure. Each may a
   O0  canonicity   re-serialise the parsed body; bytes must equal the input bytes exactly   E-CANON-*
                    (sub-codes: E-CANON-FLOAT, -DUPKEY, -ORDER, -NFC, -NULL, -WIDTH, -ESCAPE, -TRAILING)
   O1  cert_hash    blake3(scf(body)) == cert_hash                                            E-HASH-CERT
-  O2  schema       v == "1.0"; checker version >= min_checker; profile == "eclipse-cert";
+  O2  schema       v == "1.1"; checker version >= min_checker; profile == "eclipse-cert";
                    every required member present, no unknown member         E-SCHEMA-{MISSING,UNKNOWN,DOWNGRADE}
   O3  scope        all seven members present and well formed; attacker == "non-adaptive";
                    each scope hash equals the corresponding inputs hash                      E-SCOPE-BIND / VRD-005
@@ -741,9 +747,11 @@ Obligations run in EXACTLY this order, stopping at the first failure. Each may a
                    the instance's rule is non-LIVE over it                                    E-LICENSE-{UNIMPLIED,WINDOW}
   O11 ghost        observed_event_count excludes every silent instance and every GHOST fact; ghost_count equals
                    the number of GHOST facts                                                  E-GHOST-COUNT
-  O12 witnesses    each witness tree is well founded (no cycle), every OBSERVED leaf cites an event_id present in
-                   bundle.jsonl with a matching record hash, every GHOST leaf carries evidence:[] and a licence,
-                   and the tree re-derives the goal under S \ {removed_control}                E-WITNESS-{CYCLE,EVENT,CUT}
+  O12 witnesses    each witness's node list is one tree (children after their parent, one parent each, nothing
+                   unreachable) and well founded (no instance on its own ancestor path), every OBSERVED node cites
+                   an event_id present in bundle.jsonl with a matching record hash, every GHOST or LICENSED node
+                   carries evidence:[] and a licence and matches its instance's ghost flag, and the tree
+                   re-derives the goal under S \ {removed_control}                            E-WITNESS-{CYCLE,EVENT,CUT}
   O13 psi-hit      the published cut hits every clause of the published corridor database; each corridor_id
                    recomputes from its atom ranks                                             E-PSI-HIT
   O14 flags        the flag algebra of the verdict section, from spec/verdict/flags.toml       E-FLAG-* / VRD-00n

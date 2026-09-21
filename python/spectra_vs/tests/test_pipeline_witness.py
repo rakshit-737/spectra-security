@@ -1,19 +1,19 @@
-"""Unit tests for the witness-depth bound in spectra_vs.pipeline.
+"""Unit tests for how spectra_vs.pipeline turns a derivation into a certificate witness.
 
 Run from the repository root:
 
     python python/spectra_vs/tests/test_pipeline_witness.py
 
-Regression for the third end-to-end run. Once the goal library became a set, route A was
-correctly found derivable in P_min, and for the first time a real multi-step derivation
-reached the certificate emitter as a witness tree. The certificate contract caps nesting
-at cert.MAX_DEPTH containers, which admits a root and one level of children, so the deeper
-tree was refused inside cert.emit - and that refusal aborted the whole run rather than
-dropping one witness.
-
-The fix detects the depth before emission and sends the tree down the existing, reported
-refusal path. These tests pin the bound, its derivation from the shared contract
-constant, and the height measure it is compared against.
+History. The certificate first carried witness trees nested, under a cap of eight
+containers that admitted a root and one level of children. Once route A was found
+derivable, a real three-level derivation reached the emitter and was refused, and that
+refusal aborted the whole run (INC-0008); the pipeline then learned to drop and report it.
+A derivation through a licensed silent step was dropped as well, because the witness
+alphabet had no word for one. ADR-0015 published witnesses flat and added the LICENSED
+kind, so both refusals were removed. These tests pin the translation that replaced them:
+every reach kind maps to the certificate kind of the same name, an axiom leaf is not
+published, a kind with no certificate word is refused rather than mapped to a neighbour,
+and a witness of any length stays inside the nesting cap.
 """
 
 from __future__ import annotations
@@ -30,51 +30,107 @@ from spectra_core import ids, model  # noqa: E402
 
 from spectra_vs import cert as cert_mod  # noqa: E402
 from spectra_vs import pipeline  # noqa: E402
+from spectra_vs import reach as reach_mod  # noqa: E402
 
 
-def _node(tag: bytes, *children: cert_mod.WitnessNode) -> cert_mod.WitnessNode:
-    """An OBSERVED witness node, which must cite at least one record."""
-    head = model.Fact.mint(
-        "test.head", (ids.EntityId.mint("resource", tag),), 1
-    ).fact_key
-    return cert_mod.WitnessNode(
+def _head(tag: bytes) -> ids.FactHash:
+    return model.Fact.mint("test.head", (ids.EntityId.mint("resource", tag),), 1).fact_key
+
+
+def _reach_node(
+    tag: bytes, kind: str, *children: reach_mod.WitnessNode
+) -> reach_mod.WitnessNode:
+    return reach_mod.WitnessNode(
+        head=_head(tag),
+        kind=kind,
         instance_id=ids.InstanceId.mint(tag),
-        head=head,
-        kind=cert_mod.WitnessKind.OBSERVED,
-        evidence=(ids.EventId.mint(tag),),
+        evidence=(ids.EventId.mint(tag),) if kind == reach_mod.OBSERVED_KIND else (),
         children=tuple(children),
     )
 
 
-class TestWitnessDepthBound(unittest.TestCase):
-    def test_the_bound_follows_the_contract_constant(self) -> None:
-        """The bound is derived from cert.MAX_DEPTH, not written down separately."""
-        expected = (cert_mod.MAX_DEPTH - pipeline._CONTAINERS_ABOVE_WITNESS_ROOT - 1) // 2 + 1
-        self.assertEqual(pipeline._MAX_WITNESS_LEVELS, expected)
+def _axiom(tag: bytes) -> reach_mod.WitnessNode:
+    return reach_mod.WitnessNode(head=_head(tag), kind=reach_mod.AXIOM_KIND)
 
-    def test_at_the_current_contract_it_is_a_root_and_one_level(self) -> None:
-        """cert.py documents the cap as 'a root node and one level of children'."""
-        self.assertEqual(cert_mod.MAX_DEPTH, 8)
-        self.assertEqual(pipeline._MAX_WITNESS_LEVELS, 2)
 
-    def test_a_lone_root_is_one_level(self) -> None:
-        self.assertEqual(pipeline._witness_levels(_node(b"root")), 1)
+def _chain(levels: int) -> reach_mod.WitnessNode:
+    """An observed derivation `levels` instances deep, ending on an axiom."""
+    node = _reach_node(b"level-0", reach_mod.OBSERVED_KIND, _axiom(b"seed"))
+    for level in range(1, levels):
+        node = _reach_node(f"level-{level}".encode(), reach_mod.OBSERVED_KIND, node)
+    return node
 
-    def test_a_root_with_leaves_is_two_levels(self) -> None:
-        tree = _node(b"root", _node(b"a"), _node(b"b"))
-        self.assertEqual(pipeline._witness_levels(tree), 2)
-        self.assertLessEqual(pipeline._witness_levels(tree), pipeline._MAX_WITNESS_LEVELS)
 
-    def test_the_route_a_shape_is_over_the_bound(self) -> None:
-        """exfil.bulk_read <- access.gateway <- session.established: three levels, which
-        is the derivation that aborted the run."""
-        tree = _node(b"exfil", _node(b"gateway", _node(b"session")))
-        self.assertEqual(pipeline._witness_levels(tree), 3)
-        self.assertGreater(pipeline._witness_levels(tree), pipeline._MAX_WITNESS_LEVELS)
+def _max_depth(value: object, depth: int = 1) -> int:
+    """Containers deep, counting `value` itself as the first, as the contract counts."""
+    if isinstance(value, dict):
+        return max([depth, *(_max_depth(v, depth + 1) for v in value.values())])
+    if isinstance(value, list):
+        return max([depth, *(_max_depth(v, depth + 1) for v in value)])
+    return depth - 1
 
-    def test_height_follows_the_deepest_branch_not_the_widest(self) -> None:
-        tree = _node(b"root", _node(b"shallow"), _node(b"deep", _node(b"deeper")))
-        self.assertEqual(pipeline._witness_levels(tree), 3)
+
+class TestKinds(unittest.TestCase):
+    def test_each_reach_kind_maps_to_the_certificate_kind_of_its_name(self) -> None:
+        tree = _reach_node(
+            b"root",
+            reach_mod.OBSERVED_KIND,
+            _reach_node(b"ghost", reach_mod.GHOST_KIND),
+            _reach_node(b"licensed", reach_mod.LICENSED_KIND),
+        )
+        node = pipeline._cert_witness(tree)
+        assert node is not None
+        self.assertIs(node.kind, cert_mod.WitnessKind.OBSERVED)
+        self.assertEqual(
+            [child.kind for child in node.children],
+            [cert_mod.WitnessKind.GHOST, cert_mod.WitnessKind.LICENSED],
+        )
+
+    def test_a_licensed_step_is_published_and_counts_as_silent(self) -> None:
+        """The derivation that was dropped in pre-registration 0001's blackout cell."""
+        tree = _reach_node(
+            b"export",
+            reach_mod.OBSERVED_KIND,
+            _reach_node(b"escalation", reach_mod.LICENSED_KIND),
+        )
+        node = pipeline._cert_witness(tree)
+        assert node is not None
+        self.assertTrue(node.contains_silent())
+
+    def test_an_axiom_leaf_is_not_published(self) -> None:
+        node = pipeline._cert_witness(
+            _reach_node(b"root", reach_mod.OBSERVED_KIND, _axiom(b"seed"))
+        )
+        assert node is not None
+        self.assertEqual(node.children, ())
+        self.assertIsNone(pipeline._cert_witness(_axiom(b"seed")))
+
+    def test_a_kind_with_no_certificate_word_is_refused(self) -> None:
+        tree = _reach_node(b"root", reach_mod.OBSERVED_KIND, _reach_node(b"odd", "UNHEARD_OF"))
+        with self.assertRaises(pipeline._UnrepresentableWitness):
+            pipeline._cert_witness(tree)
+
+
+class TestLength(unittest.TestCase):
+    def test_route_a_is_three_levels_and_is_published(self) -> None:
+        """exfil.bulk_read <- access.gateway <- session.established: the derivation whose
+        refusal aborted the third end-to-end run."""
+        node = pipeline._cert_witness(_chain(3))
+        assert node is not None
+        entry = cert_mod.WitnessEntry(removed_control=ids.ControlId("ctl:egress_seg"), tree=node)
+        self.assertEqual(len(entry.as_member()["nodes"]), 3)
+
+    def test_nesting_does_not_grow_with_derivation_length(self) -> None:
+        """document, body, witnesses, entry, nodes, node, children: seven, for any length."""
+        for levels in (1, 3, 40):
+            node = pipeline._cert_witness(_chain(levels))
+            assert node is not None
+            entry = cert_mod.WitnessEntry(
+                removed_control=ids.ControlId("ctl:egress_seg"), tree=node
+            )
+            document = {"body": {"witnesses": [entry.as_member()]}}
+            self.assertEqual(_max_depth(document), 7, levels)
+            self.assertLessEqual(_max_depth(document), cert_mod.MAX_DEPTH)
 
 
 if __name__ == "__main__":

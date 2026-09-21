@@ -64,4 +64,4 @@ __all__ = [
 
 #: Fixed text. A version read from the environment would differ between two runs that must
 #: agree byte for byte.
-__version__ = "1.0"
+__version__ = "1.1"

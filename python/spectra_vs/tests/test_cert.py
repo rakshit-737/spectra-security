@@ -184,7 +184,7 @@ class TestVerdictConstruction(unittest.TestCase):
                     safety=cert.Safety.UNSAFE, witness_class=cert.WitnessClass.OBSERVED
                 ),
                 witness_present=True,
-                witness_contains_ghost=True,
+                witness_contains_silent=True,
             )
         self.assertEqual(caught.exception.code, "VRD-003")
 
@@ -197,7 +197,7 @@ class TestVerdictConstruction(unittest.TestCase):
                     witness_class=cert.WitnessClass.LICENSED,
                 ),
                 witness_present=True,
-                witness_contains_ghost=True,
+                witness_contains_silent=True,
             )
         self.assertEqual(caught.exception.code, "VRD-007")
         cert.Verdict.build(
@@ -207,7 +207,7 @@ class TestVerdictConstruction(unittest.TestCase):
                 witness_class=cert.WitnessClass.CONTESTED,
             ),
             witness_present=True,
-            witness_contains_ghost=True,
+            witness_contains_silent=True,
         )
 
     def test_witness_class_on_a_non_unsafe_verdict_is_refused(self) -> None:
@@ -469,14 +469,9 @@ class TestBody(unittest.TestCase):
             )
         self.assertEqual(caught.exception.code, "E-PSI-HIT")
 
-    def test_a_witness_tree_deeper_than_the_contract_allows_is_refused(self) -> None:
-        """The encoding law caps nesting at eight containers and the emitter honours it.
-
-        `body.witnesses[i].tree` already uses five, so a published tree may carry a root and
-        one level of children. A deeper tree is refused here rather than written into a file
-        a checker would be obliged to reject, and a grounding that needs a deeper derivation
-        has to publish it some other way.
-        """
+    def _three_level_entry(self) -> cert.WitnessEntry:
+        """A root, a child and a grandchild: the shape of route A, which the nested
+        encoding could not carry. The fixture's instances are reused for their ids."""
         deep = fixture.witness_entries()
         root = deep[1].tree
         child = root.children[0]
@@ -486,7 +481,7 @@ class TestBody(unittest.TestCase):
             kind=cert.WitnessKind.OBSERVED,
             evidence=(fixture.EVENT_1,),
         )
-        nested = cert.WitnessEntry(
+        return cert.WitnessEntry(
             removed_control=deep[1].removed_control,
             tree=cert.WitnessNode(
                 instance_id=root.instance_id,
@@ -503,10 +498,84 @@ class TestBody(unittest.TestCase):
                 ),
             ),
         )
-        body = self._rebuild(witnesses=(deep[0], nested))
+
+    def test_a_three_level_witness_is_published_within_the_depth_cap(self) -> None:
+        """ADR-0015. Under the nested encoding this tree was refused with E-LIMIT-DEPTH,
+        because the cap of eight containers admitted a root and one level of children."""
+        deep = fixture.witness_entries()
+        body = self._rebuild(witnesses=(deep[0], self._three_level_entry()))
+        cert.certificate_bytes(body)
+
+    def test_a_witness_is_flat_pre_order_with_children_as_indices(self) -> None:
+        member = self._three_level_entry().as_member()
+        self.assertEqual(sorted(member), ["nodes", "removed_control"])
+        nodes = member["nodes"]
+        self.assertEqual([n["children"] for n in nodes], [[1], [2], []])
+        self.assertEqual(
+            [n["kind"] for n in nodes], ["OBSERVED", "GHOST", "OBSERVED"]
+        )
+
+    def test_a_subtree_used_twice_is_written_twice(self) -> None:
+        """Each node but the root has exactly one parent, so sharing is by copy."""
+        leaf = cert.WitnessNode(
+            instance_id=fixture.INSTANCE_1.instance_id,
+            head=fixture.FACT_G,
+            kind=cert.WitnessKind.OBSERVED,
+            evidence=(fixture.EVENT_1,),
+        )
+        root = cert.WitnessNode(
+            instance_id=fixture.INSTANCE_3.instance_id,
+            head=fixture.FACT_G,
+            kind=cert.WitnessKind.OBSERVED,
+            evidence=(fixture.EVENT_2,),
+            children=(leaf, leaf),
+        )
+        nodes = root.flatten()
+        self.assertEqual(len(nodes), 3)
+        self.assertEqual(nodes[0]["children"], [1, 2])
+
+    def test_a_licensed_node_cites_no_evidence(self) -> None:
         with self.assertRaises(SchemaError) as caught:
-            cert.certificate_bytes(body)
-        self.assertEqual(caught.exception.code, "E-LIMIT-DEPTH")
+            cert.WitnessNode(
+                instance_id=fixture.INSTANCE_2.instance_id,
+                head=fixture.FACT_H,
+                kind=cert.WitnessKind.LICENSED,
+                evidence=(fixture.EVENT_1,),
+            )
+        self.assertEqual(caught.exception.code, "E-WITNESS-EVENT")
+
+    def test_a_ghost_instance_is_not_published_as_licensed(self) -> None:
+        """The fixture's silent instance is obligation-forced; calling it LICENSED is the
+        wrong word, and the emitter refuses it."""
+        deep = fixture.witness_entries()
+        root = deep[1].tree
+        relabelled = cert.WitnessEntry(
+            removed_control=deep[1].removed_control,
+            tree=cert.WitnessNode(
+                instance_id=root.instance_id,
+                head=root.head,
+                kind=root.kind,
+                evidence=root.evidence,
+                children=(
+                    cert.WitnessNode(
+                        instance_id=root.children[0].instance_id,
+                        head=root.children[0].head,
+                        kind=cert.WitnessKind.LICENSED,
+                    ),
+                ),
+            ),
+        )
+        with self.assertRaises(SchemaError) as caught:
+            self._rebuild(witnesses=(deep[0], relabelled))
+        self.assertEqual(caught.exception.code, "E-WITNESS-EVENT")
+
+    def test_both_silent_kinds_count_as_silent(self) -> None:
+        self.assertEqual(
+            cert.SILENT_WITNESS_KINDS,
+            frozenset({cert.WitnessKind.GHOST, cert.WitnessKind.LICENSED}),
+        )
+        self.assertTrue(fixture.witness_entries()[1].tree.contains_silent())
+        self.assertFalse(fixture.witness_entries()[0].tree.contains_silent())
 
     def test_invariant_is_published_exactly_when_every_goal_is_severed(self) -> None:
         with self.assertRaises(SchemaError) as caught:

@@ -120,6 +120,7 @@ from spectra_core.model import (
     Cut,
     Licence,
     Minimality,
+    Observation,
     ProgramKind,
     RuleInstance,
     ThresholdLiteral,
@@ -148,6 +149,7 @@ __all__ = [
     "RESERVED_MASK",
     "SCHEMA_V",
     "SCOPE_MEMBERS",
+    "SILENT_WITNESS_KINDS",
     "SOUNDNESS_MASK",
     "Budgets",
     "CertificateArtifact",
@@ -187,8 +189,10 @@ __all__ = [
 # Frame constants
 # ---------------------------------------------------------------------------
 
-SCHEMA_V: Final[str] = "1.0"
-MIN_CHECKER: Final[str] = "1.0"
+#: 1.1 since ADR-0015: witness trees are published flat, with a LICENSED node kind. A 1.0
+#: checker cannot read a 1.1 witness, so min_checker moves with the schema.
+SCHEMA_V: Final[str] = "1.1"
+MIN_CHECKER: Final[str] = "1.1"
 CERT_PROFILE: Final[str] = "eclipse-cert"
 ATTACKER: Final[str] = "non-adaptive"
 GROUNDING_MODE: Final[str] = "replayed"
@@ -200,9 +204,10 @@ IMPLEMENTATION: Final[str] = "python-reference"
 FILE_MAGIC: Final[bytes] = b'{"body":{'
 
 #: The contract permits nesting eight containers deep, counting the document object as the
-#: first. A witness tree sits at `body.witnesses[i].tree`, which uses five of the eight, so
-#: this cap bounds a published tree to a root node and one level of children. The emitter
-#: refuses a deeper tree rather than writing a file a checker is obliged to reject.
+#: first. A witness tree is published FLAT (ADR-0015): `body.witnesses[i].nodes[j].children`
+#: is a list of indices, so a witness of any length reaches seven containers and no more.
+#: Under the nested encoding it replaced, the cap admitted a root and one level of children,
+#: and no real multi-step derivation could be published.
 MAX_DEPTH: Final[int] = 8
 
 #: The sentence every long rendering ends with. Not optional and not paraphrasable.
@@ -462,10 +467,22 @@ class Realizability(Enum):
 
 
 class WitnessKind(Enum):
-    """A witness node either cites records or is a GHOST. A GHOST is never an event."""
+    """What one step of a witness rests on. Only OBSERVED cites records.
+
+    GHOST is an obligation-forced head: the rules say the step must have happened, and it
+    was not seen. LICENSED is a licensed silent step: the rules say it might have happened
+    where nobody could see. Neither is ever an event, and neither is ever called the other.
+    """
 
     OBSERVED = "OBSERVED"
     GHOST = "GHOST"
+    LICENSED = "LICENSED"
+
+
+#: The node kinds that stand for an unobserved step.
+SILENT_WITNESS_KINDS: Final[frozenset[WitnessKind]] = frozenset(
+    {WitnessKind.GHOST, WitnessKind.LICENSED}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -566,14 +583,15 @@ class Verdict:
         *,
         no_tamper_token: NoTamperToken | None = None,
         witness_present: bool = False,
-        witness_contains_ghost: bool = False,
+        witness_contains_silent: bool = False,
         pmax_fixpoint_terminated: bool = False,
     ) -> Self:
         """The single constructor. Raises a VRD code rather than returning a weaker verdict.
 
-        `witness_present` and `witness_contains_ghost` are facts about the trees the caller
+        `witness_present` and `witness_contains_silent` are facts about the trees the caller
         is about to publish; passing them in rather than inspecting a global is what lets
-        the algebra be checked before any bytes are produced.
+        the algebra be checked before any bytes are produced. A silent node is a GHOST or a
+        LICENSED node.
         """
         _check_verdict_algebra(
             safety=proposal.safety,
@@ -598,13 +616,13 @@ class Verdict:
         if proposal.safety is Safety.UNSAFE:
             if not witness_present:
                 raise VerdictError("UNSAFE requires a witness tree", code="VRD-002")
-            if proposal.witness_class is WitnessClass.OBSERVED and witness_contains_ghost:
+            if proposal.witness_class is WitnessClass.OBSERVED and witness_contains_silent:
                 raise VerdictError(
                     "an OBSERVED witness class was proposed for a tree containing a GHOST "
-                    "node; a GHOST is a licensed unobserved step, never an event",
+                    "or LICENSED node; a silent step is never an event",
                     code="VRD-003",
                 )
-            if proposal.witness_class is WitnessClass.LICENSED and not witness_contains_ghost:
+            if proposal.witness_class is WitnessClass.LICENSED and not witness_contains_silent:
                 raise VerdictError(
                     "a LICENSED witness class was proposed for a tree with no silent node",
                     code="VRD-003",
@@ -933,7 +951,12 @@ class SilentRef:
 
 @dataclass(frozen=True, slots=True)
 class WitnessNode:
-    """One AND-node of a derivation. A GHOST cites no event and is never called one."""
+    """One AND-node of a derivation. Only an OBSERVED node cites events.
+
+    Held nested in memory, where recursion is over trusted data the emitter built, and
+    published flat by `WitnessEntry.as_member`, where a reader must not recurse to a depth
+    the input chooses (ADR-0015).
+    """
 
     instance_id: InstanceId
     head: FactHash
@@ -954,22 +977,45 @@ class WitnessNode:
                 "a GHOST node carries no evidence; it is a licensed unobserved step",
                 code="E-GHOST-COUNT",
             )
+        if self.kind is WitnessKind.LICENSED and self.evidence:
+            raise SchemaError(
+                "a LICENSED node carries no evidence; it is a step nobody could have seen",
+                code="E-WITNESS-EVENT",
+            )
         if self.kind is WitnessKind.OBSERVED and not self.evidence:
             raise SchemaError(
                 "an OBSERVED node cites at least one record", code="E-WITNESS-EVENT"
             )
 
-    def contains_ghost(self) -> bool:
-        return self.kind is WitnessKind.GHOST or any(c.contains_ghost() for c in self.children)
+    def contains_silent(self) -> bool:
+        """Whether any node of the tree is a GHOST or LICENSED step."""
+        return self.kind in SILENT_WITNESS_KINDS or any(
+            c.contains_silent() for c in self.children
+        )
 
-    def as_member(self) -> dict[str, Any]:
-        return {
-            "children": [c.as_member() for c in self.children],
-            "evidence": [str(e) for e in self.evidence],
-            "head": str(self.head),
-            "instance_id": str(self.instance_id),
-            "kind": self.kind.value,
-        }
+    def flatten(self) -> list[dict[str, Any]]:
+        """The published node list: pre-order, root first, children as indices.
+
+        Every child index is greater than its parent's, and every node but the root is
+        referenced exactly once. A subtree the derivation uses twice is written twice.
+        """
+        nodes: list[dict[str, Any]] = []
+
+        def place(node: WitnessNode) -> int:
+            index = len(nodes)
+            member: dict[str, Any] = {
+                "children": [],
+                "evidence": [str(e) for e in node.evidence],
+                "head": str(node.head),
+                "instance_id": str(node.instance_id),
+                "kind": node.kind.value,
+            }
+            nodes.append(member)
+            member["children"] = [place(child) for child in node.children]
+            return index
+
+        place(self)
+        return nodes
 
 
 @dataclass(frozen=True, slots=True)
@@ -985,7 +1031,7 @@ class WitnessEntry:
         )
 
     def as_member(self) -> dict[str, Any]:
-        return {"removed_control": str(self.removed_control), "tree": self.tree.as_member()}
+        return {"nodes": self.tree.flatten(), "removed_control": str(self.removed_control)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -1486,6 +1532,19 @@ def _walk_witness(
         raise SchemaError(
             f"witness: {key} is marked GHOST but the instance is not", code="E-GHOST-COUNT"
         )
+    if node.kind is WitnessKind.LICENSED and (
+        inst.ghost or inst.observed is not Observation.LICENSED or not inst.license_ids
+    ):
+        raise SchemaError(
+            f"witness: {key} is marked LICENSED but the instance is not a licensed, "
+            "non-GHOST silent instance",
+            code="E-WITNESS-EVENT",
+        )
+    if node.kind is WitnessKind.OBSERVED and inst.observed is not Observation.OBSERVED:
+        raise SchemaError(
+            f"witness: {key} is marked OBSERVED but the instance rests on a licence",
+            code="E-WITNESS-EVENT",
+        )
     for child in node.children:
         _walk_witness(child, by_id, seen=(*seen, key))
 
@@ -1661,9 +1720,9 @@ def _reject_unserialisable(value: object) -> Any:
 def _check_depth(value: object, *, depth: int, where: str) -> None:
     """Count nested CONTAINERS, not scalars: a string inside an array is not a level.
 
-    The document object is depth 1. The contract's cap of eight therefore allows a witness
-    tree a root node and one level of children, and the emitter refuses a deeper tree
-    rather than writing a file a checker is obliged to reject.
+    The document object is depth 1. A flat witness (ADR-0015) reaches seven, whatever its
+    length. Anything deeper is refused rather than written into a file a checker is
+    obliged to reject.
     """
     if not isinstance(value, (dict, list)):
         return

@@ -51,7 +51,7 @@ def _build(document: types.SimpleNamespace, safety: cert_mod.Safety) -> cert_mod
         safety=safety,
         minimality=model.Minimality.EXACT_PSI_RELATIVE,
         flags=(),
-        witness_has_ghost=False,
+        witness_has_silent=False,
         liveness=document,
     )
 

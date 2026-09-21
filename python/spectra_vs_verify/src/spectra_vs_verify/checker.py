@@ -75,7 +75,13 @@ __all__ = [
     "verify",
 ]
 
-CHECKER_VERSION: Final[str] = "1.0"
+#: 1.1 since ADR-0015, which publishes witness trees flat and adds the LICENSED node kind.
+#: Written here rather than imported: the checker takes nothing from the emitter's package.
+CHECKER_VERSION: Final[str] = "1.1"
+SCHEMA_V: Final[str] = "1.1"
+
+#: Witness node kinds that stand for an unobserved step (ADR-0015).
+_SILENT_KINDS: Final[frozenset[str]] = frozenset({"GHOST", "LICENSED"})
 ACCEPT: Final[int] = 0
 REJECT: Final[int] = 1
 USAGE: Final[int] = 2
@@ -679,7 +685,9 @@ def _o1_cert_hash(state: _State) -> ObligationResult:
 def _o2_schema(state: _State) -> ObligationResult:
     schema = _member(state.body, "schema", "body")
     _require(
-        _member(schema, "v", "schema") == "1.0", "E-SCHEMA-DOWNGRADE", "schema.v is not 1.0"
+        _member(schema, "v", "schema") == SCHEMA_V,
+        "E-SCHEMA-DOWNGRADE",
+        f"schema.v is not {SCHEMA_V}",
     )
     min_checker = _member(schema, "min_checker", "schema")
     _require(
@@ -1330,7 +1338,16 @@ def _o12_witnesses(state: _State) -> ObligationResult:
             f"removing {control_id} from the cut does not re-derive a goal",
         )
         nodes += steps
-        nodes += _walk_tree(entry["tree"], by_id, bundle, set(axioms), seen=())
+        tree = _member(entry, "nodes", "witnesses")
+        _check_flat_tree(tree, control_id)
+        # Iterative, not recursive: the file chooses how deep a derivation goes, and the
+        # checker does not let untrusted input choose its stack depth.
+        ancestors: dict[int, tuple[str, ...]] = {0: ()}
+        for index, node in enumerate(tree):
+            nodes += _check_node(tree, index, ancestors[index], by_id, bundle, set(axioms))
+            path = (*ancestors[index], node["instance_id"])
+            for child in node["children"]:
+                ancestors[child] = path
     return ObligationResult(
         "O12 witnesses",
         True,
@@ -1340,17 +1357,59 @@ def _o12_witnesses(state: _State) -> ObligationResult:
     )
 
 
-def _walk_tree(
-    node: dict[str, Any],
+def _check_flat_tree(tree: list[Any], control_id: str) -> None:
+    """The structural rules of ADR-0015: one tree, in pre-order, that cannot loop.
+
+    Every child index lies after its parent and inside the list, so no index sequence
+    returns to a node already visited; every node but the root has exactly one parent, so
+    the list is a single tree with nothing unreachable and nothing shared.
+    """
+    _require(
+        isinstance(tree, list) and bool(tree),
+        "E-WITNESS-CYCLE",
+        f"the witness for {control_id} has no nodes",
+    )
+    parents = [0] * len(tree)
+    for index, node in enumerate(tree):
+        children = _member(node, "children", "witness node")
+        for child in children:
+            _require(
+                isinstance(child, int) and not isinstance(child, bool),
+                "E-WITNESS-CYCLE",
+                f"witness node {index} for {control_id} names a child that is not an index",
+            )
+            _require(
+                index < child < len(tree),
+                "E-WITNESS-CYCLE",
+                f"witness node {index} for {control_id} names child {child}, which does not "
+                "come after it in the node list",
+            )
+            parents[child] += 1
+    _require(
+        parents[0] == 0,
+        "E-WITNESS-CYCLE",
+        f"the root of the witness for {control_id} is someone's child",
+    )
+    for index in range(1, len(tree)):
+        _require(
+            parents[index] == 1,
+            "E-WITNESS-CYCLE",
+            f"witness node {index} for {control_id} has {parents[index]} parents, not one",
+        )
+
+
+def _check_node(
+    tree: list[dict[str, Any]],
+    index: int,
+    ancestors: tuple[str, ...],
     by_id: dict[str, dict[str, Any]],
     bundle: dict[str, dict[str, Any]],
     axioms: set[str],
-    *,
-    seen: tuple[str, ...],
 ) -> int:
+    node = tree[index]
     instance_id = _member(node, "instance_id", "witness node")
     _require(
-        instance_id not in seen,
+        instance_id not in ancestors,
         "E-WITNESS-CYCLE",
         f"{instance_id} supports itself; the tree is not well founded",
     )
@@ -1370,12 +1429,37 @@ def _walk_tree(
     if kind == "GHOST":
         _require(not evidence, "E-GHOST-COUNT", f"{instance_id} is GHOST and cites evidence")
         _require(
+            inst["ghost"] is True,
+            "E-GHOST-COUNT",
+            f"{instance_id} is GHOST in the witness but its instance is not",
+        )
+        _require(
             bool(inst["license_ids"]),
             "E-LICENSE-UNIMPLIED",
             f"{instance_id} is GHOST and cites no licence",
         )
+    elif kind == "LICENSED":
+        _require(
+            not evidence, "E-WITNESS-EVENT", f"{instance_id} is LICENSED and cites evidence"
+        )
+        _require(
+            inst["ghost"] is False and inst["observed"] == "LICENSED",
+            "E-WITNESS-EVENT",
+            f"{instance_id} is LICENSED in the witness but its instance is not a licensed, "
+            "non-GHOST silent instance",
+        )
+        _require(
+            bool(inst["license_ids"]),
+            "E-LICENSE-UNIMPLIED",
+            f"{instance_id} is LICENSED and cites no licence",
+        )
     elif kind == "OBSERVED":
         _require(bool(evidence), "E-WITNESS-EVENT", f"{instance_id} is OBSERVED and cites none")
+        _require(
+            inst["observed"] == "OBSERVED",
+            "E-WITNESS-EVENT",
+            f"{instance_id} is OBSERVED in the witness but its instance rests on a licence",
+        )
         _require(
             sorted(evidence) == sorted(r["event_id"] for r in inst["evidence"]),
             "E-WITNESS-EVENT",
@@ -1396,18 +1480,15 @@ def _walk_tree(
             )
     else:
         raise Rejected("E-WITNESS-EVENT", f"witness node kind {kind!r} is not declared")
-    children = _member(node, "children", "witness node")
-    covered = {child["head"] for child in children}
+    # Children are indices already checked by _check_flat_tree to lie inside the list.
+    covered = {tree[child]["head"] for child in node["children"]}
     for fact in inst["body"]:
         _require(
             fact in covered or fact in axioms,
             "E-WITNESS-EVENT",
             f"{instance_id} needs {fact}, which is neither an axiom nor a child of the node",
         )
-    count = 1
-    for child in children:
-        count += _walk_tree(child, by_id, bundle, axioms, seen=(*seen, instance_id))
-    return count
+    return 1
 
 
 def _o13_psi_hit(state: _State) -> ObligationResult:
@@ -1502,9 +1583,16 @@ def _o14_flags(state: _State) -> ObligationResult:
             )
         if witness_class == "OBSERVED":
             _require(
-                not _tree_has_ghost(state.body["witnesses"]),
+                not _tree_has_silent(state.body["witnesses"]),
                 "VRD-003",
-                "an OBSERVED witness class is published over a tree containing a GHOST",
+                "an OBSERVED witness class is published over a tree containing a GHOST or "
+                "LICENSED node",
+            )
+        if witness_class == "LICENSED":
+            _require(
+                _tree_has_silent(state.body["witnesses"]),
+                "VRD-003",
+                "a LICENSED witness class is published over trees with no silent node",
             )
     else:
         _require(
@@ -1541,11 +1629,8 @@ def _o14_flags(state: _State) -> ObligationResult:
     )
 
 
-def _tree_has_ghost(witnesses: list[dict[str, Any]]) -> bool:
-    def walk(node: dict[str, Any]) -> bool:
-        return node["kind"] == "GHOST" or any(walk(c) for c in node["children"])
-
-    return any(walk(w["tree"]) for w in witnesses)
+def _tree_has_silent(witnesses: list[dict[str, Any]]) -> bool:
+    return any(node["kind"] in _SILENT_KINDS for w in witnesses for node in w["nodes"])
 
 
 def _o15_minimality(state: _State) -> ObligationResult:

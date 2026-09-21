@@ -1107,56 +1107,35 @@ class _UnrepresentableWitness(Exception):
     """A derivation the certificate's witness alphabet cannot express. See `_cert_witness`."""
 
 
-#: Containers the certificate spends before a witness tree's root node: the document,
-#: `body`, the `witnesses` list, the entry object and the `tree` object. Fixed by the
-#: certificate layout in cert.py, and stated there alongside MAX_DEPTH.
-_CONTAINERS_ABOVE_WITNESS_ROOT: Final[int] = 5
-
-#: The deepest witness tree, in NODE LEVELS, that the certificate contract can carry.
-#: Each level below the root costs two containers: the parent's `children` list and the
-#: child's own object. Derived from cert.MAX_DEPTH rather than written down, so that if the
-#: contract ever changes on both sides together this bound follows it.
-_MAX_WITNESS_LEVELS: Final[int] = (
-    (cert_mod.MAX_DEPTH - _CONTAINERS_ABOVE_WITNESS_ROOT - 1) // 2 + 1
-)
+#: Reach's name for the step an instance rests on, and the certificate's. One to one since
+#: ADR-0015 gave the certificate a LICENSED kind; before it, a licensed silent step had no
+#: certificate word and its whole witness was dropped. Earlier still, GHOST was recognised
+#: by head rather than by instance, which would have mislabelled a licensed instance that
+#: happened to share a head with an obligation-forced one.
+_WITNESS_KINDS: Final[dict[str, cert_mod.WitnessKind]] = {
+    reach_mod.OBSERVED_KIND: cert_mod.WitnessKind.OBSERVED,
+    reach_mod.GHOST_KIND: cert_mod.WitnessKind.GHOST,
+    reach_mod.LICENSED_KIND: cert_mod.WitnessKind.LICENSED,
+}
 
 
-def _witness_levels(node: cert_mod.WitnessNode) -> int:
-    """Height of a witness tree in node levels; a lone root is 1."""
-    if not node.children:
-        return 1
-    return 1 + max(_witness_levels(child) for child in node.children)
-
-
-def _cert_witness(
-    node: reach_mod.WitnessNode, ghost_heads: frozenset[str]
-) -> cert_mod.WitnessNode | None:
+def _cert_witness(node: reach_mod.WitnessNode) -> cert_mod.WitnessNode | None:
     """Translate a reach witness node into the certificate's shape, or refuse to.
 
     An AXIOM leaf is not an AND-node and has no instance id, so it is not published as a
     witness node; the instance above it already cites the records that seeded it.
 
-    THE REFUSAL, recorded rather than worked around. `cert.WitnessNode` admits exactly two
-    kinds. OBSERVED must cite at least one record; GHOST must cite none AND its instance
-    must carry `ghost=True`, which the envelope sets only for an obligation-forced head. A
-    LICENSED silent instance of a DETECT rule is neither: it cites no record, so it cannot
-    be OBSERVED, and its head is not obligation-forced, so it cannot be GHOST. Such a
-    derivation therefore has no representation in the certificate and is not published as
-    one. Inventing a kind, or flagging the instance GHOST so that it fits, would put a
-    silent instance into the certificate wearing the wrong word.
+    A kind with no certificate word is refused, never mapped to the nearest one: putting a
+    step into the certificate under the wrong word is worse than leaving the tree out and
+    saying so.
     """
     if node.instance_id is None:
         return None
-    if node.kind == reach_mod.OBSERVED_KIND:
-        kind = cert_mod.WitnessKind.OBSERVED
-    elif str(node.head) in ghost_heads:
-        kind = cert_mod.WitnessKind.GHOST
-    else:
+    kind = _WITNESS_KINDS.get(node.kind)
+    if kind is None:
         raise _UnrepresentableWitness(str(node.instance_id))
     children = tuple(
-        child
-        for child in (_cert_witness(c, ghost_heads) for c in node.children)
-        if child is not None
+        child for child in (_cert_witness(c) for c in node.children) if child is not None
     )
     return cert_mod.WitnessNode(
         instance_id=node.instance_id,
@@ -1266,14 +1245,14 @@ def _build_verdict(
     safety: cert_mod.Safety,
     minimality: model.Minimality,
     flags: tuple[str, ...],
-    witness_has_ghost: bool,
+    witness_has_silent: bool,
     liveness: liveness_mod.LivenessDocument,
 ) -> cert_mod.Verdict:
     witness_class: cert_mod.WitnessClass | None = None
     if safety is cert_mod.Safety.UNSAFE:
         if "er_ambiguous" in flags:
             witness_class = cert_mod.WitnessClass.CONTESTED
-        elif witness_has_ghost:
+        elif witness_has_silent:
             witness_class = cert_mod.WitnessClass.LICENSED
         else:
             witness_class = cert_mod.WitnessClass.OBSERVED
@@ -1468,9 +1447,8 @@ def s10_prove(
         atoms_over_budget=False,
     )
 
-    ghost_head_keys = frozenset(str(i.head) for i in p_max.instances if i.ghost)
     witnesses: list[cert_mod.WitnessEntry] = []
-    witness_has_ghost = False
+    witness_has_silent = False
     raised = sorted(
         {str(a.control_id) for a in cut_max.atoms}, key=canon.byte_order_key
     )
@@ -1489,33 +1467,19 @@ def s10_prove(
             continue
         tree = reach_mod.witness_tree(upper, probe.mask, probe_reach)
         try:
-            node = _cert_witness(tree, ghost_head_keys)
+            node = _cert_witness(tree)
         except _UnrepresentableWitness as refused:
             complaints.append(
                 f"the derivation that re-appears when {control} is dropped runs through "
-                f"licensed silent instance {refused}, whose head is not obligation-forced; "
-                "cert.WitnessNode has no kind for it, so no witness tree is published for "
-                "that control"
+                f"instance {refused}, whose kind has no word in the certificate, so no "
+                "witness tree is published for that control"
             )
             continue
         if node is None:
             continue
-        levels = _witness_levels(node)
-        if levels > _MAX_WITNESS_LEVELS:
-            # The certificate contract caps nesting at cert.MAX_DEPTH containers, which
-            # admits a root and one level of children. A real multi-step derivation is
-            # deeper than that. Raising the cap on this side alone would emit a file the
-            # checker is obliged to reject, because the two share the constant; so the
-            # tree is not published and the omission is reported. Before this check the
-            # refusal happened inside cert.emit and aborted the whole run instead of
-            # dropping one witness.
-            complaints.append(
-                f"the derivation that re-appears when {control} is dropped is {levels} "
-                f"levels deep; the certificate contract carries at most "
-                f"{_MAX_WITNESS_LEVELS}, so no witness tree is published for that control"
-            )
-            continue
-        witness_has_ghost = witness_has_ghost or node.contains_ghost()
+        # No depth check: a witness is published flat (ADR-0015), so its length does not
+        # reach the certificate's nesting cap. INC-0008 added a refusal here when it did.
+        witness_has_silent = witness_has_silent or node.contains_silent()
         witnesses.append(
             cert_mod.WitnessEntry(removed_control=ControlId(control), tree=node)
         )
@@ -1540,14 +1504,14 @@ def s10_prove(
         safety=safety_at_max,
         minimality=bracket.upper.minimality,
         flags=flags,
-        witness_has_ghost=witness_has_ghost,
+        witness_has_silent=witness_has_silent,
         liveness=liveness_stage.document,
     )
     verdict_min = _build_verdict(
         safety=safety_at_min,
         minimality=bracket.lower.minimality,
         flags=flags,
-        witness_has_ghost=witness_has_ghost,
+        witness_has_silent=witness_has_silent,
         liveness=liveness_stage.document,
     )
 
