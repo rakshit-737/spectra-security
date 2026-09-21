@@ -20,6 +20,7 @@ in which a green gate here is evidence of anything.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -162,16 +163,28 @@ class TestPositiveControl(_Base):
             ("--run-manifest", "run_manifest"),
         ):
             argv += [option, str(self.paths[key])]
+        # The child runs with a minimal, explicit environment so the test proves the
+        # checker is importable from exactly these two source roots and nothing else.
+        #
+        # os.pathsep, not ";". The separator was hardcoded to the Windows one, so on
+        # Linux the child saw a single nonexistent directory named "<a>;<b>" and could
+        # not import the package. The test passed on the Windows machine it was written
+        # on and failed on the first clean Linux runner that executed it - which is the
+        # failure CI exists to catch.
+        child_env = {
+            "PYTHONPATH": os.pathsep.join(env_path),
+            "PYTHONHASHSEED": "0",
+            "PATH": "",
+        }
+        if os.name == "nt":
+            # Windows needs SYSTEMROOT to initialise its crypto and socket libraries even
+            # in a child that uses neither directly; it is meaningless elsewhere.
+            child_env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", "C:\\Windows")
         completed = subprocess.run(
             argv,
             capture_output=True,
             text=True,
-            env={
-                "PYTHONPATH": ";".join(env_path),
-                "PYTHONHASHSEED": "0",
-                "SYSTEMROOT": "C:\\Windows",
-                "PATH": "",
-            },
+            env=child_env,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         payload = json.loads(completed.stdout)
