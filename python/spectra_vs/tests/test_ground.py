@@ -587,5 +587,59 @@ class TestGroundTruthIsNeverRead(unittest.TestCase):
                     )
 
 
+class TestSeqOverIntervals(unittest.TestCase):
+    """Regression for the over-admission found after the goal-set fix.
+
+    r0005 requires an escalation to precede an export by at most 30 minutes. At full
+    telemetry P_max held r0005 instances pairing a licensed escalation at +0 s with the
+    export at +4560 s (76 minutes apart) and one at +7199 s (after the export). Both are
+    impossible for EVERY placement of the escalation inside its blind window, yet the
+    envelope admitted them, because a licensed fact skipped the temporal check entirely.
+
+    The sound over-approximation is not to skip: it is to ask whether SOME time in each
+    side's interval satisfies the constraint. For an observed fact the interval is a single
+    point, so the old behaviour is reproduced exactly there.
+    """
+
+    W = 1800  # 30 minutes, in 1 s ticks
+
+    def feasible(self, left: tuple[int, int], right: tuple[int, int]) -> bool:
+        return ground.seq_feasible(left, right, self.W)
+
+    def test_point_intervals_reproduce_the_observed_semantics(self) -> None:
+        self.assertTrue(self.feasible((100, 100), (200, 200)))
+        self.assertFalse(self.feasible((200, 200), (200, 200)))  # strict ordering
+        self.assertFalse(self.feasible((300, 300), (200, 200)))
+        self.assertTrue(self.feasible((0, 0), (1800, 1800)))  # exactly the window
+        self.assertFalse(self.feasible((0, 0), (1801, 1801)))  # one tick past it
+
+    def test_the_leading_edge_escalation_cannot_meet_the_export(self) -> None:
+        """Licensed over the first second, export observed at +4560 s: 76 min apart."""
+        self.assertFalse(self.feasible((0, 1), (4560, 4560)))
+
+    def test_the_trailing_edge_escalation_comes_after_the_export(self) -> None:
+        self.assertFalse(self.feasible((7198, 7199), (4560, 4560)))
+
+    def test_a_blind_window_that_reaches_the_export_is_admitted(self) -> None:
+        """Some placement inside [4000, 4400] is 160-560 s before the export."""
+        self.assertTrue(self.feasible((4000, 4400), (4560, 4560)))
+
+    def test_a_window_straddling_the_export_is_admitted(self) -> None:
+        """An escalation at +4500 would precede the export by 60 s, so this is possible."""
+        self.assertTrue(self.feasible((4500, 5000), (4560, 4560)))
+
+    def test_a_window_entirely_after_the_export_is_rejected(self) -> None:
+        self.assertFalse(self.feasible((4600, 5000), (4560, 4560)))
+
+    def test_a_window_entirely_too_early_is_rejected(self) -> None:
+        """Ends at +2759, one tick more than 30 minutes before the export."""
+        self.assertFalse(self.feasible((1000, 2759), (4560, 4560)))
+        self.assertTrue(self.feasible((1000, 2760), (4560, 4560)))
+
+    def test_both_sides_licensed(self) -> None:
+        self.assertTrue(self.feasible((0, 100), (50, 3000)))
+        self.assertFalse(self.feasible((5000, 6000), (0, 4000)))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
