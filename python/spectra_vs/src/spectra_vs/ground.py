@@ -245,6 +245,26 @@ def bundle_absence_proxy(
 # ---------------------------------------------------------------------------
 
 
+def seq_feasible(left: tuple[int, int], right: tuple[int, int], within: int) -> bool:
+    """Whether SOME left time and SOME right time satisfy `left < right <= left + within`.
+
+    Each side is a closed tick range. An observed fact is a single point `(t, t)`; a
+    licensed fact is the span of the blind window its step could have occupied. The
+    difference `right - left` ranges over `[r_lo - l_hi, r_hi - l_lo]`, and the constraint
+    holds for some pair exactly when that range meets `(0, within]`.
+
+    This is the sound over-approximation the envelope needs. It invents no precision - it
+    uses the whole window - and it drops no real possibility, since one satisfying pair is
+    enough. What it stops admitting is a combination that is impossible for EVERY
+    placement, such as an escalation licensed in the first second of the horizon paired
+    with an export 76 minutes later under a 30-minute rule. The previous behaviour skipped
+    the check whenever either side was licensed, which admitted exactly that.
+    """
+    l_lo, l_hi = left
+    r_lo, r_hi = right
+    return (r_hi - l_lo) > 0 and (r_lo - l_hi) <= within
+
+
 class Engine:
     """The semi-naive fixpoint, shared by S8 and S9.
 
@@ -288,6 +308,12 @@ class Engine:
         # depend on the order the rules happened to be visited in, which is the one thing
         # the rule-ordering property test exists to catch.
         self._time_free_snapshot: frozenset[str] = frozenset()
+        # The tick range a licensed fact could occupy: the hull of the blind windows of the
+        # licensed instances supporting it. Snapshotted with time-freeness, for the same
+        # reason. A licensed fact with no recorded span stays fully time-free, which is the
+        # coarser over-approximation and remains sound.
+        self._licensed_span: dict[str, tuple[int, int]] = {}
+        self._span_snapshot: dict[str, tuple[int, int]] = {}
 
         self.iterations = 0
         self.fixpoint_steps = 0
@@ -349,8 +375,25 @@ class Engine:
 
     # -- instances ---------------------------------------------------------
 
-    def add_instance(self, instance: model.RuleInstance, head: model.Fact) -> bool:
-        """Add one instance and its head fact. Returns True when the instance is new."""
+    def add_instance(
+        self,
+        instance: model.RuleInstance,
+        head: model.Fact,
+        span: tuple[int, int] | None = None,
+    ) -> bool:
+        """Add one instance and its head fact. Returns True when the instance is new.
+
+        `span` is the closed tick range a LICENSED instance's step could have occupied -
+        the blind window that licensed it. It is recorded as the hull over every licensed
+        instance supporting the same head, so a temporal operator can ask whether SOME
+        placement satisfies it. It is ignored for an observed instance.
+        """
+        if span is not None and instance.observed is model.Observation.LICENSED:
+            lo, hi = span
+            prior = self._licensed_span.get(str(head.fact_key))
+            if prior is not None:
+                lo, hi = min(lo, prior[0]), max(hi, prior[1])
+            self._licensed_span[str(head.fact_key)] = (lo, hi)
         key = str(instance.instance_id)
         if key in self._instances:
             return False
@@ -386,6 +429,7 @@ class Engine:
         the envelope, where a licence can be cited or a permanent blind spot recorded.
         """
         self._time_free_snapshot = frozenset(self._licensed_facts)
+        self._span_snapshot = dict(self._licensed_span)
         delta = self._take_delta()
         while delta:
             self.iterations += 1
@@ -439,11 +483,13 @@ class Engine:
     def _emit(
         self, compiled: CompiledRule, chosen: tuple[model.Fact, ...], bind: dict[str, object]
     ) -> None:
-        # A licensed body fact's tick stands for an interval, so neither the temporal
-        # operators nor the data guard are evaluated against it. Suspending the whole guard
-        # rather than part of it is the over-approximating direction; the entity joins it
-        # would have restated are still enforced, because a variable repeated across two
-        # patterns is unified before the guard is ever consulted.
+        # A licensed body fact's tick stands for an interval, so the DATA GUARD is not
+        # evaluated against it. Suspending the whole guard rather than part of it is the
+        # over-approximating direction; the entity joins it would have restated are still
+        # enforced, because a variable repeated across two patterns is unified before the
+        # guard is ever consulted. Temporal operators are handled separately below: `seq`
+        # is tested over the licensed fact's window, while `absence` and `distinct` still
+        # skip it.
         time_free = any(self._time_free(fact) for fact in chosen)
         if not time_free:
             guard_env = _guard_env(compiled, chosen)
@@ -510,13 +556,26 @@ class Engine:
     ) -> tuple[model.Fact, ...] | None:
         left = chosen[compiled.slot_of(temporal.left)]
         right = chosen[compiled.slot_of(temporal.right)]
-        if self._time_free(left) or self._time_free(right):
+        left_range = self._tick_range(left)
+        right_range = self._tick_range(right)
+        if left_range is None or right_range is None:
+            # A licensed fact whose window is unknown stays fully time-free: coarser, and
+            # still sound.
             return ()
-        if not left.tick < right.tick:
-            return None
-        if right.tick - left.tick > temporal.within_ticks:
+        if not seq_feasible(left_range, right_range, temporal.within_ticks):
             return None
         return ()
+
+    def _tick_range(self, fact: model.Fact) -> tuple[int, int] | None:
+        """The closed tick range a body fact could occupy, or None when it is unknown.
+
+        An observed fact is the single point it was observed at. A licensed fact is the span
+        of the blind window that licensed it. A licensed fact with no recorded span returns
+        None, and the caller falls back to skipping the comparison.
+        """
+        if not self._time_free(fact):
+            return (fact.tick, fact.tick)
+        return self._span_snapshot.get(str(fact.fact_key))
 
     def _check_distinct(
         self,
