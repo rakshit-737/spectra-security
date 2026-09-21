@@ -7,15 +7,16 @@
 # row here is a defect, not a gate. The tier model is documented once, in
 # .github/workflows/README.md; it is not repeated here.
 #
-# STATUS: not started. Exactly two gates below are IMPLEMENTED: G-SKELETON-001,
-# which gates this skeleton and nothing else, and G-WIN-001, which is the
-# Makefile sandbox guard at Makefile lines 51-61, evaluates on every make
-# invocation in this repository, and is enforced before every commit by
-# .pre-commit-config.yaml. Every other gate below is DECLARED only. Declaring a
-# gate does not make it run; the tier workflows carry the enablement state, and
-# every job except the skeleton job is explicitly skipped with its reason and its
-# enabling milestone stated there. No gate below other than those two has ever
-# passed, because no gate below other than those two has ever run.
+# STATUS: not started. Exactly three gates below are IMPLEMENTED: G-SKELETON-001,
+# which gates this skeleton and nothing else; G-PYREF-001, which runs every unit
+# suite of the Python reference slice (ADR-0013); and G-WIN-001, which is the
+# Makefile sandbox guard, evaluates on every make invocation in this repository,
+# and is enforced before every commit by .pre-commit-config.yaml. Every other gate
+# below is DECLARED only. Declaring a gate does not make it run; the tier
+# workflows carry the enablement state, and every job except the skeleton and
+# reference jobs is explicitly skipped with its reason and its enabling milestone
+# stated there. No gate below other than those three has ever passed, because no
+# gate below other than those three has ever run.
 #
 # FIELDS (74.4)
 #   id             stable identifier, referenced by docs, workflows and the ledger
@@ -29,7 +30,7 @@
 #   budget_s       a DECLARED CEILING enforced by a per-job timeout, never a measurement
 #
 # UNRECONCILED: MOST make_target VALUES NAME NO RULE IN THE MAKEFILE
-#   176 of the 201 rows below name a make_target with no rule in the Makefile.
+#   176 of the 202 rows below name a make_target with no rule in the Makefile.
 #   G-REG-001, once implemented, fails on this registry as written. That is the
 #   gate working, not the gate misconfigured.
 #
@@ -128,7 +129,7 @@ artifact = "secret-scan.json"
 budget_s = 14  # illustrative, not a target
 
 
-# ---- TIER T1 - 96 gates declared, 1 implemented. -------------------------
+# ---- TIER T1 - 97 gates declared, 2 implemented. -------------------------
 # Per-push and per-pull-request tier. A failure here makes the pull
 # request red and blocks the merge.
 
@@ -931,10 +932,9 @@ soundness = false
 artifact = "junit-ts.xml"
 budget_s = 60  # illustrative, not a target
 
-# NOTE: The only gate enabled in CI in session one. G-WIN-001 is also enabled
-# in session one, on the local pre-commit stage. This gate gates the skeleton
-# itself and nothing else. It does not run, exercise or verify any part of the
-# platform, because no part of the platform exists yet.
+# NOTE: The first gate enabled in CI; G-PYREF-001 is the second. G-WIN-001 is
+# also enabled, on the local pre-commit stage. This gate gates the skeleton
+# itself and nothing else: it checks that paths exist, not what they contain.
 [[gate]]
 id = "G-SKELETON-001"
 title = "every required directory and root file of the session-one skeleton is present (existence only; contents unchecked)"
@@ -945,6 +945,22 @@ sampled = false
 soundness = false
 artifact = "skeleton-verify.json"
 budget_s = 30  # illustrative, not a target
+
+[[gate]]
+id = "G-PYREF-001"
+title = "every unit suite of the Python reference slice passes on the CI interpreter (unit suites only; the end-to-end demonstration is not run and no milestone turns green)"
+tier = "T1"
+owner_section = 74
+make_target = "test-reference"
+sampled = false
+soundness = false
+artifact = "test-reference.log"
+budget_s = 600  # illustrative, not a target
+# NOTE: Added 2026-09-21 once it was established that CI has make and the
+# development machine does not. It makes the claim "the suites pass" checkable
+# by anyone rather than asserted from one machine. It runs the PYTHON reference
+# implementation (ADR-0013, ADR-0014); it exercises no Rust kernel and no Go
+# checker, because neither exists.
 
 [[gate]]
 id = "G-REG-001"
