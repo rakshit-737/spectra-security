@@ -594,3 +594,41 @@ Answerable later. Listed so none is lost.
 3. Record it in `BUILD_LOG.md`.
 4. If it changes a schema, an identifier type or a hash preimage, it must be decided before the milestone that first writes that schema. Changing it afterwards is a migration, not an edit.
 
+---
+
+## 4. Raised by running the slice, not by the specification audit
+
+These were found by executing the reference slice end to end. They are not among the 140
+specification conflicts above; they are decisions the running system has shown to be necessary.
+
+### D-RUN-01 · HIGH · the control arm
+
+**How is a finite observation window's blind edge handled, given absence lookbacks longer than the
+window?**
+
+- Context: at full telemetry every emitting source is LIVE across the horizon, yet the blindness
+  premium is non-empty. All 80 licensed escalations sit in the first or last 10 s of the 2 h
+  horizon. Liveness cannot be proved before the first record or after the last, and r0004's absence
+  lookback is 72 h - 36 times the horizon - so an escalation in the leading edge can never be ruled
+  out. `ctl:priv_approval` is therefore genuinely needed only on account of blindness. See
+  `BUILD_LOG.md` INC-0008.
+- Options: (a) a burn-in so the horizon begins at least one lookback before the attack window;
+  (b) bound absence lookbacks to the observed horizon and record the truncation in the certificate;
+  (c) treat edge windows as out of scope and state it in every certificate.
+- Default if unanswered: **none is applied.** The demonstration reports the non-empty premium at
+  full telemetry as the result it is. Choosing among (a)-(c) after seeing which yields a clean
+  control arm would be fitting, so the choice must be made on its merits and recorded before the
+  next run, not after it.
+
+### D-RUN-02 · MEDIUM · witness encoding
+
+**Should the certificate carry witness trees in a flat encoding (nodes plus parent indices) rather
+than nested?**
+
+- Context: nesting depth grows with proof length, and the contract caps it at 8 containers, which
+  admits a root and one level of children. Route A is three levels, so no real multi-step attack
+  can carry a published witness under the current contract. The pipeline now drops such a witness
+  and reports it rather than aborting. See `BUILD_LOG.md` INC-0008.
+- Default if unanswered: the nested encoding stays; multi-step witnesses are omitted and reported.
+  Changing it is a contract change on the emitter and the checker together and needs an ADR.
+
