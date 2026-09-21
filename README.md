@@ -19,7 +19,7 @@ This is a statement about the model, not about what would have happened. The att
 >
 > What does not: the specified Rust kernel and Go checker (this machine has neither
 > toolchain; see [ADR-0013](docs/adr/0013-the-slice-is-a-python-reference-implementation.md)),
-> the container range, the database, the user interface, and every gate but three. No
+> the container range, the database, the user interface, and every gate but four. No
 > milestone is green. The checker shares an author, a language and a reading of the
 > specification with the emitter, so no certificate it accepts is independently verified.
 >
@@ -149,8 +149,11 @@ The designed effect has now been shown once, under a prediction committed before
 produces it. [Pre-registration 0001](docs/research/prereg-0001-blackout-cell.md) predicted that
 taking one sensor (`iam_audit`) offline for ten minutes would leave the observed attack route
 alone, open a second route through an unobserved privilege escalation, and add exactly one control
-to the blindness premium: `ctl:priv_approval`. All five falsifiers passed, the checker accepted the
-certificate, and three runs produced byte-identical artifacts.
+to the blindness premium: `ctl:priv_approval`. All five falsifiers passed and the checker accepted
+the certificate. The same twelve artifacts came out byte-identical on Windows under CPython 3.14 and
+on Linux under 3.12, where gate G-VS-PREREG-0001 now re-runs the prediction on every push. The
+certificate carries the witness for why `ctl:priv_approval` is needed: the observed export, reached
+through a licensed, unobserved privilege escalation.
 [The result record](docs/research/prereg-0001-result.md) states what that does not show. In short:
 
 - it is one scenario, one seed and one window of simulated telemetry - a data point, not a
@@ -159,7 +162,8 @@ certificate, and three runs produced byte-identical artifacts.
   the author's understanding, not the understanding itself;
 - the confound the registration named - a tamper flag blocking ROBUST - could not fire, because the
   tamper check does not exist in this slice;
-- the certificate carries no witness tree for why `ctl:priv_approval` is needed.
+- the witness is drawn from P_max, which may combine silent steps that no single consistent world
+  realizes.
 
 The random 70% cell is kept as a degradation-matrix cell. Its deletion removes the attack's
 observed steps outright, so neither program derives a goal there and its premium says nothing.
