@@ -257,6 +257,8 @@ def render_cell(rendered: Rendered) -> str:
     )
     add(f"  {cert_mod.CUT_DELTA_CAPTION}")
     add("")
+    for line in _witness_lines(cell):
+        add(line)
     add(f"certificate       {prove.cert_path}")
     if cell.verify_exit is not None:
         add(
@@ -271,6 +273,59 @@ def render_cell(rendered: Rendered) -> str:
         for complaint in cell.complaints:
             add(f"  - {complaint}")
     return "\n".join(out)
+
+
+def _witness_lines(cell: pipeline_mod.CellResult) -> list[str]:
+    """The witnesses exactly as the certificate publishes them, one line per step.
+
+    Read back from the certificate body - the flat node lists of ADR-0015 - rather than
+    from the pipeline's own objects, so what is printed is what the checker was given.
+    """
+    body = cell.prove.body
+    witnesses = body["witnesses"]
+    if not witnesses:
+        return []
+    instances = {i["instance_id"]: i for i in body["instances"]}
+    # Label each step by the predicate of the fact it actually heads, not by its rule's
+    # head pattern: a GHOST instance heads an obligation-forced premise, which is not the
+    # rule's head, and the first version of this block printed the wrong predicate for it.
+    predicates = {str(f.fact_key): f.predicate for f in cell.envelope.result.p_max.facts}
+    basis = {
+        "OBSERVED": "cites {n} record(s)",
+        "GHOST": "unobserved, obligation-forced; licence {lic}",
+        "LICENSED": "unobserved, licensed silent step; licence {lic}",
+    }
+    lines = [
+        "WITNESSES IN THE CERTIFICATE (the derivation that returns when one control is "
+        "dropped from the cut over P_max)",
+    ]
+    for entry in witnesses:
+        nodes = entry["nodes"]
+        unobserved = sum(1 for n in nodes if n["kind"] != "OBSERVED")
+        lines.append(
+            f"  without {entry['removed_control']}: {len(nodes)} step(s), "
+            f"{unobserved} unobserved"
+        )
+        depth = {0: 0}
+        for index, node in enumerate(nodes):
+            inst = instances[node["instance_id"]]
+            text = basis[node["kind"]].format(
+                n=len(node["evidence"]),
+                lic=", ".join(lic[:20] for lic in inst["license_ids"]),
+            )
+            lines.append(
+                f"    {'  ' * depth[index]}{inst['rule_id']} "
+                f"{predicates.get(inst['head'], '(unnamed fact)'):<24} "
+                f"{node['kind']:<9} {text}"
+            )
+            for child in node["children"]:
+                depth[child] = depth[index] + 1
+    lines.append(
+        "  Drawn from P_max: one tree may combine silent steps that no single consistent "
+        "world realizes."
+    )
+    lines.append("")
+    return lines
 
 
 #: Pre-registration 0001, docs/research/prereg-0001-blackout-cell.md. These values were
