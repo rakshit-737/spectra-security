@@ -434,6 +434,26 @@ class TestAdversarialCorpus(_Base):
         self.assertFalse(report.accepted)
 
 
+class TestEventIdRecomputation(unittest.TestCase):
+    """INC-0012. The checker hashed a bundle line's bare `source_id`; the preimage is over
+    the typed `src:` form. The fixture wrote the typed spelling into its bundle, which real
+    ingest never does, so the positive control passed while every real record failed."""
+
+    def _recompute(self, record: dict[str, Any]) -> str:
+        return "ev:" + canon.digest_hex("ev", checker_mod._event_preimage(record), 16)
+
+    def test_a_bundle_line_in_the_shape_ingest_writes_recomputes(self) -> None:
+        record = cert_fixture.RECORD_1
+        self.assertFalse(record["source_id"].startswith("src:"))
+        self.assertEqual(self._recompute(record), record["event_id"])
+
+    def test_a_typed_spelling_in_the_file_is_refused(self) -> None:
+        record = {**cert_fixture.RECORD_1, "source_id": "src:gw_access"}
+        with self.assertRaises(checker_mod.Rejected) as caught:
+            self._recompute(record)
+        self.assertEqual(caught.exception.code, "E-WITNESS-EVENT")
+
+
 class TestEncodingLaw(_Base):
     def _raw(self, old: bytes, new: bytes) -> pathlib.Path:
         self.assertIn(old, self.fixture.octets)

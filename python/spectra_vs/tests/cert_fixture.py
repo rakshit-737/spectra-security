@@ -86,7 +86,12 @@ FACT_H = FactHash.mint(b"vs-01/ghost/credential_held")
 def _bundle_record(
     source_id: SourceId, seq: int, event_type: str, t_evt_ns: int
 ) -> dict[str, Any]:
-    """One bundle line in the shape ingest produces, with its content-addressed event id."""
+    """One bundle line in the shape ingest produces, with its content-addressed event id.
+
+    `source_id` is written BARE and hashed TYPED, as ingest does (`ingest._bundle_obj`).
+    This fixture once wrote the typed spelling, which let the checker hash the file's
+    spelling unchanged and pass here while failing on every real record (INC-0012).
+    """
     attrs = {"actor": "p_alice", "zone": "prod"}
     payload = b"".join(
         (
@@ -102,7 +107,7 @@ def _bundle_record(
         "event_id": str(EventId.mint(payload)),
         "event_type": event_type,
         "seq": seq,
-        "source_id": str(source_id),
+        "source_id": source_id.snake,
         "t_evt_ns": str(t_evt_ns),
         "t_ing_ns": str(t_evt_ns + 1000),
     }

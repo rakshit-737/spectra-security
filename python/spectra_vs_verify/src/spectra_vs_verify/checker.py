@@ -532,19 +532,37 @@ def _licence_preimage(lic: dict[str, Any]) -> bytes:
 
 
 def _event_preimage(record: dict[str, Any]) -> bytes:
-    """attrs, event_type, seq, source_id, t_evt_ns. Ingestion time is excluded."""
+    """attrs, event_type, seq, source_id, t_evt_ns. Ingestion time is excluded.
+
+    THE SOURCE ID IS RE-TYPED. A bundle line spells `source_id` bare, as the data contract
+    does on every wire; section 57.2 types the same value `src:<id>`, and the event-id
+    preimage is taken over the typed form. This function once hashed the bare spelling,
+    and every real record failed to recompute. The test fixture had hidden it by writing
+    the typed spelling into its bundle, which real ingest never does (BUILD_LOG INC-0012).
+    A typed spelling in the file is therefore a contract violation, not a second form.
+    """
     attrs = record.get("attrs", {})
     if not isinstance(attrs, dict):
         raise Rejected("E-WITNESS-EVENT", "a bundle record's attrs is not an object")
+    source = record["source_id"]
+    _require(
+        isinstance(source, str) and not source.startswith(_SOURCE_PREFIX),
+        "E-WITNESS-EVENT",
+        f"bundle source_id {source!r} is not spelled bare",
+    )
     return b"".join(
         (
             canon.pairs(tuple(attrs.items())),
             canon.utf8_text(record["event_type"]),
             canon.u32(record["seq"]),
-            canon.ascii_text(record["source_id"]),
+            canon.ascii_text(_SOURCE_PREFIX + source),
             canon.i64(_int_text(record["t_evt_ns"], "bundle.t_evt_ns")),
         )
     )
+
+
+#: The type prefix section 57.2 gives a source id in memory and in digest preimages.
+_SOURCE_PREFIX: Final[str] = "src:"
 
 
 # ---------------------------------------------------------------------------
