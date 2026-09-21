@@ -40,7 +40,7 @@ wrote — 213 of them silent contradictions between its two parts. That is the h
 artifact: substantial, internally inconsistent in known and catalogued ways, and not yet
 implemented.
 
-The gates declared in `ci/gates.toml` — every one not implemented except the skeleton layout gate —
+The gates declared in `ci/gates.toml` — all but three of them not implemented —
 are written down precisely because neither a human nor an agent should be trusted on assertion.
 Nothing in this repository is claimed to work until a named gate proves it, and no number may
 appear in any document unless the artifact that produced it is recorded alongside.
