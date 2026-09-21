@@ -165,9 +165,10 @@ Prerequisites:
 - No network is needed after clone. Nothing in this repository fetches anything at build or test
   time.
 
-**Nothing builds yet beyond the skeleton gate and the sandbox guard.** `make skeleton-verify`
-(gate `G-SKELETON-001`) and `make guard-sandbox` (gate `G-WIN-001`) are the only gates in
-`ci/gates.toml` whose make target is implemented; every other gate row names a target that is
+**Three gates are implemented.** `make skeleton-verify` (gate `G-SKELETON-001`),
+`make test-reference` (gate `G-PYREF-001`, every unit suite of the Python reference slice) and
+`make guard-sandbox` (gate `G-WIN-001`) are the only gates in `ci/gates.toml` whose make target is
+implemented; the first two run in CI on every push; every other gate row names a target that is
 either undeclared or declared and not implemented. The `Makefile` declares part of the target
 vocabulary; the ten component gates named in `mpc.toml` are not declared at all, and of the
 targets named in `CLAIMS.md` only `claims-check` and `verify-no-llm` are declared — and both of
