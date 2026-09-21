@@ -32,6 +32,19 @@
 # docs/descope-ladder.md all eight are stubs. Every other path named below does not exist. Treat
 # the whole column as a TODO.
 #
+# WHERE THE CODE ACTUALLY IS, as of 2026-09-21. A Python reference slice now implements much of C1,
+# C2, C3, C4, C5, C6, C7 and part of C8 - but NOT at the paths the `artifacts` column declares. It
+# lives in python/spectra_vs/ (generator, degradation, ingest, entity resolution, rule compiler,
+# grounding, liveness, envelope, reachability, cut search, premium, certificate) and in
+# python/spectra_vs_verify/ (the checker). The declared per-stage packages are still empty, and the
+# specified Rust kernel and Go checker do not exist; ADR-0013 records why.
+#
+# That changes NO status below. Status here means the component's gate, and no gate exists, so
+# every row stays "not started" by this file's own definition. A component with running code and
+# no gate is not green, and it is not red either: nothing has run a gate to make it red. When the
+# gates are written, decide whether they point at python/spectra_vs/ or whether the slice is moved
+# into the declared packages first, and record which in docs/adr/.
+#
 # GATE NAMES. None of the ten `gate` values below has a row in ci/gates.toml. Part II section 74.4
 # and ci/gates.toml itself state that every gate is a row in that registry and that there is no
 # other place a gate may be declared: a Makefile target that claims to gate something without a row
