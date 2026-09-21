@@ -584,3 +584,103 @@ were failing early enough that most of the kernel never executed. A green suite 
 said nothing about that, because every module had only ever been exercised in isolation.
 
 ---
+
+## INC-0009  CI had been running all along; the reference suites now run there too
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### What was believed, and what was true
+
+This log, ADR-0013 and `docs/plan/PLAN_v1.md` all recorded that `make` had never run in this
+repository, that every claim about the Makefile was therefore unverified, and that M0 could not
+close. The development machine has no `make`, and that was generalised to the repository without
+checking the remote.
+
+The T1 workflow had been running `make skeleton-verify` on a GitHub `ubuntu-24.04` runner on every
+push since its first commit - roughly thirty times by then. Its history:
+
+| Runs | Conclusion | What they reported |
+|---|---|---|
+| first 11 | failure | `skeleton-verify: 11 required path(s) missing`, naming them |
+| the rest | success | every required path present |
+
+The eleven paths named in the first failing run are exactly the eleven later found missing by hand
+on the development machine, without reference to CI. The gate failed honestly, named the precise
+gap, and passed once it was closed - on a machine this session did not control. Nobody looked.
+
+Corrected in `docs/plan/PLAN_v1.md` in place, and by ADR-0014 superseding ADR-0013, which is
+immutable. M0 is not blocked by the missing local `make`; it is blocked because `m0-verify` is not
+implemented.
+
+Rule adopted: **a claim about what has or has not run in this repository is checked against CI
+before it is written.** `gh run list` answers it in one command.
+
+### The reference suites as a CI gate
+
+With CI established as a place `make` runs, the suites stopped needing to be a claim made from one
+machine. Added:
+
+- `make test-reference`, which runs every suite and fails if any fails;
+- gate `G-PYREF-001`, tier T1, registered in `ci/gates.toml`;
+- a `reference` job in `.github/workflows/t1.yml`, using the runner's system `python3`.
+
+The job deliberately uses Python 3.12, the version the workspace pins, rather than the 3.14 the
+slice was written and run on. That made its first run the first test of whether the code runs on
+the interpreter the repository declares.
+
+### First run: red, and correctly so
+
+```
+interpreter: Python 3.12.3
+  ... 17 ok ...
+  FAIL  python/spectra_vs_verify/tests/test_verify.py
+        AssertionError: 1 != 0 : /usr/bin/python3: No module named spectra_vs_verify
+suites: 17 passing, 1 failing
+```
+
+The failing test launches the checker as a subprocess and built its `PYTHONPATH` with `";"`, the
+Windows path separator. On Linux the child saw one nonexistent directory named `<a>;<b>`. The test
+passed on the Windows machine it was written on and failed on the first clean Linux runner. Fixed
+with `os.pathsep`; no other hardcoded separator exists in the test tree.
+
+### Second run: green
+
+```
+T1 skeleton / G-SKELETON-001 | success
+T1 reference / G-PYREF-001   | success
+interpreter: Python 3.12.3
+suites: 18 passing, 0 failing
+```
+
+### Measured
+
+18 suites pass on Python 3.12.3 on `ubuntu-24.04`, in CI, run `35609317811`. That is the first
+result in this repository produced by a machine other than the one the code was written on.
+
+### Two version claims corrected on evidence
+
+- `spectra_vs` declared `requires-python >=3.14`, because that was the installed interpreter. CI
+  disproves the need. Now `>=3.12`.
+- The README said the slice needs "Python 3.11 or later". Three modules use PEP 695 type parameter
+  lists, which do not parse before 3.12. Now 3.12. That line was written in this session without
+  being checked.
+
+### The cascade, measured on one change
+
+Registering one gate required updating eight statements across five files that each state how many
+gates are implemented: the registry's STATUS block, its T1 header, its row count, a NOTE calling the
+skeleton gate the only one in CI, the README, `CONTRIBUTORS.md`, the plan, and a comment in
+`t1.yml`. All eight were changed together and a grep confirms none is stale. INC-0005 argued these
+counts should be generated rather than written; this is that argument with a number on it.
+
+### Heredoc escaping, third occurrence
+
+Makefile content written through a bash heredoc lost its line continuations and had its `\n`
+escapes turned into real newlines - the third time this session. Makefile and other
+backslash-bearing content is now written with the file-writing tool, which writes exact bytes, and
+spliced in. A structural check (every recipe line tab-indented and continued, balanced quotes,
+rule/phony parity) runs after every such edit.
+
+---
