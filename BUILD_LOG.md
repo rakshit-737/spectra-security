@@ -684,3 +684,80 @@ spliced in. A structural check (every recipe line tab-indented and continued, ba
 rule/phony parity) runs after every such edit.
 
 ---
+
+## INC-0010  the control arm is clean, and INC-0008's diagnosis was wrong
+
+date: 2026-09-21
+status: DONE
+concern: single
+
+### What INC-0008 concluded, and why it was wrong
+
+INC-0008 recorded, as its central finding, that the non-empty blindness premium at full telemetry
+was genuine: that a finite observation window is always blind at its edges, that r0004's 72-hour
+absence lookback can never be falsified for an escalation in the first second, and therefore that
+`ctl:priv_approval` really was needed only on account of blindness. It opened decision D-RUN-01 to
+choose how to handle the edges.
+
+That diagnosis stopped one step short. It established WHERE the licensed escalations were - all 80
+in the first or last 10 s - and inferred that they reached the goal. It did not check whether they
+could. They cannot: route B completes through rule r0005, which requires the escalation to precede
+the export by at most 30 minutes, and the only export is at +4560 s. An escalation in the first
+second is 76 minutes early; one in the last second comes after the export.
+
+Reading P_max directly showed ten r0005 instances pairing exactly those impossible times. The rule's
+time bound was not being applied.
+
+### Cause
+
+`ground.Engine._check_seq` returned success without comparing anything whenever either side was a
+licensed fact, on the documented grounds that a licensed fact's tick is only a representative of a
+blind window. The reasoning about precision was right; the remedy of skipping was too coarse, and
+admitted combinations impossible for every placement of the unobserved step.
+
+### Fix
+
+`seq` now asks whether SOME time in each side's range satisfies `left < right <= left + within`
+(`ground.seq_feasible`). An observed fact's range is a single point, reproducing the old behaviour
+exactly; a licensed fact's range is the hull of the blind windows that licensed it, which the
+envelope now hands to the engine. P_max stays a superset of every realizable world. Eight
+regression tests were written and seen failing first.
+
+`absence` and `distinct` still skip the comparison for a licensed fact - still sound, coarser than
+necessary, recorded in the envelope's docstring.
+
+### Commands run
+
+```
+$ <every suite>
+18 suites passing, 0 failing
+
+$ python scripts/demo.py
+full telemetry   |Psi_min|=1 |Psi_max|=1  premium=EMPTY
+degraded cell    |Psi_min|=0 |Psi_max|=0  premium=EMPTY
+```
+
+### Measured
+
+The full-telemetry premium is empty. That is the control arm behaving as the design requires, and
+it is the first time any run has shown it. D-RUN-01 is withdrawn: no methodology choice was needed.
+
+### What is still not demonstrated
+
+The degraded cell's premium is also empty, and that means nothing: its random deletion removes the
+attack's observed steps outright, so neither program derives a goal. A controlled replacement - a
+whole-source blackout of iam_audit over a window chosen from the scenario definition - is
+pre-registered in `docs/research/prereg-0001-blackout-cell.md`, with quantitative predictions and
+falsifiers, BEFORE it is implemented or run.
+
+### The record of wrong explanations
+
+INC-0008 tested four hypotheses for the non-empty premium and reported the fourth as correct. It
+was the fifth that held. Each of the four was checked against an artifact before being accepted or
+rejected; the fourth was accepted on an artifact that showed where the licensed steps were without
+showing whether they could reach the goal. The general form of the mistake: confirming a mechanism
+exists, and taking that as proof it is the one producing the effect. INC-0008 is left as written,
+and D-RUN-01 is withdrawn with its original text kept beneath the notice, so the error stays
+readable.
+
+---
