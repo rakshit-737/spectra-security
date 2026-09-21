@@ -285,7 +285,7 @@ class TestTruthStream(unittest.TestCase):
 
     def test_attack_annotations_cite_exactly_the_chain(self) -> None:
         attack = [t for t in _RESULT_A.truth if t.kind is TruthKind.ATTACK_STEP]
-        self.assertEqual(sorted({t.step_k for t in attack}), [2, 3, 4, 5, 6])
+        self.assertEqual(sorted({t.step_k for t in attack}), [2, 3, 4, 5, 6, 7, 8])
         for annotation in attack:
             self.assertEqual(annotation.chain_id, "vs-01")
 
