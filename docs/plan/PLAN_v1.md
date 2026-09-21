@@ -3,8 +3,8 @@
 Status: **APPROVED IN-SESSION 2026-09-20; SKELETON BUILT; A PYTHON REFERENCE SLICE RUNS END TO
 END.** The slice implements a generator, ingest, entity resolution, grounding, liveness, the
 envelope, reachability, a cut search, a certificate and a checker, in Python rather than the
-specified Rust and Go (ADR-0013). Two gates run: `G-SKELETON-001` in CI on every push, and
-`G-WIN-001` as the Makefile's host guard. No milestone is green. The approval `KICKOFF.md` §4
+specified Rust and Go (ADR-0013). Three gates run: `G-SKELETON-001` and `G-PYREF-001` in CI on
+every push, and `G-WIN-001` as the Makefile's host guard. No milestone is green. The approval `KICKOFF.md` §4
 requires is recorded in `BUILD_LOG.md`, increment INC-0002.
 
 ---
