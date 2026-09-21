@@ -535,6 +535,33 @@ class TestEventIdRecomputation(unittest.TestCase):
         self.assertEqual(caught.exception.code, "E-WITNESS-EVENT")
 
 
+class TestVersionComparison(_Base):
+    """min_checker was compared with the checker's version as a string, so "1.10" sorted
+    below "1.9", and a value that was not a string could not be compared at all."""
+
+    def test_versions_compare_numerically(self) -> None:
+        self.assertGreater(checker_mod._version("1.10"), checker_mod._version("1.9"))
+        self.assertEqual(checker_mod._version("1.1"), (1, 1))
+
+    def test_a_malformed_version_is_a_downgrade_not_a_crash(self) -> None:
+        for bad in ("", "1..1", "1.x", "v1.1", 11, None):
+            with self.assertRaises(checker_mod.Rejected, msg=repr(bad)) as caught:
+                checker_mod._version(bad)
+            self.assertEqual(caught.exception.code, "E-SCHEMA-DOWNGRADE")
+
+    def test_a_min_checker_above_this_checker_is_refused(self) -> None:
+        self.assertRejects(
+            self._mutate(lambda body: body["schema"].__setitem__("min_checker", "1.10")),
+            "E-SCHEMA-DOWNGRADE",
+        )
+
+    def test_a_numeric_min_checker_is_refused(self) -> None:
+        self.assertRejects(
+            self._mutate(lambda body: body["schema"].__setitem__("min_checker", 11)),
+            "E-SCHEMA-DOWNGRADE",
+        )
+
+
 class TestEncodingLaw(_Base):
     def _raw(self, old: bytes, new: bytes) -> pathlib.Path:
         self.assertIn(old, self.fixture.octets)

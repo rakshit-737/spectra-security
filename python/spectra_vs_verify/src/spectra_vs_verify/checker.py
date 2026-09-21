@@ -671,6 +671,23 @@ def _o0_canonicity(state: _State) -> ObligationResult:
     return ObligationResult("O0 canonicity", True, "re-serialisation reproduces the file")
 
 
+def _version(text: object) -> tuple[int, ...]:
+    """A dotted version as a tuple of integers, compared numerically.
+
+    Compared as strings, "1.10" sorts below "1.9" and a newer checker would refuse a file it
+    can read. A value that is not dotted decimal digits is a downgrade attempt, not a crash.
+    """
+    _require(
+        isinstance(text, str)
+        and bool(text)
+        and all(part.isdigit() and part.isascii() for part in text.split(".")),
+        "E-SCHEMA-DOWNGRADE",
+        f"version {text!r} is not dotted decimal digits",
+    )
+    assert isinstance(text, str)
+    return tuple(int(part) for part in text.split("."))
+
+
 def _o1_cert_hash(state: _State) -> ObligationResult:
     declared = _member(state.document, "cert_hash", "document")
     recomputed = canon.hash_ref("cert", _dumps(state.body).encode("utf-8"))
@@ -691,7 +708,7 @@ def _o2_schema(state: _State) -> ObligationResult:
     )
     min_checker = _member(schema, "min_checker", "schema")
     _require(
-        CHECKER_VERSION >= min_checker,
+        _version(CHECKER_VERSION) >= _version(min_checker),
         "E-SCHEMA-DOWNGRADE",
         f"checker {CHECKER_VERSION} is older than min_checker {min_checker}",
     )
