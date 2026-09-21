@@ -203,7 +203,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(cfg.quantile, "95/100")
         self.assertEqual(cfg.slack, "3/2")
         self.assertEqual(cfg.n_min, 100)
-        self.assertEqual(cfg.m_min, 3)
+        self.assertEqual(cfg.m_min, 2)
         self.assertEqual(cfg.mcs_exact_cap, 64)
 
     def test_a_decimal_literal_is_rejected_at_parse_time(self) -> None:
@@ -228,7 +228,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(caught.exception.code, "E-SCHEMA-UNKNOWN")
 
     def test_a_missing_member_is_rejected(self) -> None:
-        text = LIVENESS_TOML.read_text(encoding="utf-8").replace("m_min = 3", "")
+        text = LIVENESS_TOML.read_text(encoding="utf-8").replace("m_min = 2", "")
         with self.assertRaises(SchemaError) as caught:
             liveness.parse_liveness_config(text)
         self.assertEqual(caught.exception.code, "E-SCHEMA-MISSING")
