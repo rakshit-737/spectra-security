@@ -153,7 +153,7 @@ endef
   lab lab-down polyglot polyglot-audit polyglot-report benchmark m9-verify \
   docs demo reproduce verify-no-llm release-check m10-verify \
   check-autocrlf secret-scan \
-  test-reference
+  test-reference vs-prereg-0001
 
 ##@ Works today (session one)
 
@@ -254,6 +254,44 @@ test-reference: ## Run every suite of the Python reference slice -- gate G-PYREF
 	  spectra_rule; \
 	  printf 'suites: %d passing, %d failing\n' "$$pass" "$$fail"; \
 	  if [ "$$fail" -ne 0 ]; then spectra_err "test-reference: failing:$$failed"; exit 1; fi
+
+vs-prereg-0001: ## Re-run pre-registration 0001; fail unless it held -- gate G-VS-PREREG-0001 (T1)
+	@. "$(COMMON)"; \
+	  spectra_rule; \
+	  printf 'SPECTRA vs-prereg-0001\n'; \
+	  printf 'Runs the demonstration, whose blackout cell was registered with its\n'; \
+	  printf 'predictions in docs/research/prereg-0001-blackout-cell.md before it was\n'; \
+	  printf 'built. Fails if any registered falsifier fails, if the prediction is not\n'; \
+	  printf 'evaluated, or if the separate checker rejects a certificate. A green run\n'; \
+	  printf 'reproduces one simulated data point on this interpreter. It measures\n'; \
+	  printf 'nothing and makes no milestone green.\n'; \
+	  spectra_rule; \
+	  py=$${PYTHON:-python3}; \
+	  printf 'interpreter: %s\n' "$$($$py --version 2>&1)"; \
+	  log=$$(mktemp); \
+	  if $$py scripts/demo.py >"$$log" 2>&1; then status=0; else status=$$?; fi; \
+	  sed -n '/^PRE-REGISTRATION 0001/,$$p' "$$log"; \
+	  printf 'artifact hashes (sha256), cells in run order:\n'; \
+	  for run in $$(awk '/^run_id / { print $$2 }' "$$log"); do \
+	    for f in cert.spcert p_max.json psi_max.json premium.json; do \
+	      if [ -f "runs/$$run/$$f" ]; then \
+	        printf '  %s  %-13s %s\n' "$$run" "$$f" "$$(sha256sum "runs/$$run/$$f" | cut -d' ' -f1)"; \
+	      fi; \
+	    done; \
+	  done; \
+	  spectra_rule; \
+	  if [ "$$status" -ne 0 ]; then \
+	    tail -40 "$$log" | sed 's/^/        /'; rm -f "$$log"; \
+	    spectra_err "vs-prereg-0001: the demonstration exited $$status (1 = a certificate was rejected, 2 = the prediction failed)"; \
+	    exit 1; \
+	  fi; \
+	  if ! grep -qx '  PREDICTION HELD.' "$$log"; then \
+	    rm -f "$$log"; \
+	    spectra_err 'vs-prereg-0001: exit 0 but no PREDICTION HELD line; the prediction was not evaluated'; \
+	    exit 1; \
+	  fi; \
+	  rm -f "$$log"; \
+	  spectra_log 'vs-prereg-0001: the prediction held and every certificate was accepted'
 
 skeleton-verify: ## Check the session-one repo layout and required root files exist
 	@. "$(COMMON)"; \
