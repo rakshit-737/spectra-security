@@ -230,21 +230,33 @@ class Layout:
         return self.runs_dir / run_id
 
 
-def run_id_for(scenario_hash: str, seed: int, completeness: degrade_mod.Completeness) -> str:
+def run_id_for(
+    scenario_hash: str,
+    seed: int,
+    completeness: degrade_mod.Completeness,
+    blackout: degrade_mod.Blackout | None = None,
+) -> str:
     """A content-addressed run id. No counter, no clock, no process id.
 
     The same scenario, seed and completeness always name the same directory, which is what
     makes a byte-for-byte replay a diff rather than a comparison of two paths.
+
+    A blackout is mixed in ONLY when present. Without that, a blackout cell recorded at
+    completeness 1/1 would name the same directory as the full-telemetry cell and overwrite
+    it; and adding it unconditionally would rename every existing run.
     """
-    payload = b"".join(
-        (
-            canon.ascii_text(scenario_hash),
-            canon.u64(seed),
-            canon.u32(completeness.num),
-            canon.u32(completeness.den),
-        )
-    )
-    return "vs-" + canon.digest_hex("vsrun", payload)[:16]
+    parts = [
+        canon.ascii_text(scenario_hash),
+        canon.u64(seed),
+        canon.u32(completeness.num),
+        canon.u32(completeness.den),
+    ]
+    if blackout is not None:
+        parts.append(canon.ascii_text("blackout"))
+        parts.extend(canon.ascii_text(s) for s in blackout.sources)
+        parts.append(canon.u64(blackout.t0_ns))
+        parts.append(canon.u64(blackout.t1_ns))
+    return "vs-" + canon.digest_hex("vsrun", b"".join(parts))[:16]
 
 
 @dataclass(frozen=True, slots=True)
@@ -453,14 +465,27 @@ def s3_degrade(
     seed: int,
     run_dir: Path,
     parent: degrade_mod.DegradationResult | None = None,
+    blackout: degrade_mod.Blackout | None = None,
 ) -> DegradeStage:
     """Delete down to `completeness`, nested with every other level at this seed.
 
     Delete-only. Nothing is edited, reordered or back-dated: the operator list in the
     manifest is exactly `["delete"]` and the removed set at a lower completeness is a
     superset of the removed set at a higher one, which is checked rather than assumed.
+
+    With `blackout` set, the random deletion is replaced by WHOLE_SOURCE_BLACKOUT and the
+    manifest names that operator instead. The two are not combined: a cell that mixed a
+    controlled intervention with random loss could not attribute its effect to either.
     """
-    result = degrade_mod.degrade(raw, completeness, seed, parent=parent)
+    if blackout is not None:
+        if parent is not None or not completeness.is_identity:
+            raise errors.SchemaError(
+                "s3_degrade: a blackout cell is not part of the nested completeness chain; "
+                "pass completeness 1/1 and no parent"
+            )
+        result = degrade_mod.blackout(raw, blackout)
+    else:
+        result = degrade_mod.degrade(raw, completeness, seed, parent=parent)
     raw_path = degrade_mod.write_degraded_raw(run_dir, result)
     manifest_path = degrade_mod.write_manifest(run_dir, result)
     return DegradeStage(
@@ -1957,8 +1982,13 @@ def run_cell(
     calibration_seed: int = DEFAULT_CALIBRATION_SEED,
     parent: degrade_mod.DegradationResult | None = None,
     verify: bool = True,
+    blackout: degrade_mod.Blackout | None = None,
 ) -> CellResult:
-    """S1 through S11 for one completeness cell. Pure in its arguments; writes artifacts."""
+    """S1 through S11 for one cell. Pure in its arguments; writes artifacts.
+
+    A cell is either a completeness level, nested with the others at one seed, or - with
+    `blackout` set - a controlled WHOLE_SOURCE_BLACKOUT at completeness 1/1.
+    """
     spec = scenario_mod.load_scenario(layout.scenario_toml)
     config = liveness_mod.load_liveness_config(str(layout.liveness_toml))
     catalog, bits, lock_artifact = s0_bits_lock(layout)
@@ -1966,7 +1996,7 @@ def run_cell(
     if calibration is None:
         calibration = s6_calibrate(layout, spec, config, calibration_seed)
 
-    run_id = run_id_for(spec.scenario_hash(), seed, completeness)
+    run_id = run_id_for(spec.scenario_hash(), seed, completeness, blackout)
     run_dir = layout.run_dir(run_id)
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1974,7 +2004,9 @@ def run_cell(
     axiom_roles = axiom_roles_of(rules.table)
 
     generated = s2_gen(spec, seed, run_dir)
-    degraded = s3_degrade(generated.result.raw, completeness, degradation_seed, run_dir, parent)
+    degraded = s3_degrade(
+        generated.result.raw, completeness, degradation_seed, run_dir, parent, blackout
+    )
     ingested = s4_ingest(degraded.raw_path, spec, run_dir)
     resolved = s5_resolve(ingested.result.events, spec, run_dir)
 
