@@ -136,14 +136,18 @@ formats. Neither figure has been measured and neither is stated here.
 
 No results have been measured.
 
-One demonstration has been run, and it did not show what it was designed to show. At full
-telemetry the blindness premium - the controls required only because a sensor could not see - was
-meant to be empty and is not. The cause is recorded in `BUILD_LOG.md` INC-0008: a finite
-observation window is always blind at its edges, and a 72-hour absence lookback cannot be
-falsified for an escalation in the first second of a 2-hour horizon. Whether to handle that with a
-burn-in, a bounded lookback or an explicit out-of-scope rule is an open decision, D-RUN-01 in
-[docs/plan/DECISIONS.md](docs/plan/DECISIONS.md). That run is a record of the instrument's
-behaviour, not a measured result.
+The demonstration's control arm now behaves as designed: at full telemetry the blindness premium -
+the controls required only because a sensor could not see - is EMPTY. It was not empty in earlier
+runs, and an earlier version of this section attributed that to the blind edges of a finite
+observation window. That explanation was wrong. The cause was a grounding defect that skipped a
+rule's 30-minute time bound whenever one side was a licensed step, admitting combinations that were
+impossible for every placement. `BUILD_LOG.md` INC-0010 records the fix and the correction.
+
+The demonstration's degraded cell does not yet test anything: its random deletion removes the
+attack's observed steps outright, so neither program derives a goal. A controlled replacement -
+one sensor taken offline over a fixed window - is pre-registered, with its predictions, in
+[docs/research/prereg-0001-blackout-cell.md](docs/research/prereg-0001-blackout-cell.md). Until it
+runs, these are records of the instrument's behaviour, not measured results.
 
 What will be measured, how, with which seeds and repetitions, and what would falsify each research
 question is committed in advance in [docs/research/preregistration.md](docs/research/preregistration.md).
