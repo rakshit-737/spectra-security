@@ -182,6 +182,16 @@ id = "rs_wiki"
 zone = "corp"
 sensitivity = "low"
 
+[[entities.resources]]
+id = "rs_billing"
+zone = "prod"
+sensitivity = "high"
+
+[[entities.resources]]
+id = "rs_hr_records"
+zone = "prod"
+sensitivity = "high"
+
 # ---------------------------------------------------------------------------
 # Benign background population.
 #
@@ -247,6 +257,9 @@ t_offset_ns = "4320000000000"
 attrs = { credential = "cr_refresh_token", principal = "p_attacker", service = "sv_gateway" }
 expect_transition = { dim = "access", from = "denied", to = "granted" }
 
+# Route A's observed leaf. r0003 requires three DISTINCT resources inside ten
+# minutes, so a bulk read is three reads. The offsets span 240 s, well inside the
+# window; if they were spread wider than 10 min the rule would correctly not fire.
 [[attack.steps]]
 k = 4
 actor = "p_attacker"
@@ -261,6 +274,28 @@ expect_transition = { dim = "exfil", from = "none", to = "staged" }
 [[attack.steps]]
 k = 5
 actor = "p_attacker"
+action = "bulk_read"
+event_type = "res_read"
+emits = ["res_access"]
+observable = true
+t_offset_ns = "4500000000000"
+attrs = { principal = "p_attacker", resource = "rs_billing", service = "sv_gateway" }
+expect_transition = { dim = "exfil", from = "staged", to = "staged" }
+
+[[attack.steps]]
+k = 6
+actor = "p_attacker"
+action = "bulk_read"
+event_type = "res_read"
+emits = ["res_access"]
+observable = true
+t_offset_ns = "4620000000000"
+attrs = { principal = "p_attacker", resource = "rs_hr_records", service = "sv_gateway" }
+expect_transition = { dim = "exfil", from = "staged", to = "staged" }
+
+[[attack.steps]]
+k = 7
+actor = "p_attacker"
 action = "role_assumed"
 event_type = "iam_role_assumed"
 emits = ["iam_audit"]
@@ -270,7 +305,7 @@ attrs = { credential = "cr_admin_role", principal = "p_attacker", service = "sv_
 expect_transition = { dim = "privilege", from = "user", to = "admin" }
 
 [[attack.steps]]
-k = 6
+k = 8
 actor = "p_attacker"
 action = "admin_export"
 event_type = "res_export"
