@@ -152,7 +152,8 @@ endef
   wasm m8-verify \
   lab lab-down polyglot polyglot-audit polyglot-report benchmark m9-verify \
   docs demo reproduce verify-no-llm release-check m10-verify \
-  check-autocrlf secret-scan
+  check-autocrlf secret-scan \
+  test-reference
 
 ##@ Works today (session one)
 
@@ -227,6 +228,32 @@ doctor: ## Report which toolchains are present; non-zero if a Tier A toolchain i
 	    exit 1; \
 	  fi; \
 	  spectra_log "doctor: all probed Tier A toolchains present"
+
+test-reference: ## Run every suite of the Python reference slice -- gate G-PYREF-001 (T1)
+	@. "$(COMMON)"; \
+	  spectra_rule; \
+	  printf 'SPECTRA test-reference\n'; \
+	  printf 'Runs every unit suite of the Python reference slice (ADR-0013). A green run\n'; \
+	  printf 'means these suites pass on this interpreter. It does NOT make any milestone\n'; \
+	  printf 'green, does not exercise the specified Rust kernel or Go checker (neither\n'; \
+	  printf 'exists), and does not run the end-to-end demonstration.\n'; \
+	  spectra_rule; \
+	  py=$${PYTHON:-python3}; \
+	  printf 'interpreter: %s\n' "$$($$py --version 2>&1)"; \
+	  log=$$(mktemp); pass=0; fail=0; failed=""; \
+	  for t in python/spectra_core/tests/test_*.py python/spectra_vs/tests/test_*.py \
+	           python/spectra_vs_verify/tests/test_*.py tests/test_*.py; do \
+	    if $$py "$$t" >"$$log" 2>&1; then \
+	      printf '  ok    %s\n' "$$t"; pass=$$((pass+1)); \
+	    else \
+	      printf '  FAIL  %s\n' "$$t"; tail -20 "$$log" | sed 's/^/        /'; \
+	      fail=$$((fail+1)); failed="$$failed $$t"; \
+	    fi; \
+	  done; \
+	  rm -f "$$log"; \
+	  spectra_rule; \
+	  printf 'suites: %d passing, %d failing\n' "$$pass" "$$fail"; \
+	  if [ "$$fail" -ne 0 ]; then spectra_err "test-reference: failing:$$failed"; exit 1; fi
 
 skeleton-verify: ## Check the session-one repo layout and required root files exist
 	@. "$(COMMON)"; \
