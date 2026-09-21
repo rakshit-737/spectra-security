@@ -1,4 +1,5 @@
-"""Unit tests for where spectra_vs.pipeline gets the inputs to a ROBUST verdict's token.
+"""Unit tests for where spectra_vs.pipeline gets the inputs to a ROBUST verdict's token,
+and for the environment it gives the checker subprocess.
 
 Run from the repository root:
 
@@ -18,6 +19,7 @@ WHICH object the pipeline consults, which is the property the literals broke.
 
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import types
@@ -71,6 +73,24 @@ class TestTamperInputsComeFromTheLivenessDocument(unittest.TestCase):
         """Only ROBUST carries the token, so suspicion does not block the others."""
         verdict = _build(_document(True), cert_mod.Safety.OPTIMISTIC_ONLY)
         self.assertIs(verdict.safety, cert_mod.Safety.OPTIMISTIC_ONLY)
+
+
+class TestTheCheckerEnvironment(unittest.TestCase):
+    """The checker subprocess once joined PYTHONPATH with a literal ";". That is the Windows
+    separator, so the development machine never noticed; on Linux it named one nonexistent
+    directory and the checker could not import itself."""
+
+    def test_pythonpath_splits_into_existing_directories_on_this_platform(self) -> None:
+        env = pipeline._checker_env(_REPO_ROOT)
+        entries = env["PYTHONPATH"].split(os.pathsep)
+        self.assertEqual(len(entries), 2, env["PYTHONPATH"])
+        for entry in entries:
+            self.assertTrue(pathlib.Path(entry).is_dir(), entry)
+
+    def test_the_checker_package_is_on_it_and_the_emitter_is_not(self) -> None:
+        entries = pipeline._checker_env(_REPO_ROOT)["PYTHONPATH"].split(os.pathsep)
+        self.assertTrue((pathlib.Path(entries[0]) / "spectra_vs_verify").is_dir())
+        self.assertFalse(any(pathlib.Path(e, "spectra_vs").is_dir() for e in entries))
 
 
 class TestTheSliceStillHasNoTamperPass(unittest.TestCase):

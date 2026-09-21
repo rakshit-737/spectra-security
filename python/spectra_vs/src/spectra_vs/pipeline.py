@@ -66,6 +66,7 @@ grounding found every instance. No certificate produced here is independently ve
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -1947,29 +1948,38 @@ def s11_verify(
         "--run-manifest",
         str(run_dir / "manifest.json"),
     ]
-    env_path = str(layout.repo_root / "python" / "spectra_vs_verify" / "src")
-    core_path = str(layout.repo_root / "python" / "spectra_core" / "src")
     completed = subprocess.run(
         argv,
         capture_output=True,
         text=True,
-        env={
-            "PYTHONPATH": env_path + ";" + core_path,
-            "PYTHONHASHSEED": "0",
-            "TZ": "UTC",
-            "LC_ALL": "C",
-            "SYSTEMROOT": _systemroot(),
-            "PATH": "",
-        },
+        env=_checker_env(layout.repo_root),
         check=False,
     )
     return completed.returncode, (completed.stdout + completed.stderr).strip()
 
 
+def _checker_env(repo_root: Path) -> dict[str, str]:
+    """The whole environment of the checker subprocess, and nothing inherited.
+
+    PYTHONPATH carries the checker's package and spectra_core and nothing of the emitter.
+    It is joined with os.pathsep, never a literal: a hard-coded ";" is the Windows
+    separator, and on Linux it made one nonexistent directory of both paths, so the
+    checker could not import itself (BUILD_LOG INC-0012).
+    """
+    verify_src = str(repo_root / "python" / "spectra_vs_verify" / "src")
+    core_src = str(repo_root / "python" / "spectra_core" / "src")
+    return {
+        "PYTHONPATH": os.pathsep.join((verify_src, core_src)),
+        "PYTHONHASHSEED": "0",
+        "TZ": "UTC",
+        "LC_ALL": "C",
+        "SYSTEMROOT": _systemroot(),
+        "PATH": "",
+    }
+
+
 def _systemroot() -> str:
     """Windows needs this one variable to start a subprocess at all; nothing reads it here."""
-    import os
-
     return os.environ.get("SYSTEMROOT", "")
 
 
