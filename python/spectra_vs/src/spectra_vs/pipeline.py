@@ -1051,11 +1051,29 @@ def _build_reach(
     program: ground_mod.Program,
     goal: FactHash,
     evidence: tuple[tuple[FactHash, tuple[EventId, ...]], ...],
+    library: tuple[FactHash, ...] = (),
 ) -> reach_mod.ReachProgram:
+    """Index one program for propagation, against the WHOLE goal library.
+
+    `goal` is the representative; `library` is every goal fact either program derives.
+    Passing the library is what makes a severance mean every goal is underivable rather
+    than one arbitrarily chosen goal. Before this, the representative alone decided
+    derivability, and at full telemetry it was a fact only P_max derives - so the corridor
+    search over P_min found nothing to sever and reported that the empty cut severs the
+    attack while P_min reached the goal through route A.
+    """
     axioms = {str(a) for a in program.axioms}
     kept = tuple(pair for pair in evidence if str(pair[0]) in axioms)
+    goals = library if library else (goal,)
+    if str(goal) not in {str(g) for g in goals}:
+        goals = tuple(sorted({*goals, goal}, key=lambda g: canon.byte_order_key(str(g))))
     return reach_mod.ReachProgram.build(
-        program.kind, program.instances, program.axioms, goal, axiom_evidence=kept
+        program.kind,
+        program.instances,
+        program.axioms,
+        goal,
+        axiom_evidence=kept,
+        goals=goals,
     )
 
 
@@ -1359,8 +1377,8 @@ def s10_prove(
     complaints.extend(goal_complaints)
 
     evidence = _axiom_evidence(p_max, events, bindings)
-    lower = _build_reach(p_min, goal_key, evidence)
-    upper = _build_reach(p_max, goal_key, evidence)
+    lower = _build_reach(p_min, goal_key, evidence, library)
+    upper = _build_reach(p_max, goal_key, evidence, library)
 
     bracket = premium_mod.two_sided_bracket(lower, upper, atoms)
 
