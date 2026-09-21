@@ -119,6 +119,7 @@ class ReachProgram:
     instances: tuple[model.RuleInstance, ...]
     axioms: tuple[ids.FactHash, ...]
     goal: ids.FactHash
+    goals: tuple[ids.FactHash, ...]
     axiom_evidence: tuple[tuple[ids.FactHash, tuple[ids.EventId, ...]], ...]
     _by_body: Mapping[str, tuple[int, ...]]
     _body_size: tuple[int, ...]
@@ -132,6 +133,7 @@ class ReachProgram:
         axioms: Iterable[ids.FactHash],
         goal: ids.FactHash,
         axiom_evidence: Iterable[tuple[ids.FactHash, tuple[ids.EventId, ...]]] = (),
+        goals: Iterable[ids.FactHash] | None = None,
     ) -> ReachProgram:
         """Validate the published order and build the adjacency, in that order.
 
@@ -146,6 +148,25 @@ class ReachProgram:
         axs = tuple(axioms)
         canon.check_strictly_ascending(axs, str, where="ReachProgram.axioms")
         ids.require_id(goal, ids.FactHash, where="ReachProgram.goal")
+        # THE GOAL IS A SET. docs/vocab.toml defines a goal fact as a member of a library,
+        # "goals are a set, verdicts are per-goal". The attack reaches its objective if ANY
+        # member is derivable, so a cut severs only when EVERY member is underivable.
+        #
+        # `goal` stays as the canonical representative so single-goal callers keep their
+        # meaning, but derivability is decided over `goals`. Deciding it over `goal` alone
+        # is the bug the second end-to-end run exposed: the pipeline chose the bytewise-
+        # least library key, which at full telemetry was a fact only P_max derives, so the
+        # corridor search over P_min found it unreachable under the empty cut and reported
+        # a severance while P_min derived the other goal fact through route A.
+        gs = (goal,) if goals is None else tuple(goals)
+        for g in gs:
+            ids.require_id(g, ids.FactHash, where="ReachProgram.goals")
+        canon.check_strictly_ascending(gs, str, where="ReachProgram.goals")
+        if str(goal) not in {str(g) for g in gs}:
+            raise errors.SchemaError(
+                f"ReachProgram: the representative goal {goal} is not a member of goals",
+                code="E-VS-GOAL-REP",
+            )
         evid = tuple(axiom_evidence)
         canon.check_strictly_ascending(
             evid, lambda pair: str(pair[0]), where="ReachProgram.axiom_evidence"
@@ -179,6 +200,7 @@ class ReachProgram:
             instances=insts,
             axioms=axs,
             goal=goal,
+            goals=gs,
             axiom_evidence=evid,
             _by_body={k: tuple(v) for k, v in sorted(by_body.items())},
             _body_size=tuple(body_size),
@@ -259,7 +281,8 @@ def reach(program: ReachProgram, cut_mask: int) -> ReachResult:
 
     closure = tuple(sorted(order, key=canon.byte_order_key))
     return ReachResult(
-        derivable=str(program.goal) in seen,
+        # Any member reached is the objective reached. See ReachProgram.build.
+        derivable=any(str(g) in seen for g in program.goals),
         closure=closure,
         order=tuple(order),
         steps=steps,
@@ -282,7 +305,16 @@ def witness_tree(
     Ties among admissible supports are impossible: instance_id is a content hash of the
     whole instance, so two distinct supports have distinct ids.
     """
-    goal = program.goal if target is None else target
+    if target is None:
+        # Root the tree at a goal that was DERIVED, not at the representative, which may
+        # be a member no instance heads. Among the derived members take the first in the
+        # library's strictly ascending order, so the choice is a function of the program
+        # and the cut and nothing else.
+        derived = {str(f) for f in result.order}
+        reached = [g for g in program.goals if str(g) in derived]
+        goal = reached[0] if reached else program.goal
+    else:
+        goal = target
     if str(goal) not in {str(f) for f in result.order}:
         raise errors.SchemaError(
             f"witness_tree: {goal} is not in the closure under this cut; "
