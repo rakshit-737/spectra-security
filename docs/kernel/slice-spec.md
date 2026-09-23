@@ -154,6 +154,7 @@ Only exact string joins against the scenario entity tables. No fuzzy matching, n
   calibration_seed_band:[u32,u32], reference_bundle_hash:"blake3:..",
   reference_run_manifest_hash:"blake3:..", excluded_intervals_hash:"blake3:..",
   regime_collapsed:bool,
+  disputed_events:[{event_id:"ev:..", source_id:str, t_evt_ns:str(i64)}] sorted by event_id (ADR-0016),
   sources:[{ source_id:str, integrity_class:str,
     regimes:[{ regime_id:str, n_gaps:u32,
                order_statistics:{"<p>/<q>": str(u64 ns)},   keys exactly the levels in liveness.toml
@@ -161,7 +162,7 @@ Only exact string joins against the scenario entity tables. No fuzzy matching, n
 profile_id = blake3(scf(object with profile_id removed)).
 gap_digest = blake3 over LEB128(len) || LEB128(gap_i) of the full ascending u64 gap vector.
 
---- 8. LivenessDoc  (runs/<id>/liveness.json, schema "spectra.liveness/2") — exactly the 65.7 shape:
+--- 8. LivenessDoc  (runs/<id>/liveness.json, schema "spectra.liveness/3" since ADR-0016; was /2) — exactly the 65.7 shape:
 { schema, mode_global:"F0_CALIBRATED"|"F1_INSUFFICIENT"|"F2_NO_PROFILE"|"F3_DECLARED",
   profile_id, quantile:"95/100", slack:"3/2", n_min:u32, m_min:u32,
   sources:[{ source_id, integrity_class, mode, threshold_ns:str(u64) (absent in F1/F2),
@@ -368,10 +369,15 @@ B_THRESHOLD_OVERFLOW, B_WINDOW_UNDERSAMPLED} and observed-gap {B_GAP_EXCEEDS_THR
 Every premium control carries per_control.calibration_deficiency as an exact rational so that a control resting on
 missing calibration is never described as resting on an observed sensor gap.
 
-TAMPER: the slice does NOT implement the Bellman-Ford backdating pass. Therefore tamper_suspected is always false,
-verdict_tamper_sensitive is always false, flag bit 5 is never set, and the slice must never claim it detects
-suppression, backdating or tampering of any kind. The `Safety.ROBUST` constructor still takes the NoTamperToken so
-that the pass can be added without reworking the type.
+TAMPER: AMENDED BY ADR-0016. The slice DOES implement the temporal-consistency pass, as the dispute protocol of
+Part II 65.6 and never as Part I's voiding pass. `tamper_suspected` is set on a source whose recorded timestamp
+contradicts the order that source itself recorded; the licences resting on it are RETAINED in P_max with full force,
+and the verdict is weakened instead - any suspected source makes ROBUST unconstructible, which is stricter than
+65.6.2's corridor condition and stricter in the fail-closed direction. `verdict_tamper_sensitive` stays false in
+liveness.json: it compares two verdicts, which exist only after S10, so the comparison is computed in the prove stage
+(ADR-0017) and reported there. Flag bit 5 stays false, because nothing is ever voided. What the pass detects is a
+contradiction between recorded values and nothing wider: a consistently rewritten source, a forged chain, and
+suppression on a source with no `seq` are all invisible to it, and no rendering may widen it into tamper detection.
 
 ## grounding
 
@@ -752,6 +758,9 @@ Obligations run in EXACTLY this order, stopping at the first failure. Each may a
                    an event_id present in bundle.jsonl with a matching record hash, every GHOST or LICENSED node
                    carries evidence:[] and a licence and matches its instance's ghost flag, and the tree
                    re-derives the goal under S \ {removed_control}                            E-WITNESS-{CYCLE,EVENT,CUT}
+  O14b dispute     a ROBUST verdict is refused when the pinned liveness document suspects any source or marks the
+                   verdict tamper-sensitive; every disputed event's source is suspected, which a voiding
+                   implementation would fail                                                  VRD-001
   O13 psi-hit      the published cut hits every clause of the published corridor database; each corridor_id
                    recomputes from its atom ranks                                             E-PSI-HIT
   O14 flags        the flag algebra of the verdict section, from spec/verdict/flags.toml       E-FLAG-* / VRD-00n
@@ -1036,8 +1045,9 @@ WHAT CAN HONESTLY BE CUT, AND WHAT EACH CUT COSTS:
     the replay/counterfactual engine of section 24, hypothesis ranking and the competing-hypothesis machinery.
   - The redundancy index and the cost frontier: both are omitted entirely rather than approximated, and appear in
     verdict.derived_suppressed. Cost: none; a Jaccard over a possibly-capped corridor set is biased anyway.
-  - The Bellman-Ford backdating / difference-constraint pass. Cost: real. Flag bit 5 is permanently false, and the
-    slice must never claim it detects tampering, backdating or suppression of any kind.
+  - (WITHDRAWN by ADR-0016: the difference-constraint pass is implemented, under the dispute protocol. It is
+    `spectra_vs.temporal`, it removes nothing from P_max, and its scope is a contradiction between recorded values.
+    Flag bit 5 is still permanently false, because a dispute never voids a licence.)
   - Conjunctive blockers (C-SLICE-1). Cost: a step that only fails when two controls are both raised cannot be
     modelled; the general subset test stays in the code behind an assertion so the narrowing is visible.
   - Two of the four realizability checks (functional_key, obligation_multiplicity). Cost: trees touching those
@@ -1067,7 +1077,7 @@ and runs `make vs-repro` to prove every artifact is byte-identical across two fr
 - Never say a control 'prevented', 'would have prevented', 'would have stopped', or 'blocked' an attack. The only permitted phrasing is 'severs this chain in the model' or 'unreachable under cut S'.
 - Never print 'minimum cut', 'the minimum cut', 'no smaller cut exists', or 'cardinality-minimal'. These are banned substrings with no allowlist. EXACT_PSI_RELATIVE renders as 'no smaller cut satisfies the enumerated corridor set'; SUBSET renders as 'no control can be removed from this cut; smaller cuts were not ruled out'.
 - Never render a bare verdict token. ROBUST, OPTIMISTIC_ONLY, UNSAFE and INDETERMINATE may appear only inside the verdict object with the six scope hashes and the literal attacker=non-adaptive travelling with them, and the long rendering always ends 'This is a statement about the model, not about the system.'
-- Never claim the slice detects suppression, tampering, backdating or log deletion. The difference-constraint pass is not implemented; flag bit 5 is permanently false. Suppression on a `none`-integrity source is undetectable in principle and is represented only as BLIND volume.
+- Never claim the slice detects suppression, tampering, backdating or log deletion. Since ADR-0016 it detects ONE thing: a recorded timestamp that contradicts the order its own source recorded, or a declared temporal bound. A consistently rewritten source, a forged chain and suppression on a `none`-integrity source are undetectable here, the last in principle, and are represented only as BLIND volume. Flag bit 5 is permanently false, because a dispute never voids a licence.
 - Never describe a licence as an observation, or a GHOST as an event. Licences are permissions for unobserved steps. GHOSTs never enter observed_event_count, any alert count, any evidence count or any timeline rendered as observed; observed_count and ghost_count are separate fields and a single summed field is forbidden.
 - Never call `S_rob \ S_opt` or `cut_delta_canonical` the blindness premium. The premium is NEC(Psi_max) \ OCC(Psi_min) and is omitted entirely when its completeness preconditions fail.
 - Never say a premium control is 'needed because the sensor was blind' when its licences rest on calibration-deficiency reasons (B_PROFILE_INSUFFICIENT, B_REGIME_UNKNOWN, B_FORCED_NO_PROFILE_MODE, B_THRESHOLD_OVERFLOW, B_WINDOW_UNDERSAMPLED). The correct string is 'needed because this run was not calibrated for this source'.
