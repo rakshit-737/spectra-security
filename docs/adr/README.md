@@ -148,6 +148,7 @@ visible numeral.
 | [0013](0013-the-slice-is-a-python-reference-implementation.md) | The vertical slice is a Python reference implementation | Superseded by ADR-0014 | No Rust, Go, Docker or make on this machine; what that costs the independence claim. |
 | [0014](0014-correct-the-make-claim-in-adr-0013.md) | Correct the claim in ADR-0013 that make has never run here | Accepted | make is absent locally but has run in CI on every push; M0 is not blocked by it. |
 | [0015](0015-witness-trees-are-published-flat.md) | Witness trees are published flat, and a licensed silent step is a witness node kind | Accepted | The nested encoding capped a witness at two levels and had no word for a licensed silent step; schema 1.0 becomes 1.1. |
+| [0016](0016-the-slice-implements-the-temporal-dispute-pass.md) | The slice implements the temporal-consistency pass, under the dispute protocol | Accepted | The slice-spec excluded it, so no ROBUST verdict could ever be blocked; 65.6 retains disputed licences so tampering cannot buy a stronger verdict. |
 
 Add the index row in the same change that adds the record. An ADR file with no index row, or an
 index row with no file, is an error.
