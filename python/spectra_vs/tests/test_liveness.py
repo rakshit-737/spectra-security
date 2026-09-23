@@ -637,12 +637,107 @@ class TestDocument(unittest.TestCase):
             liveness.liveness_hash(doc), canon.hash_ref("live", doc.canonical_bytes())
         )
 
-    def test_tamper_suspected_cannot_be_set_in_this_slice(self) -> None:
-        self.assertFalse(liveness.TAMPER_PASS_IMPLEMENTED)
+    def test_the_pass_exists_and_a_source_can_be_suspected(self) -> None:
+        """Until ADR-0016 neither was true, and the types refused a suspected source."""
+        self.assertTrue(liveness.TAMPER_PASS_IMPLEMENTED)
         doc = build(sources=(gapped_source(),))
         self.assertFalse(doc.flags.verdict_tamper_sensitive)
-        with self.assertRaises(SchemaError):
-            dataclasses.replace(doc.source("iam_audit"), tamper_suspected=True)
+        suspected = dataclasses.replace(doc.source("iam_audit"), tamper_suspected=True)
+        self.assertTrue(suspected.tamper_suspected)
+        self.assertTrue(suspected.to_scf()["tamper_suspected"])
+
+
+class TestTemporalDispute(unittest.TestCase):
+    """ADR-0016: what the temporal pass does to a liveness document.
+
+    The one rule that matters is that nothing is taken away. A disputed licence is
+    retained; only the verdict is weakened, and that is checked here and in the pipeline.
+    """
+
+    def _document(self) -> liveness.LivenessDocument:
+        return build(sources=(gapped_source(),))
+
+    def _disputed(self, at_ns: int) -> liveness.DisputedEvent:
+        return liveness.DisputedEvent(
+            event_id="ev:" + "ab" * 16, source_id="src:iam_audit", t_evt_ns=at_ns
+        )
+
+    def test_a_clean_document_disputes_nothing(self) -> None:
+        doc = self._document()
+        self.assertEqual(doc.disputed_events, ())
+        self.assertFalse(any(s.tamper_suspected for s in doc.sources))
+        self.assertIsNotNone(liveness.no_tamper_token(doc))
+
+    def test_applying_a_correction_marks_the_source_and_keeps_every_interval(self) -> None:
+        doc = self._document()
+        disputed = liveness.apply_temporal_dispute(doc, (self._disputed(EPOCH + 60 * SECOND),))
+        self.assertTrue(disputed.source("iam_audit").tamper_suspected)
+        self.assertEqual(
+            [i.to_scf() for i in disputed.source("iam_audit").intervals],
+            [i.to_scf() for i in doc.source("iam_audit").intervals],
+        )
+
+    def test_a_suspected_source_blocks_the_token(self) -> None:
+        disputed = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        self.assertIsNone(liveness.no_tamper_token(disputed))
+
+    def test_an_untouched_source_stays_unsuspected(self) -> None:
+        other = liveness.SourceInput(
+            source_id=SourceId.of("gw_access"),
+            integrity_class=IntegrityClass.SEQUENCED,
+            events=make_stream("gw_access", GAPPED, IntegrityClass.SEQUENCED),
+        )
+        doc = build(sources=(gapped_source(), other))
+        disputed = liveness.apply_temporal_dispute(doc, (self._disputed(EPOCH + 60 * SECOND),))
+        self.assertTrue(disputed.source("iam_audit").tamper_suspected)
+        self.assertFalse(disputed.source("gw_access").tamper_suspected)
+
+    def test_the_disputed_events_travel_in_the_artifact(self) -> None:
+        disputed = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        member = disputed.to_scf()["disputed_events"]
+        self.assertEqual(len(member), 1)
+        self.assertEqual(member[0]["source_id"], "src:iam_audit")
+        self.assertEqual(member[0]["t_evt_ns"], str(EPOCH + 60 * SECOND))
+
+    def test_a_licence_over_a_disputed_instant_is_disputed(self) -> None:
+        doc = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        self.assertTrue(
+            liveness.licence_disputed(doc, "src:iam_audit", EPOCH, EPOCH + 120 * SECOND)
+        )
+
+    def test_a_licence_elsewhere_in_time_is_not_disputed(self) -> None:
+        doc = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        self.assertFalse(
+            liveness.licence_disputed(doc, "src:iam_audit", EPOCH + 600 * SECOND, EPOCH + 700 * SECOND)
+        )
+
+    def test_a_licence_of_another_source_is_not_disputed(self) -> None:
+        doc = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        self.assertFalse(
+            liveness.licence_disputed(doc, "src:gw_access", EPOCH, EPOCH + 120 * SECOND)
+        )
+
+    def test_the_dispute_never_reaches_the_voiding_path(self) -> None:
+        """Voiding shrinks P_max and a smaller P_max can only move a verdict toward
+        ROBUST (Part II 65.6), so a dispute must not produce a voided licence id."""
+        doc = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        issue = liveness.issue_licences(
+            doc, ("iam_audit",), liveness.Interval(EPOCH + 30 * SECOND, EPOCH + 90 * SECOND)
+        )
+        self.assertFalse(issue.license_voided_by_suspected_tampering)
+        self.assertEqual(issue.voided, ())
 
 
 class TestSelfCalibrationTrapIsClosed(unittest.TestCase):
@@ -890,7 +985,7 @@ class TestNoTamperToken(unittest.TestCase):
         with self.assertRaises(SchemaError):
             liveness.NoTamperToken(object())
 
-    def test_the_stage_mints_it_because_nothing_is_ever_tamper_suspected(self) -> None:
+    def test_the_stage_mints_it_for_a_document_with_nothing_suspected(self) -> None:
         self.assertIsNotNone(liveness.no_tamper_token(build(sources=(gapped_source(),))))
 
 

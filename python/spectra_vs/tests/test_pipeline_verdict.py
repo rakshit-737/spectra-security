@@ -8,13 +8,13 @@ Run from the repository root:
 A ROBUST verdict needs a NoTamperToken, and the token may be minted only when no source is
 tamper_suspected and the liveness document is not tamper-sensitive. The pipeline used to
 pass both as literals - an empty tuple and False - instead of reading them from the
-liveness document. In this slice the two are the same thing, because the backdating pass
-does not exist and the liveness types refuse a true value. They stop being the same the
-moment the pass is added, and nothing would have noticed.
+liveness document. That was invisible while the pass did not exist and nothing could be
+suspected; it would have been silently wrong the moment one could, which is now.
 
-The real liveness types cannot hold a suspected source yet, so these tests hand the
-builder a stand-in document with the two attributes it reads. That is the point: they pin
-WHICH object the pipeline consults, which is the property the literals broke.
+These tests hand the builder a stand-in document carrying the two attributes it reads,
+because what they pin is WHICH object the pipeline consults. The real document's side of
+the same property is tested in test_liveness.py and end to end by the pre-registered
+backdate cell.
 """
 
 from __future__ import annotations
@@ -93,11 +93,15 @@ class TestTheCheckerEnvironment(unittest.TestCase):
         self.assertFalse(any(pathlib.Path(e, "spectra_vs").is_dir() for e in entries))
 
 
-class TestTheSliceStillHasNoTamperPass(unittest.TestCase):
-    """If this fails, the pass exists and the demo's caveats about it must be revisited."""
+class TestTheTamperPassExists(unittest.TestCase):
+    """This test used to assert the opposite, and it is why the caveats were revisited.
 
-    def test_the_pass_is_not_implemented(self) -> None:
-        self.assertFalse(liveness_mod.TAMPER_PASS_IMPLEMENTED)
+    It was written to fail the day the pass arrived (ADR-0016), so that the demo could not
+    go on printing "no tamper check exists" once one did.
+    """
+
+    def test_the_pass_is_implemented(self) -> None:
+        self.assertTrue(liveness_mod.TAMPER_PASS_IMPLEMENTED)
 
 
 if __name__ == "__main__":

@@ -45,9 +45,9 @@ from __future__ import annotations
 import bisect
 import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import Callable, Final
+from typing import Callable, Final, Sequence
 
 from spectra_core import canon
 from spectra_core.errors import CanonError, ProfileError, SchemaError, SpectraError
@@ -125,13 +125,14 @@ __all__ = [
 ]
 
 
-LIVENESS_SCHEMA: Final[str] = "spectra.liveness/2"
+#: 3 since ADR-0016: the document carries the temporal pass's disputed events.
+LIVENESS_SCHEMA: Final[str] = "spectra.liveness/3"
 LIVENESS_CONFIG_SCHEMA: Final[str] = "spectra.vs.liveness_cfg/1"
 
-#: The slice does not implement the Bellman-Ford backdating pass, so no source is ever
-#: tamper_suspected and flag bit 5 is permanently false. The constant exists so that the
-#: claim is a value a test can assert rather than a sentence in a comment.
-TAMPER_PASS_IMPLEMENTED: Final[bool] = False
+#: The temporal-consistency pass exists since ADR-0016, so a source CAN be tamper-suspected.
+#: The constant stays so the claim is a value a test can assert rather than a sentence in a
+#: comment, and so a reader can tell which regime produced an older run.
+TAMPER_PASS_IMPLEMENTED: Final[bool] = True
 
 
 class LivenessMode(StrEnum):
@@ -840,12 +841,8 @@ class SourceLiveness:
     tamper_suspected: bool = False
 
     def __post_init__(self) -> None:
-        if self.tamper_suspected:
-            raise SchemaError(
-                "SourceLiveness.tamper_suspected is always false in this slice: the "
-                "difference-constraint backdating pass is not implemented and this "
-                "package must never claim it detects tampering"
-            )
+        # tamper_suspected is set by `apply_temporal_dispute` and by nothing else. Until
+        # ADR-0016 the pass did not exist and this constructor refused a true value.
         canon.check_strictly_ascending(
             self.intervals, lambda i: (i.t0_ns, i.t1_ns), where="intervals"
         )
@@ -898,10 +895,12 @@ class LivenessFlags:
     mcs_greedy: bool = False
 
     def __post_init__(self) -> None:
-        if self.verdict_tamper_sensitive:
-            raise SchemaError(
-                "LivenessFlags.verdict_tamper_sensitive is always false in this slice"
-            )
+        """Both tamper members are representable since ADR-0016; S7 sets neither.
+
+        `verdict_tamper_sensitive` compares two VERDICTS, which S10 computes long after
+        this document has been hashed into the certificate, so S7 cannot know it. The
+        comparison is made in the prove stage and published there.
+        """
 
     def to_scf(self) -> dict[str, object]:
         return {
@@ -911,6 +910,35 @@ class LivenessFlags:
             "mcs_greedy": self.mcs_greedy,
             "profile_regime_collapsed": self.profile_regime_collapsed,
             "verdict_tamper_sensitive": self.verdict_tamper_sensitive,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class DisputedEvent:
+    """One event whose recorded timestamp the temporal pass could not believe.
+
+    It is a report, not a removal. The event stays in the bundle, every licence that rests
+    on it stays in P_max, and what changes is that the source is marked tamper-suspected
+    and the verdict is weakened. See `spectra_vs.temporal` and ADR-0016.
+    """
+
+    event_id: str
+    source_id: str
+    t_evt_ns: int
+
+    def __post_init__(self) -> None:
+        if not self.event_id.startswith("ev:"):
+            raise SchemaError("DisputedEvent.event_id is an ev: identifier")
+        canon.u64(self.t_evt_ns)
+
+    def sort_key(self) -> bytes:
+        return canon.byte_order_key(self.event_id)
+
+    def to_scf(self) -> dict[str, object]:
+        return {
+            "event_id": self.event_id,
+            "source_id": self.source_id,
+            "t_evt_ns": str(self.t_evt_ns),
         }
 
 
@@ -926,6 +954,7 @@ class LivenessDocument:
     sources: tuple[SourceLiveness, ...]
     flags: LivenessFlags
     profile_id: str | None = None
+    disputed_events: tuple[DisputedEvent, ...] = ()
     schema: str = LIVENESS_SCHEMA
 
     def __post_init__(self) -> None:
@@ -957,6 +986,7 @@ class LivenessDocument:
             "n_min": self.n_min,
             "quantile": self.quantile,
             "schema": self.schema,
+            "disputed_events": [d.to_scf() for d in self.disputed_events],
             "slack": self.slack,
             "sources": [s.to_scf() for s in self.sources],
         }
@@ -969,6 +999,54 @@ class LivenessDocument:
 
     def canonical_text(self) -> str:
         return scf_dumps(self.to_scf(), where="liveness")
+
+
+def apply_temporal_dispute(
+    document: LivenessDocument, disputed: Sequence[DisputedEvent]
+) -> LivenessDocument:
+    """Mark the sources of `disputed` as tamper-suspected. Remove nothing.
+
+    This is the whole of the dispute protocol's effect on the liveness artifact: the
+    intervals, the licences they will issue and the blind volumes are untouched, and the
+    only change is a flag per source plus the disputed events themselves, which travel so a
+    checker can re-derive which licences are disputed from the pinned document alone.
+
+    It is NOT Part I's voiding pass, and the difference is the point. Voiding a licence
+    shrinks P_max, and a smaller P_max can only move a verdict toward ROBUST, so an
+    adversary who could make licences look untrustworthy could buy the strongest verdict
+    SPECTRA issues. Part II 65.6 retains the licence and weakens the verdict instead.
+    """
+    if not disputed:
+        return document
+    ordered = tuple(sorted(dict.fromkeys(disputed), key=DisputedEvent.sort_key))
+    suspected = {d.source_id for d in ordered}
+    sources = tuple(
+        replace(source, tamper_suspected=True)
+        if str(source.source_id) in suspected or source.source_id.snake in suspected
+        else source
+        for source in document.sources
+    )
+    return replace(document, sources=sources, disputed_events=ordered)
+
+
+def licence_disputed(
+    document: LivenessDocument, source_id: str, t0_ns: int, t1_ns: int
+) -> bool:
+    """Whether a licence over `[t0_ns, t1_ns]` on `source_id` rests on a disputed instant.
+
+    The specification's phrase is a licence whose interval endpoints DEPEND ON an event
+    incident to the correction set. This slice reads that conservatively: any disputed
+    event of the same source whose recorded instant lies in the closed interval disputes
+    the licence. Conservative is the safe direction here - it disputes more licences, which
+    weakens more verdicts, and the failure it protects against is a verdict that is too
+    strong.
+    """
+    for event in document.disputed_events:
+        if event.source_id not in (source_id, f"src:{source_id}"):
+            continue
+        if t0_ns <= event.t_evt_ns <= t1_ns:
+            return True
+    return False
 
 
 def liveness_hash(document: LivenessDocument) -> str:

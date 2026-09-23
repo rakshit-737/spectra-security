@@ -199,28 +199,35 @@ def render_cell(rendered: Rendered) -> str:
     for line in cert_mod.render_long(prove.verdict_at_cut_max, prove.scope).splitlines():
         add(f"    {line}")
     robust = cert_mod.Safety.ROBUST
-    if not liveness_mod.TAMPER_PASS_IMPLEMENTED and robust in (
-        prove.verdict_at_cut_min.safety,
-        prove.verdict_at_cut_max.safety,
-    ):
+    if robust in (prove.verdict_at_cut_min.safety, prove.verdict_at_cut_max.safety):
         add(
-            "  ROBUST requires a NoTamperToken. This slice mints it WITHOUT a tamper check, "
-            "because the backdating pass does not exist."
+            "  ROBUST requires a NoTamperToken, which the liveness stage mints only when no "
+            "source is tamper-suspected. The check behind it (ADR-0016) compares recorded"
         )
+        add(
+            "  timestamps against the order their own source recorded, and nothing else: a "
+            "consistently rewritten source, a forged chain and suppression on a source"
+        )
+        add("  without a sequence number are all invisible to it.")
     add("")
 
     add("FLAGS SET")
     add(f"  {', '.join(prove.flags) if prove.flags else 'none'}")
-    # liveness.py: an absent check must never be rendered as a clean result. A reader of
-    # "none" alone would take it for "no tampering found".
-    if not liveness_mod.TAMPER_PASS_IMPLEMENTED:
+    # A result, not an absent check, since ADR-0016 - but a narrow one, and the line says
+    # how narrow rather than letting "none" read as "no tampering found".
+    disputed = cell.liveness.document.disputed_events
+    if disputed:
         add(
-            "  No source can be tamper_suspected and license_voided_by_suspected_tampering "
-            "can never be set: the pass that would set them"
+            f"  TEMPORAL DISPUTE: {len(disputed)} recorded timestamp(s) contradict their "
+            "source's own order. The licences resting on them are RETAINED in P_max;"
         )
+        add("  only the verdict is weakened. Voiding them would reward the tampering.")
+        for event in disputed:
+            add(f"    {event.event_id}  {event.source_id}  recorded at {event.t_evt_ns}")
+    else:
         add(
-            "  is NOT IMPLEMENTED. 'none' is the absence of that check, not a finding that "
-            "any record stream is untampered."
+            "  No recorded timestamp contradicts the order its own source recorded. That is "
+            "what the pass checks and all it checks."
         )
     add("")
 
