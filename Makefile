@@ -255,15 +255,15 @@ test-reference: ## Run every suite of the Python reference slice -- gate G-PYREF
 	  printf 'suites: %d passing, %d failing\n' "$$pass" "$$fail"; \
 	  if [ "$$fail" -ne 0 ]; then spectra_err "test-reference: failing:$$failed"; exit 1; fi
 
-vs-prereg-0001: ## Re-run pre-registration 0001; fail unless it held -- gate G-VS-PREREG-0001 (T1)
+vs-prereg-0001: ## Re-run pre-registrations 0001 and 0002; fail unless both held -- gate G-VS-PREREG-0001 (T1)
 	@. "$(COMMON)"; \
 	  spectra_rule; \
 	  printf 'SPECTRA vs-prereg-0001\n'; \
-	  printf 'Runs the demonstration, whose blackout cell was registered with its\n'; \
-	  printf 'predictions in docs/research/prereg-0001-blackout-cell.md before it was\n'; \
-	  printf 'built. Fails if any registered falsifier fails, if the prediction is not\n'; \
-	  printf 'evaluated, or if the separate checker rejects a certificate. A green run\n'; \
-	  printf 'reproduces one simulated data point on this interpreter. It measures\n'; \
+	  printf 'Runs the demonstration, whose blackout and backdate cells were\n'; \
+	  printf 'registered with their predictions in docs/research/prereg-000{1,2}-*.md\n'; \
+	  printf 'before either was built. Fails if any registered falsifier fails, if a\n'; \
+	  printf 'prediction is not evaluated, or if the separate checker rejects a\n'; \
+	  printf 'certificate. A green run reproduces two simulated data points. It measures\n'; \
 	  printf 'nothing and makes no milestone green.\n'; \
 	  spectra_rule; \
 	  py=$${PYTHON:-python3}; \
@@ -285,13 +285,14 @@ vs-prereg-0001: ## Re-run pre-registration 0001; fail unless it held -- gate G-V
 	    spectra_err "vs-prereg-0001: the demonstration exited $$status (1 = a certificate was rejected, 2 = the prediction failed)"; \
 	    exit 1; \
 	  fi; \
-	  if ! grep -qx '  PREDICTION HELD.' "$$log"; then \
+	  held=$$(grep -c 'PREDICTION HELD' "$$log" || true); \
+	  if [ "$$held" -lt 2 ]; then \
 	    rm -f "$$log"; \
-	    spectra_err 'vs-prereg-0001: exit 0 but no PREDICTION HELD line; the prediction was not evaluated'; \
+	    spectra_err "vs-prereg-0001: exit 0 but $$held of 2 predictions were reported as held; one was not evaluated"; \
 	    exit 1; \
 	  fi; \
 	  rm -f "$$log"; \
-	  spectra_log 'vs-prereg-0001: the prediction held and every certificate was accepted'
+	  spectra_log 'vs-prereg-0001: both predictions held and every certificate was accepted'
 
 skeleton-verify: ## Check the session-one repo layout and required root files exist
 	@. "$(COMMON)"; \

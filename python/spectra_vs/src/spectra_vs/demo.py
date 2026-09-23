@@ -224,6 +224,26 @@ def render_cell(rendered: Rendered) -> str:
         add("  only the verdict is weakened. Voiding them would reward the tampering.")
         for event in disputed:
             add(f"    {event.event_id}  {event.source_id}  recorded at {event.t_evt_ns}")
+        if prove.disputed_license_ids:
+            add(
+                f"  {len(prove.disputed_license_ids)} licence(s) rest on a disputed "
+                "timestamp and are RETAINED. Had they been voided, as Part I specifies,"
+            )
+            counterfactual = prove.counterfactual_safety
+            add(
+                f"  the verdict at the cut over P_max would have been "
+                f"{counterfactual.value if counterfactual else 'unchanged'}, against the "
+                f"published {prove.verdict_at_cut_max.safety.value}."
+            )
+            add(
+                "  That difference is what the tampering would have bought. It bought "
+                "nothing, which is the property Part II 65.6 exists to hold."
+            )
+        else:
+            add(
+                "  No licence rests on a disputed timestamp, so voiding them would have "
+                "changed nothing here either."
+            )
     else:
         add(
             "  No recorded timestamp contradicts the order its own source recorded. That is "
@@ -367,6 +387,126 @@ def prereg_0001_blackout(epoch_ns: int) -> degrade_mod.Blackout:
         t0_ns=epoch_ns + lo * 1_000_000_000,
         t1_ns=epoch_ns + hi * 1_000_000_000,
     )
+
+
+#: Pre-registration 0002, docs/research/prereg-0002-backdate-cell.md. Committed in a796c41
+#: BEFORE the BACKDATE operator and the temporal pass existed. Same rule as 0001: these are
+#: compared mechanically and are never edited to match a result.
+PREREG_0002_SOURCE: str = "iam_audit"
+PREREG_0002_EVENT_TYPE: str = "iam_role_assumed"
+PREREG_0002_SHIFT_S: int = -2700
+
+
+def prereg_0002_backdate() -> degrade_mod.Backdate:
+    """The intervention exactly as registered: one record, one shift, nothing else."""
+    return degrade_mod.Backdate(
+        source_id=PREREG_0002_SOURCE,
+        event_type=PREREG_0002_EVENT_TYPE,
+        shift_ns=PREREG_0002_SHIFT_S * 1_000_000_000,
+        occurrence=0,
+    )
+
+
+def _artifact_bytes(cell: pipeline_mod.CellResult, name: str) -> bytes:
+    path = cell.run_dir / name
+    return path.read_bytes() if path.exists() else b""
+
+
+def prereg_0002_checks(
+    on: Rendered, off: Rendered
+) -> tuple[tuple[str, bool, str], ...]:
+    """Each registered falsifier of 0002, evaluated in code.
+
+    Every row compares the SAME cell with the temporal pass on and off, which is what the
+    registration fixed: the backdating changes what the rule table grounds, so only the
+    pass-on / pass-off difference isolates the pass.
+    """
+    document = on.cell.liveness.document
+    disputed = document.disputed_events
+    rewritten = on.cell.degrade.result.rewritten
+    expected_event = rewritten[0].now_event_id if rewritten else "(nothing was rewritten)"
+    suspected = tuple(
+        str(source.source_id)
+        for source in document.sources
+        if source.tamper_suspected
+    )
+    p_max_same = _artifact_bytes(on.cell, "p_max.json") == _artifact_bytes(
+        off.cell, "p_max.json"
+    )
+    premium_same = _artifact_bytes(on.cell, "premium.json") == _artifact_bytes(
+        off.cell, "premium.json"
+    )
+    on_safety = on.cell.prove.verdict_at_cut_max.safety.value
+    off_safety = off.cell.prove.verdict_at_cut_max.safety.value
+    return (
+        (
+            "the pass finds a contradiction",
+            bool(disputed),
+            f"{len(disputed)} disputed timestamp(s)",
+        ),
+        (
+            "C is exactly the backdated record",
+            len(disputed) == 1 and disputed[0].event_id == expected_event,
+            ", ".join(d.event_id for d in disputed) or "(empty)",
+        ),
+        (
+            f"{PREREG_0002_SOURCE} is suspected, and nothing else",
+            suspected == (f"src:{PREREG_0002_SOURCE}",),
+            ", ".join(suspected) or "(none)",
+        ),
+        (
+            "p_max.json is byte-identical with the pass off",
+            p_max_same,
+            "identical" if p_max_same else "DIFFERS: P_max moved",
+        ),
+        (
+            "premium.json is byte-identical with the pass off",
+            premium_same,
+            "identical" if premium_same else "DIFFERS",
+        ),
+        (
+            "the cut over P_max is ROBUST with the pass off",
+            off_safety == "ROBUST",
+            off_safety,
+        ),
+        (
+            "the cut over P_max is OPTIMISTIC_ONLY with the pass on",
+            on_safety == "OPTIMISTIC_ONLY",
+            on_safety,
+        ),
+        (
+            "the separate checker accepts the pass-on certificate",
+            on.cell.verify_exit in (None, 0),
+            f"exit {on.cell.verify_exit}",
+        ),
+    )
+
+
+def prereg_0002_held(on: Rendered, off: Rendered) -> bool:
+    return all(ok for _, ok, _ in prereg_0002_checks(on, off))
+
+
+def render_prereg_0002(on: Rendered, off: Rendered) -> str:
+    """The falsifiers of 0002 and the verdict on the prediction."""
+    checks = prereg_0002_checks(on, off)
+    out = [
+        _RULE,
+        "PRE-REGISTRATION 0002 -- predictions committed in a796c41 before the operator "
+        "and the pass existed",
+        _RULE,
+    ]
+    for name, ok, observed in checks:
+        out.append(f"  {'PASS' if ok else 'FAIL':<4}  {name:<52} observed {observed}")
+    out.append(_THIN)
+    held = all(ok for _, ok, _ in checks)
+    out.append(
+        "  PREDICTION HELD. Tampering with a timestamp bought the attacker nothing: the "
+        "licences stayed in P_max and the verdict weakened."
+        if held
+        else "  PREDICTION FAILED. Reported as the result it is; the cell will not be "
+        "re-chosen and the magnitude will not be changed."
+    )
+    return "\n".join(out)
 
 
 def prereg_0001_applies(*, seed: int, calibration_seed: int) -> bool:
@@ -712,6 +852,36 @@ def main(
     rendered.insert(1, blackout_entry)
     print(render_difference(tuple(rendered)), file=out, flush=True)
     print("", file=out, flush=True)
+    # Pre-registration 0002: the same backdated cell with the temporal pass on and off.
+    # Two runs, one variable. The pass-off run writes its own directory because the switch
+    # is part of the run id.
+    backdate_spec = prereg_0002_backdate()
+    backdate_cells: list[Rendered] = []
+    for label, pass_on in (
+        (f"backdate {PREREG_0002_SOURCE} {PREREG_0002_SHIFT_S} s  (PRE-REGISTERED 0002)", True),
+        (
+            f"backdate {PREREG_0002_SOURCE} {PREREG_0002_SHIFT_S} s, TEMPORAL PASS OFF  "
+            "(the comparison arm)",
+            False,
+        ),
+    ):
+        cell = pipeline_mod.run_cell(
+            layout,
+            completeness=degrade_mod.Completeness.of(1, 1),
+            seed=seed,
+            degradation_seed=degradation_seed,
+            calibration=calibration,
+            calibration_seed=calibration_seed,
+            verify=verify,
+            backdate=backdate_spec,
+            temporal_pass=pass_on,
+        )
+        entry = Rendered(label=label, cell=cell)
+        backdate_cells.append(entry)
+        rendered.append(entry)
+        print(render_cell(entry), file=out, flush=True)
+        print("", file=out, flush=True)
+
     applies = prereg_0001_applies(seed=seed, calibration_seed=calibration_seed)
     if applies:
         print(render_prereg_0001(blackout_entry), file=out, flush=True)
@@ -724,9 +894,13 @@ def main(
             file=out,
             flush=True,
         )
+    if applies:
+        print(render_prereg_0002(backdate_cells[0], backdate_cells[1]), file=out, flush=True)
     if any(r.cell.verify_exit not in (None, 0) for r in rendered):
         return EXIT_CHECKER_REJECTED
     if applies and not prereg_0001_held(blackout_entry):
+        return EXIT_PREDICTION_FAILED
+    if applies and not prereg_0002_held(backdate_cells[0], backdate_cells[1]):
         return EXIT_PREDICTION_FAILED
     return EXIT_OK
 
