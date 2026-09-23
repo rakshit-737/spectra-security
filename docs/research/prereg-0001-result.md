@@ -24,6 +24,9 @@ not by dates:
 
 ## What was observed
 
+<!-- CLM-0001 -->
+Blinding one sensor over one window added exactly one control to the blindness premium, and the corridor count over the upper program rose while the lower one did not move.
+
 | Quantity | Full telemetry | Blackout cell, PREDICTED | Blackout cell, OBSERVED |
 | --- | --- | --- | --- |
 | `\|Psi_min\|` | 1 | 1 | **1** |

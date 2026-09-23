@@ -19,6 +19,9 @@ timestamp bought the attacker nothing: the licences stayed in `P_max` and the ve
 
 ## What was observed
 
+<!-- CLM-0002 -->
+Every falsifier registered for the backdate cell passed, and the licences resting on the disputed timestamp were retained rather than voided.
+
 The intervention: the one `iam_role_assumed` record on `src:iam_audit`, moved 2700 s earlier, keeping
 its sequence number. Every row compares the same cell with the temporal pass on and off.
 

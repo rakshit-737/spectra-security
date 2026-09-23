@@ -46,13 +46,16 @@ The corollaries, all gated:
 
 ## The registry
 
-Zero records. No claim has been registered, because no artifact has been produced and no gate has
-run.
+Two records. Both are TUNED, so neither may appear on the README, the paper abstract, the repository
+metadata or the demo transcript; both are carried on the result record that the gate's artifact
+backs. No held-out pool exists yet, so no record can be GREEN.
 
 ### Record index
 
 | claim id | text | kind | surfaces | support artifact | gate | scope | status |
 |----------|------|------|----------|------------------|------|-------|--------|
+| CLM-0001 | Blinding one sensor over one window added exactl... | QUANT | docs/research/prereg-0001-result.md | research/results/prereg-0001.json | G-VS-PREREG-0001 | this rule table, catalog and licences; non-adaptive | TUNED |
+| CLM-0002 | Every falsifier registered for the backdate cell... | QUANT | docs/research/prereg-0002-result.md | research/results/prereg-0002.json | G-VS-PREREG-0001 | this rule table, catalog and licences; non-adaptive | TUNED |
 
 (The table above is the human index and is intentionally empty. It is regenerated from the records
 below once `make claims-gen` exists.)
@@ -91,7 +94,35 @@ Claim ids are stable forever and are never reused after retirement. The scope cl
 
 ### Records
 
-_None._
+### CLM-0001
+text: "Blinding one sensor over one window added exactly one control to the blindness premium, and the corridor count over the upper program rose while the lower one did not move."
+kind: QUANT
+surfaces:
+  - docs/research/prereg-0001-result.md#what-was-observed
+support:
+  artifact: research/results/prereg-0001.json
+  blake3: 8cac788ee5da3117f47da56696839426fcdadf192b9131558d7c100c176df534
+  run: vs-02830d35a09ad406
+  gate: G-VS-PREREG-0001
+  target: make vs-prereg-0001
+scope: "under this rule table, this control catalog, these licences and a non-adaptive attacker, over telemetry from a seeded synthetic generator"
+status: TUNED
+note: "The digest is blake2b-256, as every digest in this repository is; the field keeps its specified name and the substitution is declared in each certificate's schema member. TUNED because the scenario was authored and edited by the author who wrote the predictions, so this record may not appear on a headline surface."
+
+### CLM-0002
+text: "Every falsifier registered for the backdate cell passed, and the licences resting on the disputed timestamp were retained rather than voided."
+kind: QUANT
+surfaces:
+  - docs/research/prereg-0002-result.md#what-was-observed
+support:
+  artifact: research/results/prereg-0002.json
+  blake3: 3f7dfd00a8736cf31584c2cd4ece99aa0af1536cfe4c13f13fd604d3468d611c
+  run: vs-07e484a067863409
+  gate: G-VS-PREREG-0001
+  target: make vs-prereg-0001
+scope: "under this rule table, this control catalog, these licences and a non-adaptive attacker, over telemetry from a seeded synthetic generator"
+status: TUNED
+note: "Retention is the property Part II 65.6 exists to hold: voiding a disputed licence shrinks the upper program, and a smaller upper program can only move a verdict toward the universal claim. TUNED for the same reason as CLM-0001."
 
 ## Surfaces scanned
 
