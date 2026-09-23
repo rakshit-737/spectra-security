@@ -66,6 +66,7 @@ grounding found every instance. No certificate produced here is independently ve
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import subprocess
 import sys
@@ -91,6 +92,7 @@ from spectra_vs import resolve as resolve_mod
 from spectra_vs import rules as rules_mod
 from spectra_vs import scenario as scenario_mod
 from spectra_vs import scf
+from spectra_vs import temporal as temporal_mod
 
 __all__ = [
     "AXIOM_ROLES",
@@ -236,6 +238,8 @@ def run_id_for(
     seed: int,
     completeness: degrade_mod.Completeness,
     blackout: degrade_mod.Blackout | None = None,
+    backdate: degrade_mod.Backdate | None = None,
+    temporal_pass: bool = True,
 ) -> str:
     """A content-addressed run id. No counter, no clock, no process id.
 
@@ -257,6 +261,15 @@ def run_id_for(
         parts.extend(canon.ascii_text(s) for s in blackout.sources)
         parts.append(canon.u64(blackout.t0_ns))
         parts.append(canon.u64(blackout.t1_ns))
+    if backdate is not None:
+        parts.append(canon.ascii_text("backdate"))
+        parts.append(canon.ascii_text(backdate.source_id))
+        parts.append(canon.ascii_text(backdate.event_type))
+        parts.append(canon.i64(backdate.shift_ns))
+        parts.append(canon.i64(backdate.occurrence))
+    if not temporal_pass:
+        # The pass-off run of a comparison must not overwrite the pass-on run's directory.
+        parts.append(canon.ascii_text("no-temporal-pass"))
     return "vs-" + canon.digest_hex("vsrun", b"".join(parts))[:16]
 
 
@@ -467,6 +480,7 @@ def s3_degrade(
     run_dir: Path,
     parent: degrade_mod.DegradationResult | None = None,
     blackout: degrade_mod.Blackout | None = None,
+    backdate: degrade_mod.Backdate | None = None,
 ) -> DegradeStage:
     """Delete down to `completeness`, nested with every other level at this seed.
 
@@ -478,6 +492,17 @@ def s3_degrade(
     manifest names that operator instead. The two are not combined: a cell that mixed a
     controlled intervention with random loss could not attribute its effect to either.
     """
+    if backdate is not None:
+        if blackout is not None:
+            raise errors.SchemaError(
+                "s3_degrade: a cell applies one operator; a backdate combined with a "
+                "blackout could not attribute its effect to either"
+            )
+        if parent is not None or not completeness.is_identity:
+            raise errors.SchemaError(
+                "s3_degrade: a backdate cell is not part of the nested completeness chain; "
+                "pass completeness 1/1 and no parent"
+            )
     if blackout is not None:
         if parent is not None or not completeness.is_identity:
             raise errors.SchemaError(
@@ -485,6 +510,8 @@ def s3_degrade(
                 "pass completeness 1/1 and no parent"
             )
         result = degrade_mod.blackout(raw, blackout)
+    elif backdate is not None:
+        result = degrade_mod.backdate(raw, backdate)
     else:
         result = degrade_mod.degrade(raw, completeness, seed, parent=parent)
     raw_path = degrade_mod.write_degraded_raw(run_dir, result)
@@ -781,12 +808,19 @@ def s7_liveness(
     run_dir: Path,
     *,
     no_profile: bool = False,
+    temporal_pass: bool = True,
 ) -> LivenessStage:
     """Classify every source over every elementary interval. The only producer of licences.
 
     Running with neither a profile nor `--no-profile` is an error rather than a default: a
     run that silently proceeded without a profile would produce a document that looks
     calibrated and is not.
+
+    `temporal_pass` runs the temporal-consistency pass (ADR-0016) over the same bundle and
+    marks the sources whose recorded timestamps contradict their own recorded order. It
+    removes nothing from the document either way; the switch exists so that a cell can be
+    run with the pass on and off and the two compared, which is how the pre-registered
+    backdate cell separates what the pass does from what the backdating does.
     """
     by_source: dict[str, list[model.CanonicalEvent]] = {}
     for event in bundle:
@@ -815,6 +849,26 @@ def s7_liveness(
         no_profile=no_profile,
         excluded=_calibrate_excluded(spec),
     )
+    if temporal_pass:
+        found = temporal_mod.run_pass(bundle, cap=config.mcs_exact_cap)
+        by_id = {str(e.event_id): e for e in bundle}
+        document = liveness_mod.apply_temporal_dispute(
+            document,
+            tuple(
+                liveness_mod.DisputedEvent(
+                    event_id=event_id,
+                    source_id=str(by_id[event_id].source_id),
+                    t_evt_ns=int(by_id[event_id].t_evt_ns),
+                )
+                for event_id in found.correction_set
+                if event_id in by_id
+            ),
+        )
+        if found.greedy:
+            document = dataclasses.replace(
+                document,
+                flags=dataclasses.replace(document.flags, mcs_greedy=True),
+            )
     path = run_dir / "liveness.json"
     liveness_mod.write_liveness(document, str(path))
     digest = canon.hash_ref("liveness", path.read_bytes())
@@ -1044,6 +1098,10 @@ class ProveResult:
     ghost_count: int
     observed_event_count: int
     artifacts: tuple[StageArtifact, ...]
+    #: ADR-0016/0017. The licences resting on a disputed timestamp - RETAINED in P_max -
+    #: and the verdict that voiding them would have produced. Reporting only.
+    disputed_license_ids: tuple[str, ...] = ()
+    counterfactual_safety: cert_mod.Safety | None = None
 
 
 def _axiom_evidence(
@@ -1078,6 +1136,7 @@ def _build_reach(
     goal: FactHash,
     evidence: tuple[tuple[FactHash, tuple[EventId, ...]], ...],
     library: tuple[FactHash, ...] = (),
+    instances: tuple[model.RuleInstance, ...] | None = None,
 ) -> reach_mod.ReachProgram:
     """Index one program for propagation, against the WHOLE goal library.
 
@@ -1095,7 +1154,7 @@ def _build_reach(
         goals = tuple(sorted({*goals, goal}, key=lambda g: canon.byte_order_key(str(g))))
     return reach_mod.ReachProgram.build(
         program.kind,
-        program.instances,
+        program.instances if instances is None else instances,
         program.axioms,
         goal,
         axiom_evidence=kept,
@@ -1226,11 +1285,20 @@ def _decide_safety(
     goal_in_pmax: bool,
     goal_in_pmin: bool,
     pmax_terminated: bool,
+    tamper_blocks_robust: bool = False,
 ) -> cert_mod.Safety:
-    """The decision flow of the verdict section, and no other control flow."""
+    """The decision flow of the verdict section, and no other control flow.
+
+    `tamper_blocks_robust` is the hard rule of Part II 65.6.2: a tamper-suspected source
+    makes ROBUST unconstructible and the verdict falls back to OPTIMISTIC_ONLY. This slice
+    blocks on ANY suspected source, where 65.6.2 blocks only when that source's licence
+    appears in a corridor of Psi_max. Stricter, and stricter in the fail-closed direction:
+    it refuses the strongest verdict in cases where the specification would allow it, and
+    never the reverse.
+    """
     mask = cert_mod.flags_mask(flags)
     if mask & cert_mod.SOUNDNESS_MASK == 0:
-        if not goal_in_pmax and pmax_terminated:
+        if not goal_in_pmax and pmax_terminated and not tamper_blocks_robust:
             return cert_mod.Safety.ROBUST
         if goal_in_pmin:
             return cert_mod.Safety.UNSAFE
@@ -1238,6 +1306,64 @@ def _decide_safety(
     if goal_in_pmin:
         return cert_mod.Safety.UNSAFE
     return cert_mod.Safety.INDETERMINATE
+
+
+def _voiding_counterfactual(
+    *,
+    p_max: ground_mod.Program,
+    document: liveness_mod.LivenessDocument,
+    goal_key: FactHash,
+    library: tuple[FactHash, ...],
+    evidence: tuple[tuple[FactHash, tuple[EventId, ...]], ...],
+    cut_mask: int,
+    flags: tuple[str, ...],
+    goal_in_pmin: bool,
+) -> tuple[tuple[str, ...], cert_mod.Safety | None]:
+    """What the verdict WOULD have been had the disputed licences been voided.
+
+    Part I voids licences that rest on disputed timestamps. Part II 65.6 forbids it,
+    because voiding shrinks P_max and a smaller P_max can only move a verdict toward
+    ROBUST: an adversary who can rewrite a timestamp could buy the strongest verdict
+    SPECTRA issues. This function computes the verdict that design would have produced, so
+    a run can print what the tampering would have bought beside what it actually bought.
+
+    It is REPORTING ONLY. The published verdict is the one over the full P_max, licences
+    and all; nothing here feeds back into it. Returns the disputed licence ids and the
+    counterfactual safety, or an empty tuple and None when nothing is disputed.
+    """
+    disputed = tuple(
+        sorted(
+            (
+                str(licence.license_id)
+                for licence in p_max.licences
+                if liveness_mod.licence_disputed(
+                    document, str(licence.source_id), licence.t0_ns, licence.t1_ns
+                )
+            ),
+            key=canon.byte_order_key,
+        )
+    )
+    if not disputed:
+        return ((), None)
+    voided = frozenset(disputed)
+    kept = tuple(
+        instance
+        for instance in p_max.instances
+        if not (voided & {str(x) for x in instance.license_ids})
+    )
+    reached = reach_mod.reach(
+        _build_reach(p_max, goal_key, evidence, library, instances=kept), cut_mask
+    )
+    return (
+        disputed,
+        _decide_safety(
+            flags=flags,
+            goal_in_pmax=reached.derivable,
+            goal_in_pmin=goal_in_pmin,
+            pmax_terminated=True,
+            tamper_blocks_robust=False,
+        ),
+    )
 
 
 def _build_verdict(
@@ -1487,17 +1613,34 @@ def s10_prove(
         sorted(witnesses, key=lambda w: canon.byte_order_key(str(w.removed_control)))
     )
 
+    # Part II 65.6.2, through _decide_safety so the fallback is in the decision flow and
+    # not bolted on after a verdict was already built.
+    tamper_blocks_robust = any(
+        source.tamper_suspected for source in liveness_stage.document.sources
+    )
     safety_at_max = _decide_safety(
         flags=flags,
         goal_in_pmax=reach_max_at_max.derivable,
         goal_in_pmin=reach_min_at_max.derivable,
         pmax_terminated=True,
+        tamper_blocks_robust=tamper_blocks_robust,
     )
     safety_at_min = _decide_safety(
         flags=flags,
         goal_in_pmax=reach_max_at_min.derivable,
         goal_in_pmin=reach_min_at_min.derivable,
         pmax_terminated=True,
+        tamper_blocks_robust=tamper_blocks_robust,
+    )
+    disputed_license_ids, counterfactual_safety = _voiding_counterfactual(
+        p_max=p_max,
+        document=liveness_stage.document,
+        goal_key=goal_key,
+        library=library,
+        evidence=evidence,
+        cut_mask=cut_max.mask,
+        flags=flags,
+        goal_in_pmin=reach_min_at_max.derivable,
     )
 
     verdict_max = _build_verdict(
@@ -1767,6 +1910,8 @@ def s10_prove(
             ghost_count=len(ghost_heads),
             observed_event_count=len(observed_events),
             artifacts=tuple(side),
+            disputed_license_ids=disputed_license_ids,
+            counterfactual_safety=counterfactual_safety,
         ),
         tuple(complaints),
     )
@@ -1963,11 +2108,17 @@ def run_cell(
     parent: degrade_mod.DegradationResult | None = None,
     verify: bool = True,
     blackout: degrade_mod.Blackout | None = None,
+    backdate: degrade_mod.Backdate | None = None,
+    temporal_pass: bool = True,
 ) -> CellResult:
     """S1 through S11 for one cell. Pure in its arguments; writes artifacts.
 
     A cell is either a completeness level, nested with the others at one seed, or - with
-    `blackout` set - a controlled WHOLE_SOURCE_BLACKOUT at completeness 1/1.
+    `blackout` or `backdate` set - a controlled operator at completeness 1/1.
+
+    `temporal_pass` switches the temporal-consistency pass of ADR-0016. It is part of the
+    run id, so a pass-off run writes its own directory instead of overwriting the pass-on
+    run it is being compared with.
     """
     spec = scenario_mod.load_scenario(layout.scenario_toml)
     config = liveness_mod.load_liveness_config(str(layout.liveness_toml))
@@ -1976,7 +2127,9 @@ def run_cell(
     if calibration is None:
         calibration = s6_calibrate(layout, spec, config, calibration_seed)
 
-    run_id = run_id_for(spec.scenario_hash(), seed, completeness, blackout)
+    run_id = run_id_for(
+        spec.scenario_hash(), seed, completeness, blackout, backdate, temporal_pass
+    )
     run_dir = layout.run_dir(run_id)
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1985,7 +2138,13 @@ def run_cell(
 
     generated = s2_gen(spec, seed, run_dir)
     degraded = s3_degrade(
-        generated.result.raw, completeness, degradation_seed, run_dir, parent, blackout
+        generated.result.raw,
+        completeness,
+        degradation_seed,
+        run_dir,
+        parent,
+        blackout,
+        backdate,
     )
     ingested = s4_ingest(degraded.raw_path, spec, run_dir)
     resolved = s5_resolve(ingested.result.events, spec, run_dir)
@@ -2000,7 +2159,13 @@ def run_cell(
         ),
     )
     live_stage = s7_liveness(
-        spec, config, ingested.result.events, calibration.profile, binding_context, run_dir
+        spec,
+        config,
+        ingested.result.events,
+        calibration.profile,
+        binding_context,
+        run_dir,
+        temporal_pass=temporal_pass,
     )
 
     events, bindings, complaints = project_bindings(

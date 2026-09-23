@@ -1650,6 +1650,59 @@ def _tree_has_silent(witnesses: list[dict[str, Any]]) -> bool:
     return any(node["kind"] in _SILENT_KINDS for w in witnesses for node in w["nodes"])
 
 
+def _o14b_temporal_dispute(state: _State) -> ObligationResult:
+    """A ROBUST verdict may not be published over a tamper-suspected source.
+
+    Part II 65.6.2, re-derived here from the PINNED liveness document rather than trusted
+    from the certificate: the emitter's own decision flow refuses the verdict, and this is
+    the check that the file in front of the reader obeys the same rule.
+
+    The rule is read in the strict direction the emitter uses - any suspected source blocks
+    ROBUST - so a certificate that claims ROBUST while its liveness document suspects a
+    source is rejected even when that source's licence reaches no corridor. This obligation
+    also checks the direction that matters more: a disputed licence must still be THERE.
+    Voiding licences would shrink P_max and move verdicts toward ROBUST, so a document that
+    disputes an event while publishing no licence over it is the shape of that attack.
+    """
+    verdict = _member(state.body, "verdict", "body")
+    safety = _member(verdict, "safety", "verdict")
+    liveness_path = state.inputs.liveness
+    if liveness_path is None:
+        raise Usage("--liveness was not supplied; the temporal dispute cannot be checked")
+    liveness = _parse_side_json(liveness_path, "liveness")
+    suspected = sorted(
+        str(source.get("source_id"))
+        for source in liveness.get("sources", [])
+        if source.get("tamper_suspected") is True
+    )
+    sensitive = bool(liveness.get("flags", {}).get("verdict_tamper_sensitive"))
+    disputed = liveness.get("disputed_events", [])
+    if safety == "ROBUST":
+        _require(
+            not suspected,
+            "VRD-001",
+            f"ROBUST is published while {suspected} are tamper-suspected",
+        )
+        _require(
+            not sensitive,
+            "VRD-001",
+            "ROBUST is published while the verdict is marked tamper-sensitive",
+        )
+    for event in disputed:
+        _require(
+            str(event.get("source_id")) in suspected,
+            "VRD-001",
+            f"{event.get('event_id')} is disputed but its source is not suspected",
+        )
+    return ObligationResult(
+        "O14b temporal dispute",
+        True,
+        f"{len(disputed)} disputed timestamp(s), {len(suspected)} suspected source(s); "
+        "no licence is voided and ROBUST is consistent with them",
+        cost=len(disputed),
+    )
+
+
 def _o15_minimality(state: _State) -> ObligationResult:
     """NOT LINEAR. This obligation searches the control lattice and is fenced accordingly."""
     verdict = _member(state.body, "verdict", "body")
@@ -1823,6 +1876,7 @@ OBLIGATIONS: Final[tuple[tuple[str, Any], ...]] = (
     ("O12", _o12_witnesses),
     ("O13", _o13_psi_hit),
     ("O14", _o14_flags),
+    ("O14b", _o14b_temporal_dispute),
     ("O15", _o15_minimality),
 )
 

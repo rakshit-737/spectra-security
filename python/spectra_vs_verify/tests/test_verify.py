@@ -535,6 +535,80 @@ class TestEventIdRecomputation(unittest.TestCase):
         self.assertEqual(caught.exception.code, "E-WITNESS-EVENT")
 
 
+def _repin_liveness(body: dict[str, Any], digest: str) -> None:
+    """Point both places a liveness digest appears at the rewritten document.
+
+    The scope binds the same hash as `inputs`, and the emitter refuses a certificate where
+    the two disagree, so a mutation that changed only one would be rejected for that
+    instead of for the obligation it is aimed at.
+    """
+    body["inputs"]["liveness_hash"] = digest
+    body["scope"]["liveness"] = digest
+
+
+class TestTemporalDispute(_Base):
+    """O14b, ADR-0016. The rule is re-derived from the pinned liveness document, so a
+    certificate cannot claim the strongest verdict over a source the document suspects."""
+
+    def _with_liveness(self, mutate) -> tuple[pathlib.Path, str]:
+        document = json.loads(pathlib.Path(self.paths["liveness"]).read_text("utf-8"))
+        mutate(document)
+        self._rewrite_side_file("liveness", document, "liveness_hash")
+        return (pathlib.Path(self.paths["liveness"]), self._new_hash)
+
+    def _suspect(self, document: dict[str, Any]) -> None:
+        document["sources"][0]["tamper_suspected"] = True
+        document["disputed_events"] = [
+            {
+                "event_id": "ev:" + "cd" * 16,
+                "source_id": document["sources"][0]["source_id"],
+                "t_evt_ns": "1707004860000000000",
+            }
+        ]
+
+    def test_the_unmutated_certificate_has_no_dispute(self) -> None:
+        report = self._run()
+        self.assertTrue(report.accepted, report.render())
+        self.assertTrue(
+            any("0 disputed timestamp(s)" in line for line in report.render().splitlines())
+        )
+
+    def test_robust_over_a_suspected_source_is_refused(self) -> None:
+        _path, new_hash = self._with_liveness(self._suspect)
+
+        def mutate(body: dict[str, Any]) -> None:
+            _repin_liveness(body, new_hash)
+            body["verdict"]["safety"] = "ROBUST"
+
+        self.assertRejects(self._mutate(mutate), "VRD-001")
+
+    def test_a_disputed_event_whose_source_is_not_suspected_is_refused(self) -> None:
+        """The shape of a voiding implementation: the dispute is recorded, but the source
+        it came from is left clean so the verdict survives."""
+
+        def mutate_liveness(document: dict[str, Any]) -> None:
+            self._suspect(document)
+            document["sources"][0]["tamper_suspected"] = False
+
+        _path, new_hash = self._with_liveness(mutate_liveness)
+        self.assertRejects(self._mutate(lambda body: _repin_liveness(body, new_hash)), "VRD-001")
+
+    def test_a_weaker_verdict_over_a_suspected_source_is_accepted(self) -> None:
+        """Suspicion weakens the verdict; it does not invalidate the certificate. This is
+        the direction that matters: the licences are still there and still cited."""
+        _path, new_hash = self._with_liveness(self._suspect)
+
+        def mutate(body: dict[str, Any]) -> None:
+            _repin_liveness(body, new_hash)
+            body["verdict"]["safety"] = "OPTIMISTIC_ONLY"
+
+        report = self._run(self._mutate(mutate))
+        self.assertTrue(report.accepted, report.render())
+        # Nothing was voided: the licences and the silent instances are still published.
+        self.assertTrue(self.fixture.body["licenses"])
+        self.assertTrue(self.fixture.body["silent"])
+
+
 class TestVersionComparison(_Base):
     """min_checker was compared with the checker's version as a string, so "1.10" sorted
     below "1.9", and a value that was not a string could not be compared at all."""
