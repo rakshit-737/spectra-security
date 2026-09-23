@@ -931,3 +931,105 @@ A fixture written against the code it tests can confirm that code's mistake; eac
 broken by something the author did not write: another operating system, or the actual bundle.
 
 ---
+
+## INC-0013  the tamper pass exists, and tampering now costs the attacker the verdict
+
+date: 2026-09-23
+status: DONE
+concern: single
+
+### What was missing
+
+INC-0011 recorded a hole and could not close it: `Safety.ROBUST` may be minted only against a
+`NoTamperToken`, the token requires that no source is tamper-suspected, and nothing in the slice could
+suspect one. Every ROBUST verdict therefore rested on a check that did not exist, and
+pre-registration 0001's single named confound - a tamper flag - could not have fired.
+
+The slice-spec excluded the pass deliberately ("Cost: real"). ADR-0016 reverses that, and ADR-0017
+corrects one point of ADR-0016 that turned out not to be implementable.
+
+### The attack the pass is written against
+
+Part I runs the pass and VOIDS licences resting on provably backdated timestamps. Part II 65.6
+refuses that design, because voiding shrinks P_max, and a smaller P_max can only move a verdict
+toward ROBUST: an adversary who can rewrite a timestamp could buy the strongest verdict SPECTRA
+issues. The dispute protocol retains the licence and weakens the verdict instead.
+
+This increment implements the protocol, an operator to attack it with, and the measurement that says
+whether the defence holds.
+
+### Pre-registration 0002, committed before any of it existed
+
+`a796c41` fixed eight falsifiers for a cell that backdates one record by 45 minutes, comparing the
+SAME cell with the pass on and off. All eight passed, on the development machine and on CI:
+
+```
+PASS  the pass finds a contradiction                       observed 1 disputed timestamp(s)
+PASS  C is exactly the backdated record                    observed ev:c9f5c0c3ef5c102158a5b662e85a6c0e
+PASS  iam_audit is suspected, and nothing else             observed src:iam_audit
+PASS  p_max.json is byte-identical with the pass off       observed identical
+PASS  premium.json is byte-identical with the pass off     observed identical
+PASS  the cut over P_max is ROBUST with the pass off       observed ROBUST
+PASS  the cut over P_max is OPTIMISTIC_ONLY with the pass on observed OPTIMISTIC_ONLY
+PASS  the separate checker accepts the pass-on certificate observed exit 0
+```
+
+### Measured: what the tampering would have bought
+
+```
+1 licence(s) rest on a disputed timestamp and are RETAINED. Had they been voided, as Part I specifies,
+the verdict at the cut over P_max would have been ROBUST, against the published OPTIMISTIC_ONLY.
+```
+
+One rewritten timestamp would have upgraded the verdict to the strongest one SPECTRA issues, in the
+attacker's favour, under the design Part II replaced. Under the implemented one, `p_max.json` is
+byte-identical with the pass off and the verdict moves the other way. The full record is
+`docs/research/prereg-0002-result.md`.
+
+### Two things the tests caught before any run
+
+**The correction set was being computed wrongly.** The first formulation covered the violated
+neighbour pairs: a record moved far back contradicts only its neighbour, so a cover of that one pair
+names the innocent neighbour as readily as the record that moved. Written as a minimum vertex cover
+it was both wrong and NP-hard; written as the complement of a longest non-decreasing subsequence per
+source it is exact at any size, n log n, and names the record that cannot stay. The unit tests were
+written first and failed on exactly that case.
+
+**A guard test fired on schedule.** `test_the_pass_is_not_implemented` had been written earlier to
+assert the absence of the pass, with a docstring saying that if it ever failed, the demo's caveats
+about the absent check had to be revisited. It failed the moment the pass landed, and the caveats
+were rewritten to say how narrow the check is instead of that there is none.
+
+### And one the tests did not catch
+
+The first end-to-end run of the backdate cell passed seven falsifiers and failed the eighth: the
+checker rejected the certificate with `ev:... is disputed but its source is not suspected`. The
+disputed events were written with the typed `src:iam_audit` spelling while `liveness.json` spells its
+sources bare, so the checker compared two spellings of one value.
+
+That is INC-0012's defect exactly, in a member added three commits earlier, and it was found the same
+way: by giving the checker real input. The test added with the fix pins the invariant rather than the
+instance - every `disputed_events` source id must be one of the spellings the `sources` list uses.
+
+### Scope, stated because this is the increment most likely to be overstated
+
+The pass detects a recorded timestamp that contradicts the order its own source recorded, or a
+temporal bound the rule table declares. It does not detect a consistently rewritten source, a forged
+chain, or suppression on a source without a sequence number. `flag bit 5` remains permanently false,
+because a dispute never voids a licence. `docs/kernel/slice-spec.md` carries the same sentence in the
+two places that used to say the pass does not exist.
+
+### Commands run
+
+```
+$ <every suite>
+21 suites passing, 0 failing
+
+$ python scripts/demo.py
+5 cells; S11 ACCEPT on all five; PREDICTION HELD (0001) and PREDICTION HELD (0002)
+
+$ CI run 35870003427 (ubuntu-24.04, CPython 3.12.3)
+3 gates green; both predictions held; same disputed event id as this machine
+```
+
+---
