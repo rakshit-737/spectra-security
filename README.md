@@ -13,9 +13,10 @@ This is a statement about the model, not about what would have happened. The att
 > What exists: a seeded synthetic generator, ingest, entity resolution, a rule compiler,
 > grounding, liveness and licences, the silent envelope, reachability, a minimal-cut
 > search, a certificate emitter and a separate checker - all in Python, under
-> `python/spectra_vs/` and `python/spectra_vs_verify/`, with 19 test suites. One command,
-> `python scripts/demo.py`, runs the pipeline in three cells - full telemetry, a random
-> 70% cell and a pre-registered sensor blackout - and prints whether the prediction held.
+> `python/spectra_vs/` and `python/spectra_vs_verify/`, with 21 test suites. One command,
+> `python scripts/demo.py`, runs the pipeline in five cells - full telemetry, a random 70%
+> cell, a pre-registered sensor blackout, and a pre-registered backdated record with the
+> temporal-consistency pass on and off - and prints whether each prediction held.
 >
 > What does not: the specified Rust kernel and Go checker (this machine has neither
 > toolchain; see [ADR-0013](docs/adr/0013-the-slice-is-a-python-reference-implementation.md)),
@@ -94,7 +95,7 @@ is green. Where code exists without its gate, the row says so rather than claimi
 | M4 | Kernel stages A-D: liveness, licences, silent envelope, fixpoint | `make m4-verify` | implemented in Python, not in the specified Rust; gate not built |
 | M5 | Kernel stage E and the certificate object | `make m5-verify` | implemented in Python, not in the specified Rust; gate not built |
 | M6 | Independent Go checker and differential gates | `make m6-verify` | not started - a Python checker exists, the specified Go checker does not |
-| M7 | Degradation, tampering, redundancy, observation set, frontier | `make m7-verify` | degradation operator and decisive observation set implemented in Python; tampering, redundancy index and frontier not started; gate not built |
+| M7 | Degradation, tampering, redundancy, observation set, frontier | `make m7-verify` | degradation operators, decisive observation set and the temporal-consistency pass implemented in Python (ADR-0016; recorded-order contradictions only); redundancy index and frontier not started; gate not built |
 | M8 | Full user interface and the prove flow | `make m8-verify` | not started |
 | M9 | Polyglot surface and measured performance | `make m9-verify` | not started |
 | M10 | Documentation, demo, release | `make release-check` | not started |
@@ -167,6 +168,18 @@ through a licensed, unobserved privilege escalation.
 
 The random 70% cell is kept as a degradation-matrix cell. Its deletion removes the attack's
 observed steps outright, so neither program derives a goal there and its premium says nothing.
+
+[Pre-registration 0002](docs/research/prereg-0002-backdate-cell.md) tests the one property the
+specification wrote to defend SPECTRA against its own design. Part I voids the licences that rest on
+a backdated timestamp; voiding shrinks the upper program, and a smaller upper program can only move a
+verdict toward the strongest one SPECTRA issues — so an attacker who can rewrite a timestamp could
+buy that verdict. Part II keeps the licence and weakens the verdict instead. With one record moved 45
+minutes earlier, all eight registered falsifiers passed, and the run prints what the design SPECTRA
+did **not** implement would have produced: *had they been voided, the verdict would have been ROBUST,
+against the published OPTIMISTIC_ONLY*. [The result record](docs/research/prereg-0002-result.md)
+states the limits, of which the largest is that the check finds a timestamp contradicting the order
+its own source recorded and nothing wider: a consistently rewritten source, a forged chain and
+suppression on a source without a sequence number are all invisible to it.
 
 What will be measured, how, with which seeds and repetitions, and what would falsify each research
 question is committed in advance in [docs/research/preregistration.md](docs/research/preregistration.md).
