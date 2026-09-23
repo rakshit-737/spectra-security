@@ -655,3 +655,23 @@ than nested?**
 - Default if unanswered: the nested encoding stays; multi-step witnesses are omitted and reported.
   Changing it is a contract change on the emitter and the checker together and needs an ADR.
 
+
+### D-RUN-03 · MEDIUM · does a deletion mark its source tamper-suspected?
+
+**When a chained source loses records to a blackout, should the temporal-consistency pass mark it
+tamper-suspected, as it marks a source whose timestamp was rewritten?**
+
+- Context: pre-registration 0001 named a tamper flag as its confound and no flag fired, which was
+  not a finding, because no pass existed then (`BUILD_LOG.md` INC-0011). The pass exists now
+  (ADR-0016) and it compares recorded timestamps against recorded order. A blackout removes whole
+  records, so the records that remain are still in order and the pass finds nothing; the liveness
+  stage sees the gap separately and issues a SUPPRESSED licence for it. Two mechanisms, two
+  answers, and the specification does not obviously say they should agree.
+- What makes it a decision rather than a bug: marking a source suspected for a gap would weaken
+  every verdict over a source that merely went quiet, and quiet is the normal case this system is
+  built for. Not marking it leaves "tamper-suspected" meaning narrowly "contradicted itself".
+- Default if unanswered: the two stay separate, as they are now. A deletion produces a licence and
+  not a suspicion.
+- What would settle it: a pre-registration that blacks out a chained source and predicts, in
+  advance, whether the source is marked. The 0001 cell cannot answer it, because it ran before the
+  pass existed and a check added afterwards says nothing about a run that preceded it.
