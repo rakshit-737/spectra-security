@@ -78,9 +78,18 @@ class TestFlagTable(unittest.TestCase):
         self.assertEqual(caught.exception.code, "VRD-008")
 
     def test_tamper_flag_is_declared_but_never_set_here(self) -> None:
+        """It is still never set, and the REASON changed with ADR-0016.
+
+        It used to be false because no pass could suspect anything. A pass exists now, and
+        the flag is false because a dispute RETAINS the licence: voiding one would shrink
+        P_max, and a smaller P_max can only move a verdict toward the universal claim,
+        which is the attack Part II 65.6 closes. The test pins the property and the current
+        reason, because the old wording survived the change that falsified it.
+        """
         flag = cert.FLAG_BY_NAME["license_voided_by_suspected_tampering"]
         self.assertTrue(flag.blocks_robust)
-        self.assertIn("not implemented", flag.effect)
+        self.assertIn("never set", flag.effect)
+        self.assertIn("nothing is voided", flag.effect)
 
 
 class TestVerdictConstruction(unittest.TestCase):

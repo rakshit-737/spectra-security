@@ -154,7 +154,6 @@ Only exact string joins against the scenario entity tables. No fuzzy matching, n
   calibration_seed_band:[u32,u32], reference_bundle_hash:"blake3:..",
   reference_run_manifest_hash:"blake3:..", excluded_intervals_hash:"blake3:..",
   regime_collapsed:bool,
-  disputed_events:[{event_id:"ev:..", source_id:str, t_evt_ns:str(i64)}] sorted by event_id (ADR-0016),
   sources:[{ source_id:str, integrity_class:str,
     regimes:[{ regime_id:str, n_gaps:u32,
                order_statistics:{"<p>/<q>": str(u64 ns)},   keys exactly the levels in liveness.toml
@@ -170,10 +169,14 @@ gap_digest = blake3 over LEB128(len) || LEB128(gap_i) of the full ascending u64 
     intervals:[{ t0_ns:str, t1_ns:str, verdict:"LIVE"|"BLIND"|"SUPPRESSED", reason:str,
                  missing_seq:[u32,u32] (SUPPRESSED only), witness:["ev:..",".."] (SUPPRESSED only) }]
       sorted by t0_ns, contiguous, RLE-merged on equal (verdict,reason),
-    blind_volume_ns_by_reason:{reason:str(u64)}, suppressed_volume_ns:str(u64), tamper_suspected:false }]
+    blind_volume_ns_by_reason:{reason:str(u64)}, suppressed_volume_ns:str(u64),
+    tamper_suspected:bool (ADR-0016; false until the temporal pass suspects the source) }]
     sorted by source_id,
+  disputed_events:[{event_id:"ev:..", source_id:str (BARE, as sources spell it), t_evt_ns:str(u64)}]
+    sorted by event_id (ADR-0016; empty when nothing contradicts its own recorded order),
   flags:{liveness_uncalibrated:bool, liveness_unauthenticated:bool, blind_by_default:bool,
-         profile_regime_collapsed:bool, verdict_tamper_sensitive:false, mcs_greedy:false} }
+         profile_regime_collapsed:bool, verdict_tamper_sensitive:false (S7 cannot know it;
+         the comparison is made in S10, ADR-0017), mcs_greedy:bool} }
 liveness_hash = blake3(scf(liveness.json)).
 
 --- 9. License

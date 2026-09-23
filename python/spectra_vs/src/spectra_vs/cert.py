@@ -380,7 +380,7 @@ FLAGS: Final[tuple[Flag, ...]] = (
         5,
         "license_voided_by_suspected_tampering",
         ("S",),
-        "never set in this slice: the difference-constraint pass is not implemented",
+        "never set in this slice: a dispute retains the licence, so nothing is voided",
     ),
     Flag(6, "greedy_cover", ("D",), "forces the approximation factor inline"),
     Flag(7, "sampled_matrix", ("R",), "blocks aggregate claims, not a per-run verdict"),
@@ -489,10 +489,16 @@ SILENT_WITNESS_KINDS: Final[frozenset[WitnessKind]] = frozenset(
 class NoTamperToken:
     """Evidence that no source was tamper-suspected. Required to mint the universal claim.
 
-    The slice does not implement the difference-constraint backdating pass, so this token
-    is always mintable and flag bit 5 is never set. It exists anyway so that adding the
-    pass later is a change to `mint_no_tamper_token` rather than a rework of the verdict
-    type, and so that nothing here can be read as a claim that tampering is detected.
+    Since ADR-0016 the temporal-consistency pass can suspect a source, so this token is no
+    longer unconditional: `mint_no_tamper_token` refuses one when the liveness document
+    names a suspected source, and the verdict falls back to the optimistic one. Flag bit 5
+    stays false, and the reason is now different from what it was - a dispute RETAINS the
+    licence, so nothing is ever voided, rather than there being no pass to void it.
+
+    What the token stands for is narrow: no source contradicted the order it itself
+    recorded. A consistently rewritten source, a re-sealed chain and a source without
+    sequence numbers are all invisible to the pass, so nothing here may be read as a claim
+    that tampering is detected.
     """
 
     sources_checked: int
