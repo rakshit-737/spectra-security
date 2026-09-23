@@ -700,8 +700,18 @@ class TestTemporalDispute(unittest.TestCase):
         )
         member = disputed.to_scf()["disputed_events"]
         self.assertEqual(len(member), 1)
-        self.assertEqual(member[0]["source_id"], "src:iam_audit")
+        self.assertEqual(member[0]["source_id"], "iam_audit")
         self.assertEqual(member[0]["t_evt_ns"], str(EPOCH + 60 * SECOND))
+
+    def test_a_disputed_event_is_spelled_the_way_the_sources_are(self) -> None:
+        """One value, one spelling per wire. Two spellings is how INC-0012 happened."""
+        document = liveness.apply_temporal_dispute(
+            self._document(), (self._disputed(EPOCH + 60 * SECOND),)
+        )
+        member = document.to_scf()
+        spellings = {s["source_id"] for s in member["sources"]}
+        for event in member["disputed_events"]:
+            self.assertIn(event["source_id"], spellings)
 
     def test_a_licence_over_a_disputed_instant_is_disputed(self) -> None:
         doc = liveness.apply_temporal_dispute(

@@ -930,6 +930,12 @@ class DisputedEvent:
         if not self.event_id.startswith("ev:"):
             raise SchemaError("DisputedEvent.event_id is an ev: identifier")
         canon.u64(self.t_evt_ns)
+        # BARE, as `SourceLiveness.to_scf` spells it on this wire. A typed `src:` spelling
+        # here made the checker compare two spellings of one value and reject a certificate
+        # whose document was perfectly consistent - the same defect as INC-0012, found the
+        # same way, by giving a checker real input.
+        if self.source_id.startswith("src:"):
+            object.__setattr__(self, "source_id", self.source_id[len("src:") :])
 
     def sort_key(self) -> bytes:
         return canon.byte_order_key(self.event_id)
@@ -1041,8 +1047,9 @@ def licence_disputed(
     weakens more verdicts, and the failure it protects against is a verdict that is too
     strong.
     """
+    wanted = source_id[len("src:") :] if source_id.startswith("src:") else source_id
     for event in document.disputed_events:
-        if event.source_id not in (source_id, f"src:{source_id}"):
+        if event.source_id != wanted:
             continue
         if t0_ns <= event.t_evt_ns <= t1_ns:
             return True
