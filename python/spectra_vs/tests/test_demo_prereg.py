@@ -103,6 +103,56 @@ class TestThePredictionIsNotTransferred(unittest.TestCase):
         self.assertFalse(demo.prereg_0001_applies(seed=7, calibration_seed=1000008))
 
 
+class TestTheResultDocument(unittest.TestCase):
+    """The machine-readable outcome a CLAIMS record points at.
+
+    A claim that states a number may carry it on a surface only if the numerals occur in
+    the artifact its record names, so the document has to hold the figures the prose uses
+    and nothing that differs between machines.
+    """
+
+    def _rendered(self) -> demo.Rendered:
+        upper = types.SimpleNamespace(
+            psi=types.SimpleNamespace(corridors=(object(), object())),
+            cut=types.SimpleNamespace(atoms=()),
+        )
+        lower = types.SimpleNamespace(psi=types.SimpleNamespace(corridors=(object(),)))
+        prove = types.SimpleNamespace(
+            bracket=types.SimpleNamespace(lower=lower, upper=upper),
+            premium=types.SimpleNamespace(published=True, blindness_premium=("ctl:priv_approval",)),
+            licences=(object(), object(), object()),
+            verdict_at_cut_max=types.SimpleNamespace(
+                safety=types.SimpleNamespace(value="OPTIMISTIC_ONLY")
+            ),
+        )
+        cell = types.SimpleNamespace(prove=prove, run_id="vs-0123456789abcdef")
+        return demo.Rendered(label="blackout cell  (PRE-REGISTERED 0001)", cell=cell)
+
+    def _document(self) -> dict:
+        checks = (("premium non-empty", True, "('ctl:priv_approval',)"),)
+        return demo.result_document("prereg-0001", checks, (self._rendered(),))
+
+    def test_it_carries_the_figures_the_prose_uses(self) -> None:
+        document = self._document()
+        run = document["runs"][0]
+        self.assertEqual(run["psi_min"], 1)
+        self.assertEqual(run["psi_max"], 2)
+        self.assertEqual(run["premium"], ["ctl:priv_approval"])
+        self.assertEqual(document["passed"], 1)
+        self.assertEqual(document["total"], 1)
+        self.assertTrue(document["held"])
+
+    def test_it_carries_no_path_and_no_clock(self) -> None:
+        """Two machines that agree must produce the same bytes, so a run directory, a
+        host name and a timestamp may not appear."""
+        rendered = repr(self._document())
+        for forbidden in ("\\", "/", "Academics", "run_dir", "T00:", "202"):
+            self.assertNotIn(forbidden, rendered, forbidden)
+
+    def test_it_is_a_function_of_its_inputs(self) -> None:
+        self.assertEqual(self._document(), self._document())
+
+
 class TestExitStatuses(unittest.TestCase):
     def test_they_are_distinct(self) -> None:
         codes = {demo.EXIT_OK, demo.EXIT_CHECKER_REJECTED, demo.EXIT_PREDICTION_FAILED}

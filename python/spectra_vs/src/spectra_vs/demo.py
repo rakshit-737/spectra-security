@@ -41,6 +41,7 @@ from spectra_vs import cert as cert_mod
 from spectra_vs import degrade as degrade_mod
 from spectra_vs import liveness as liveness_mod
 from spectra_vs import pipeline as pipeline_mod
+from spectra_vs import scf
 
 __all__ = ["CELLS", "main", "render_cell", "render_difference"]
 
@@ -755,6 +756,59 @@ def _causes(cells: tuple[Rendered, ...]) -> tuple[str, ...]:
     return tuple(lines)
 
 
+#: Where a pre-registration's machine-readable outcome is written. COMMITTED, unlike
+#: `runs/`, because a claim in the README has to point at a file a reader can open and a
+#: gate can hash. The content is a function of the run alone: no clock, no path, no host.
+RESULTS_DIR: str = "research/results"
+
+
+def result_document(
+    registration: str, checks: tuple[tuple[str, bool, str], ...], cells: tuple[Rendered, ...]
+) -> dict[str, object]:
+    """One pre-registration's outcome, as data rather than as a transcript.
+
+    This exists so that a sentence on a surface can be anchored to an artifact, which is
+    what `CLAIMS.md` requires of every claim that states a number: the numerals in the
+    sentence must occur in the file the record points at. A transcript would do for a
+    reader and not for a checker - it carries a run directory, which is a path, which
+    differs between machines.
+    """
+    return {
+        "checks": [
+            {"falsifier": name, "observed": observed, "passed": passed}
+            for name, passed, observed in checks
+        ],
+        "held": all(passed for _, passed, _ in checks),
+        "passed": sum(1 for _, passed, _ in checks if passed),
+        "registration": registration,
+        "runs": [
+            {
+                "cut_over_pmax": _render_cut(cell.cell.prove.bracket.upper.cut),
+                "label": cell.label.split("  ")[0],
+                "licences": len(cell.cell.prove.licences),
+                "premium": list(cell.premium),
+                "psi_max": len(cell.cell.prove.bracket.upper.psi.corridors),
+                "psi_min": len(cell.cell.prove.bracket.lower.psi.corridors),
+                "run_id": cell.cell.run_id,
+                "safety_at_cut_max": cell.cell.prove.verdict_at_cut_max.safety.value,
+            }
+            for cell in cells
+        ],
+        "total": len(checks),
+    }
+
+
+def write_result_document(
+    repo_root: Path, registration: str, document: dict[str, object]
+) -> Path:
+    """Write the outcome under RESULTS_DIR, canonically, with a trailing newline."""
+    directory = repo_root / RESULTS_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{registration}.json"
+    scf.write_scf(path, document, where="result")
+    return path
+
+
 def _preamble(layout: pipeline_mod.Layout) -> str:
     config = liveness_mod.load_liveness_config(str(layout.liveness_toml))
     return "\n".join(
@@ -896,6 +950,25 @@ def main(
         )
     if applies:
         print(render_prereg_0002(backdate_cells[0], backdate_cells[1]), file=out, flush=True)
+        # The machine-readable outcomes, written where a claim can point at them and a
+        # gate can hash them. Only under the registered seeds: a file named after a
+        # pre-registration must never hold the result of a run it did not cover.
+        for registration, checks, cells in (
+            (
+                "prereg-0001",
+                prereg_0001_checks(blackout_entry),
+                (rendered[0], blackout_entry),
+            ),
+            (
+                "prereg-0002",
+                prereg_0002_checks(backdate_cells[0], backdate_cells[1]),
+                tuple(backdate_cells),
+            ),
+        ):
+            written = write_result_document(
+                repo_root, registration, result_document(registration, checks, cells)
+            )
+            print(f"result record   {written}", file=out, flush=True)
     if any(r.cell.verify_exit not in (None, 0) for r in rendered):
         return EXIT_CHECKER_REJECTED
     if applies and not prereg_0001_held(blackout_entry):
