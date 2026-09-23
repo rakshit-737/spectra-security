@@ -153,7 +153,7 @@ endef
   lab lab-down polyglot polyglot-audit polyglot-report benchmark m9-verify \
   docs demo reproduce verify-no-llm release-check m10-verify \
   check-autocrlf secret-scan \
-  test-reference vs-prereg-0001
+  test-reference vs-prereg-0001 test-frontend
 
 ##@ Works today (session one)
 
@@ -293,6 +293,23 @@ vs-prereg-0001: ## Re-run pre-registrations 0001 and 0002; fail unless both held
 	  fi; \
 	  rm -f "$$log"; \
 	  spectra_log 'vs-prereg-0001: both predictions held and every certificate was accepted'
+
+test-frontend: ## Run the certificate viewer's suites on node -- gate G-FE-001 (T1)
+	@. "$(COMMON)"; \
+	  spectra_rule; \
+	  printf 'SPECTRA test-frontend\n'; \
+	  printf 'Runs the viewer suites with node --test. The viewer renders a\n'; \
+	  printf 'certificate that was already emitted; it verifies nothing, and a green\n'; \
+	  printf 'run here says only that its own rendering functions behave.\n'; \
+	  spectra_rule; \
+	  node=$${NODE:-node}; \
+	  if ! command -v "$$node" >/dev/null 2>&1; then \
+	    spectra_err 'test-frontend: node is not on PATH'; \
+	    exit 1; \
+	  fi; \
+	  printf 'runtime: %s\n' "$$($$node --version)"; \
+	  "$$node" --test frontend/tests; \
+	  spectra_log 'test-frontend: the viewer suites pass on this runtime'
 
 skeleton-verify: ## Check the session-one repo layout and required root files exist
 	@. "$(COMMON)"; \

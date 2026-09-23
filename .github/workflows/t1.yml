@@ -8,9 +8,9 @@
 #
 # STATUS: not started.
 #
-# Exactly three jobs below run: `skeleton`, `reference` and `prereg`. Every
-# other job is declared and explicitly skipped with `if: false`, a stated
-# reason and the milestone that enables it. A skipped job renders grey in the GitHub UI. It is not a pass, it
+# Exactly four jobs below run: `skeleton`, `reference`, `prereg` and
+# `frontend`. Every other job is declared and explicitly skipped with
+# `if: false`, a stated reason and the milestone that enables it. A skipped job renders grey in the GitHub UI. It is not a pass, it
 # must never be added to the branch-protection required-check list, and it must
 # never be described as green. None of these gates has ever run, so none of them
 # has ever passed.
@@ -71,8 +71,8 @@ defaults:
 jobs:
 
   # ENABLED.
-  # One of three gates this directory runs; the others are `reference` and
-  # `prereg` below.
+  # One of four gates this directory runs; the others are `reference`,
+  # `prereg` and `frontend` below.
   # G-WIN-001 (T0) is implemented too, as the sandbox guard in the Makefile, and
   # is enforced locally by .pre-commit-config.yaml rather than here.
   # It gates the skeleton and nothing else: it checks that paths exist, not what
@@ -143,6 +143,28 @@ jobs:
           persist-credentials: false
       - name: make vs-prereg-0001
         run: make vs-prereg-0001
+
+  # ENABLED.
+  # Runs the certificate viewer's own suites on the runner's node. The viewer is
+  # plain ES modules with no build step and no dependency, so there is nothing to
+  # install and nothing to pin beyond the runtime the runner ships.
+  #
+  # It renders a certificate that was already emitted. It verifies nothing, no
+  # browser runs anywhere in this repository, and a green run here says only that
+  # the rendering functions behave. It does not exercise the prove flow of M8,
+  # which does not exist.
+  frontend:
+    name: T1 frontend / G-FE-001
+    runs-on: ubuntu-24.04
+    # G-FE-001 declares budget_s = 60 (illustrative, not a target). The job
+    # timeout is larger because it also covers checkout.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: make test-frontend
+        run: make test-frontend
 
   # NOT IMPLEMENTED - skipped, not passing.
   # Class: gate registry, CI budget, flake policy, sampling scope (74.4-74.9)

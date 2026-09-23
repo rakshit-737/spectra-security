@@ -988,6 +988,22 @@ budget_s = 480  # illustrative, not a target
 # machine, once. That is one observation on other hardware, not a CI measurement.
 
 [[gate]]
+id = "G-FE-001"
+title = "the certificate viewer's own suites pass on the CI node runtime (rendering only; the viewer verifies nothing and no milestone turns green)"
+tier = "T1"
+owner_section = 74
+make_target = "test-frontend"
+sampled = false
+soundness = false
+artifact = "test-frontend.log"
+budget_s = 60  # illustrative, not a target
+# NOTE: Added 2026-09-23. The viewer is plain ES modules with no build step, because
+# this machine is offline and a .ts file nothing can compile is a file that lies
+# about being built. The gate exercises the rendering functions, not a browser: no
+# browser runs anywhere in this repository, and the viewer has never been opened in
+# one. It does not exercise the prove flow of M8, which does not exist.
+
+[[gate]]
 id = "G-REG-001"
 title = "registry lint: exactly one tier per gate, every make target exists, every per-tier sum within its ceiling"
 tier = "T1"
@@ -2451,10 +2467,10 @@ budget_s = 3600  # illustrative, not a target
 #   TIER  GATES  CEILING(s)  SUM(budget_s)  STATUS                MEASURED RUNTIME
 #   ----  -----  ----------  -------------  --------------------  ----------------
 #   T0        3          60             18  within ceiling        not measured
-#   T1       98        1200           2725  OVER by 1525 s        not measured
+#   T1       99        1200           2785  OVER by 1585 s        not measured
 #   T2       88        5400          30613  OVER by 25213 s       not measured
 #   T3       14       21600          44820  OVER by 23220 s       not measured
-#   ALL     203           -              -  -                     not measured
+#   ALL     204           -              -  -                     not measured
 #
 # STATUS: NOT RECONCILED. Tiers over ceiling: T1, T2, T3.
 # G-BUDGET-001, once implemented, fails on this registry as written. That
@@ -2462,10 +2478,11 @@ budget_s = 3600  # illustrative, not a target
 # head of this file for the three permitted remedies. Until it is
 # reconciled, no tier workflow beyond the skeleton job may be enabled.
 #
-# RECORDED EXCEPTION: the reference job (G-PYREF-001) and the prereg job
-# (G-VS-PREREG-0001) were enabled before reconciliation. The overflow comes
+# RECORDED EXCEPTION: the reference job (G-PYREF-001), the prereg job
+# (G-VS-PREREG-0001) and the viewer job (G-FE-001) were enabled before
+# reconciliation. The overflow comes
 # from declared rows that have no job; the enabled T1 jobs' ceilings sum to
-# 30 + 600 + 480 = 1110 s, inside the 1200 s ceiling on their own. This
+# 30 + 600 + 480 + 60 = 1170 s, inside the 1200 s ceiling on their own. This
 # exception is not a reconciliation and does not extend to any other job.
 #
 # Estimated monthly CI minutes: not measured. No estimate is recorded here
