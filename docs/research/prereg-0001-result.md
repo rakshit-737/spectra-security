@@ -163,3 +163,15 @@ the gate's run on CI at `24b5a6f`, are:
 
 None of this changes the outcome or the falsifiers. It supersedes the paragraph above that begins
 "No witness tree is published" and the two sentences about CI and other platforms.
+
+## Addendum, 2026-09-23: the confound became testable
+
+The section above says the confound this registration named could not be tested, because the check
+it depends on did not exist. That was true when it was written and is no longer: ADR-0016 brought
+the temporal-consistency pass into the slice, and `docs/research/prereg-0002-backdate-cell.md` is
+the registration that tests it.
+
+This does NOT turn "no flag was set" in the blackout cell into a finding. That cell was run before
+the pass existed, and a check added afterwards says nothing about a run that preceded it. Whether a
+chain gap of the kind the blackout produces marks a source tamper-suspected is an open question, and
+answering it needs its own registration and its own run.

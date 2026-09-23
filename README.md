@@ -150,19 +150,26 @@ The designed effect has now been shown once, under a prediction committed before
 produces it. [Pre-registration 0001](docs/research/prereg-0001-blackout-cell.md) predicted that
 taking one sensor (`iam_audit`) offline for ten minutes would leave the observed attack route
 alone, open a second route through an unobserved privilege escalation, and add exactly one control
-to the blindness premium: `ctl:priv_approval`. All five falsifiers passed and the checker accepted
-the certificate. The same twelve artifacts came out byte-identical on Windows under CPython 3.14 and
-on Linux under 3.12, where gate G-VS-PREREG-0001 now re-runs the prediction on every push. The
+to the blindness premium: `ctl:priv_approval`. Every registered falsifier passed, the checker
+accepted the certificate, and the artifacts came out byte-identical on Windows under CPython 3.14 and
+on Linux under 3.12, where gate G-VS-PREREG-0001 re-runs the prediction on every push. The
 certificate carries the witness for why `ctl:priv_approval` is needed: the observed export, reached
 through a licensed, unobserved privilege escalation.
+
+The counts and figures are in [the result record](docs/research/prereg-0001-result.md) and in
+`research/results/prereg-0001.json`, not here. That is this project's own rule rather than modesty:
+a registered claim whose scenario pool is TUNED may not appear on a headline surface, and this
+repository has one scenario, authored and edited by the same author who wrote the predictions.
+Headline surfaces take held-out results, and there is no held-out pool yet.
 [The result record](docs/research/prereg-0001-result.md) states what that does not show. In short:
 
 - it is one scenario, one seed and one window of simulated telemetry - a data point, not a
   measurement;
 - the author made the prediction right after tracing this mechanism, so it tests the code against
   the author's understanding, not the understanding itself;
-- the confound the registration named - a tamper flag blocking ROBUST - could not fire, because the
-  tamper check does not exist in this slice;
+- the confound the registration named - a tamper flag - could not fire when that cell was run,
+  because no tamper check existed then; one exists now (ADR-0016) and is what pre-registration 0002
+  tests, but it was never a finding about that cell;
 - the witness is drawn from P_max, which may combine silent steps that no single consistent world
   realizes.
 
@@ -174,12 +181,14 @@ specification wrote to defend SPECTRA against its own design. Part I voids the l
 a backdated timestamp; voiding shrinks the upper program, and a smaller upper program can only move a
 verdict toward the strongest one SPECTRA issues — so an attacker who can rewrite a timestamp could
 buy that verdict. Part II keeps the licence and weakens the verdict instead. With one record moved 45
-minutes earlier, all eight registered falsifiers passed, and the run prints what the design SPECTRA
-did **not** implement would have produced: *had they been voided, the verdict would have been ROBUST,
-against the published OPTIMISTIC_ONLY*. [The result record](docs/research/prereg-0002-result.md)
-states the limits, of which the largest is that the check finds a timestamp contradicting the order
-its own source recorded and nothing wider: a consistently rewritten source, a forged chain and
-suppression on a source without a sequence number are all invisible to it.
+minutes earlier, every registered falsifier passed, and the run prints what the design SPECTRA did
+**not** implement would have produced: had the disputed licences been voided, the cell's verdict
+would have been the universal one rather than the optimistic one it published — a rewritten
+timestamp buying the attacker the strongest statement SPECTRA makes.
+[The result record](docs/research/prereg-0002-result.md) carries the figures and states the limits,
+of which the largest is that the check finds a timestamp contradicting the order its own source
+recorded and nothing wider: a consistently rewritten source, a forged chain and suppression on a
+source without a sequence number are all invisible to it.
 
 What will be measured, how, with which seeds and repetitions, and what would falsify each research
 question is committed in advance in [docs/research/preregistration.md](docs/research/preregistration.md).
