@@ -56,10 +56,12 @@ __all__ = [
     "DEGRADATION_SCHEMA",
     "MANIFEST_KIND",
     "OUTAGE_BLOCK_SPAN_NS",
+    "Backdate",
     "Blackout",
     "Completeness",
     "DegradationResult",
     "RemovedRef",
+    "backdate",
     "blackout",
     "degrade",
     "write_degraded_raw",
@@ -197,6 +199,36 @@ class RemovedRef:
 
 
 @dataclass(frozen=True, slots=True)
+class RewrittenRef:
+    """One record whose timestamp an operator rewrote, and both of its ids.
+
+    Both ids travel because a raw event's id is minted from its members: rewriting the
+    timestamp mints a new one, and a reader holding only the degraded stream could not
+    otherwise say which record of the parent stream this was.
+    """
+
+    source_id: str
+    seq: int
+    was_t_evt_ns: int
+    now_t_evt_ns: int
+    was_event_id: str
+    now_event_id: str
+
+    def sort_key(self) -> tuple[bytes, int]:
+        return (canon.byte_order_key(self.source_id), self.seq)
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "now_event_id": self.now_event_id,
+            "now_t_evt_ns": str(self.now_t_evt_ns),
+            "seq": self.seq,
+            "source_id": self.source_id,
+            "was_event_id": self.was_event_id,
+            "was_t_evt_ns": str(self.was_t_evt_ns),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class Blackout:
     """WHOLE_SOURCE_BLACKOUT, specification Part II section 61.
 
@@ -240,6 +272,54 @@ class Blackout:
 
 
 @dataclass(frozen=True, slots=True)
+class Backdate:
+    """BACKDATE, specification Part II section 61.4.7: rewrite recorded timestamps.
+
+    Nothing is added, removed or reordered by this operator; one record's `t_evt_ns` moves
+    by `shift_ns`, which is negative to move it earlier. The record keeps its `seq`, so
+    moving it behind its predecessors contradicts the order its own source recorded - which
+    is exactly what the temporal-consistency pass looks for (ADR-0016).
+
+    RESEALING IS NOT DONE HERE, and does not need to be. Degradation runs on RAW records,
+    before ingest mints ids and seals chains, so the rewritten record reaches the bundle
+    with a chain that verifies and a timestamp that contradicts its neighbours. An operator
+    that rewrote a sealed bundle would break the chain instead, and the record would be
+    quarantined before any pass could see it.
+
+    `occurrence` selects among the records matching `(source_id, event_type)` in `seq`
+    order: 0 is the first, -1 the last. Selecting a record that does not exist is refused
+    rather than silently doing nothing, because an intervention that quietly did not happen
+    is reported as a cell that found nothing.
+    """
+
+    source_id: str
+    event_type: str
+    shift_ns: int
+    occurrence: int = 0
+
+    def __post_init__(self) -> None:
+        if not self.source_id or not self.event_type:
+            raise SchemaError("Backdate: source_id and event_type are required")
+        if self.shift_ns == 0:
+            raise SchemaError("Backdate: a zero shift rewrites nothing")
+        canon.i64(self.shift_ns)
+
+    def selects(self, record: RawEvent) -> bool:
+        return (
+            source_key(record.source_id) == self.source_id
+            and record.event_type == self.event_type
+        )
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "event_type": self.event_type,
+            "occurrence": self.occurrence,
+            "shift_ns": str(self.shift_ns),
+            "source_id": self.source_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class DegradationResult:
     """The surviving stream and the manifest that accounts for every deletion."""
 
@@ -250,6 +330,8 @@ class DegradationResult:
     parent_raw_hash: str
     nested_parent_manifest_hash: str | None = None
     blackout: Blackout | None = None
+    backdate: Backdate | None = None
+    rewritten: tuple[RewrittenRef, ...] = ()
 
     @property
     def raw_bytes(self) -> bytes:
@@ -276,13 +358,18 @@ class DegradationResult:
             "degradation_seed": canon.mask_hex(self.degradation_seed),
             # The operator that actually ran, so a manifest never describes a blackout as
             # a random deletion or the reverse.
-            "operators": ["whole_source_blackout"] if self.blackout else ["delete"],
+            "operators": [_operator_name(self)],
             "parent_raw_hash": self.parent_raw_hash,
             "removed": [r.to_scf() for r in self.removed],
             "schema": DEGRADATION_SCHEMA,
         }
         if self.blackout is not None:
             document["blackout"] = self.blackout.to_scf()
+        if self.backdate is not None:
+            document["backdate"] = {
+                **self.backdate.to_scf(),
+                "rewritten": [r.to_scf() for r in self.rewritten],
+            }
         if self.nested_parent_manifest_hash is not None:
             document["nested_parent_manifest_hash"] = self.nested_parent_manifest_hash
         return document
@@ -408,6 +495,82 @@ def blackout(raw: tuple[RawEvent, ...], spec: Blackout) -> DegradationResult:
         parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
         blackout=spec,
     )
+
+
+def backdate(raw: tuple[RawEvent, ...], spec: Backdate) -> DegradationResult:
+    """Apply BACKDATE: move one selected record's timestamp by `spec.shift_ns`.
+
+    Deterministic and seedless - which record moves is fixed by the source, the event type
+    and the occurrence, and by nothing else. `completeness` is 1/1 because nothing is
+    deleted; the manifest names the operator and records both timestamps and both ids.
+    """
+    if not isinstance(spec, Backdate):
+        raise SchemaError("backdate: spec must be a Backdate")
+    matching = sorted(
+        (r for r in raw if spec.selects(r)), key=lambda r: (r.seq, str(r.event_id))
+    )
+    if not matching:
+        raise SchemaError(
+            f"backdate: no record of {spec.event_type!r} on {spec.source_id!r} to rewrite",
+            code="E-DEGRADE-SELECT",
+        )
+    try:
+        target = matching[spec.occurrence]
+    except IndexError as exhausted:
+        raise SchemaError(
+            f"backdate: occurrence {spec.occurrence} of {len(matching)} does not exist",
+            code="E-DEGRADE-SELECT",
+        ) from exhausted
+
+    moved_to = target.t_evt_ns + spec.shift_ns
+    if moved_to < 0:
+        raise SchemaError(
+            "backdate: the shift moves the record before the epoch",
+            code="E-DEGRADE-SELECT",
+        )
+    moved = RawEvent(
+        source_id=target.source_id,
+        seq=target.seq,
+        t_evt_ns=moved_to,
+        event_type=target.event_type,
+        attrs=target.attrs,
+    )
+    survivors = tuple(
+        sorted(
+            (moved if r is target else r for r in raw),
+            key=lambda r: r.sort_key(),
+        )
+    )
+    canon.check_strictly_ascending(
+        [r.sort_key() for r in survivors], lambda k: k, where="backdate.raw"
+    )
+    return DegradationResult(
+        raw=survivors,
+        removed=(),
+        completeness=Completeness.of(1, 1),
+        degradation_seed=0,
+        parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
+        backdate=spec,
+        rewritten=(
+            RewrittenRef(
+                source_id=source_key(target.source_id),
+                seq=target.seq,
+                was_t_evt_ns=target.t_evt_ns,
+                now_t_evt_ns=moved_to,
+                was_event_id=str(target.event_id),
+                now_event_id=str(moved.event_id),
+            ),
+        ),
+    )
+
+
+def _operator_name(result: DegradationResult) -> str:
+    """The operator that actually ran, so a manifest never describes one as another."""
+    if result.backdate is not None:
+        return "backdate"
+    if result.blackout is not None:
+        return "whole_source_blackout"
+    return "delete"
 
 
 def _deletion_key(record: RawEvent, seed: int) -> tuple[bytes, int, bytes, int]:

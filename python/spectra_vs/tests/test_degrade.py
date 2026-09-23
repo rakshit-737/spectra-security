@@ -538,5 +538,105 @@ class TestBlackout(unittest.TestCase):
             dg.Blackout(sources=(), t0_ns=self.T0, t1_ns=self.T1)
 
 
+class TestBackdate(unittest.TestCase):
+    """BACKDATE: rewrite recorded timestamps, and nothing else.
+
+    The operator the temporal pass exists to face (ADR-0016). It deletes nothing, so the
+    record count is invariant; what it changes is one timestamp, which puts a record out of
+    order against its own seq. Re-sealing is not this operator's job: degradation runs on
+    raw records and ingest seals the chain afterwards, so the rewritten record arrives with
+    a consistent chain and a contradictory time, which is the case worth testing.
+    """
+
+    SHIFT = -2700 * 1_000_000_000
+
+    def setUp(self) -> None:
+        self.spec = dg.Backdate(
+            source_id="iam_audit", event_type="iam_audit_tick", shift_ns=self.SHIFT, occurrence=-1
+        )
+        self.result = dg.backdate(RAW, self.spec)
+
+    def _iam(self, records: tuple[gen.RawEvent, ...]) -> list[gen.RawEvent]:
+        return sorted(
+            (r for r in records if scn.source_key(r.source_id) == "iam_audit"),
+            key=lambda r: r.seq,
+        )
+
+    def test_it_deletes_nothing(self) -> None:
+        self.assertEqual(self.result.removed, ())
+        self.assertEqual(len(self.result.raw), len(RAW))
+
+    def test_exactly_one_record_moves(self) -> None:
+        before = {(scn.source_key(r.source_id), r.seq): r.t_evt_ns for r in RAW}
+        moved = [
+            key
+            for r in self.result.raw
+            if (key := (scn.source_key(r.source_id), r.seq)) and before[key] != r.t_evt_ns
+        ]
+        self.assertEqual(len(moved), 1)
+        self.assertEqual(moved[0][0], "iam_audit")
+
+    def test_the_record_moves_by_exactly_the_magnitude(self) -> None:
+        target = self._iam(RAW)[-1]
+        moved = [r for r in self._iam(self.result.raw) if r.seq == target.seq][0]
+        self.assertEqual(moved.t_evt_ns, target.t_evt_ns + self.SHIFT)
+
+    def test_it_puts_the_record_out_of_order_against_its_own_seq(self) -> None:
+        times = [r.t_evt_ns for r in self._iam(self.result.raw)]
+        self.assertNotEqual(times, sorted(times))
+
+    def test_every_other_source_is_untouched(self) -> None:
+        for name in ("gw_access", "res_access"):
+            before = [r for r in RAW if scn.source_key(r.source_id) == name]
+            after = [r for r in self.result.raw if scn.source_key(r.source_id) == name]
+            self.assertEqual(before, after, name)
+
+    def test_the_event_id_follows_the_new_timestamp(self) -> None:
+        """A raw event's id is minted from its members, so a rewritten time is a new id.
+        That is what makes the change visible to every downstream stage."""
+        target = self._iam(RAW)[-1]
+        moved = [r for r in self._iam(self.result.raw) if r.seq == target.seq][0]
+        self.assertNotEqual(str(moved.event_id), str(target.event_id))
+
+    def test_the_stream_stays_in_canonical_order(self) -> None:
+        keys = [r.sort_key() for r in self.result.raw]
+        self.assertEqual(keys, sorted(keys))
+
+    def test_it_is_seedless_and_completeness_is_the_identity(self) -> None:
+        self.assertEqual(self.result.degradation_seed, 0)
+        self.assertTrue(self.result.completeness.is_identity)
+        self.assertEqual(dg.backdate(RAW, self.spec).raw, self.result.raw)
+
+    def test_the_manifest_names_the_operator_and_the_rewrite(self) -> None:
+        manifest = self.result.manifest()
+        self.assertEqual(manifest["operators"], ["backdate"])
+        self.assertEqual(manifest["backdate"]["shift_ns"], str(self.SHIFT))
+        self.assertEqual(manifest["backdate"]["source_id"], "iam_audit")
+        self.assertEqual(len(manifest["backdate"]["rewritten"]), 1)
+
+    def test_a_blackout_manifest_does_not_mention_backdate(self) -> None:
+        other = dg.blackout(RAW, dg.Blackout(sources=("iam_audit",), t0_ns=_EPOCH, t1_ns=_EPOCH + 1))
+        self.assertNotIn("backdate", other.manifest())
+
+    def test_selecting_a_missing_record_is_refused(self) -> None:
+        """A cell whose intervention silently did nothing would be reported as a cell that
+        found nothing, which is the worst way for an experiment to fail."""
+        with self.assertRaises(SchemaError):
+            dg.backdate(RAW, dg.Backdate(source_id="iam_audit", event_type="absent", shift_ns=-1))
+
+    def test_a_zero_shift_is_refused(self) -> None:
+        with self.assertRaises(SchemaError):
+            dg.Backdate(source_id="iam_audit", event_type="iam_audit_tick", shift_ns=0)
+
+    def test_a_shift_off_the_horizon_is_refused(self) -> None:
+        with self.assertRaises(SchemaError):
+            dg.backdate(
+                RAW,
+                dg.Backdate(
+                    source_id="iam_audit", event_type="iam_audit_tick", shift_ns=-(_EPOCH * 2)
+                ),
+            )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
