@@ -22,6 +22,13 @@ there is empty for a reason that has nothing to do with what a sensor could see
 (`BUILD_LOG.md` INC-0007). A row with an empty premium is not evidence of blindness; it is
 usually evidence that the goal vanished. The `goal` column is what separates the two.
 
+THE SECOND TRAP, and the one that looks like a result. A row can carry a NON-empty premium
+and still say nothing: when the lower corridor set is empty, `NEC(Psi_max) \\ OCC(Psi_min)`
+degenerates to `NEC(Psi_max)`, which is every control the upper program needs rather than
+the controls only blindness demands. The table prints that warning under itself, naming the
+levels where it applies, because a reader who saw a control named in a premium column would
+otherwise have found exactly the finding this project exists to avoid manufacturing.
+
 NOTHING HERE IS MEASURED. The telemetry is the output of a seeded synthetic generator and
 the attack in it is simulated. Every figure is a property of the model and its inputs.
 """
@@ -146,6 +153,30 @@ def render(matrix: dict[str, object]) -> str:
         "empty for a reason that"
     )
     out.append("  has nothing to do with what a sensor could see.")
+    degenerate = [
+        row
+        for row in matrix["rows"]  # type: ignore[index]
+        if row["psi_min"] == 0 and row["premium"]
+    ]
+    if degenerate:
+        levels = ", ".join(f"c={row['completeness_percent']}%" for row in degenerate)
+        out.append("")
+        out.append(
+            f"  A ROW WITH |Psi_min| = 0 AND A NON-EMPTY PREMIUM SAYS NOTHING EITHER: "
+            f"{levels}. The premium is"
+        )
+        out.append(
+            "  NEC(Psi_max) minus OCC(Psi_min), so an empty lower corridor set degenerates "
+            "it to NEC(Psi_max), which cannot"
+        )
+        out.append(
+            "  separate a control needed because a sensor went blind from a control needed "
+            "at all. The control named"
+        )
+        out.append(
+            "  there is not evidence of blindness; the demonstration's control arm is what "
+            "that separation requires."
+        )
     return "\n".join(out)
 
 
