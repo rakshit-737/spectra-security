@@ -1,8 +1,20 @@
 """S3: the degradation operator. `raw + completeness + seed -> raw.c<NN>.jsonl + manifest`.
 
-DELETE ONLY. The operator removes whole records and never alters one. A degraded record
-would change its own event id, and an oracle could then no longer re-link the degraded
-bundle to the truth stream by id - which is the one thing the truth stream is for.
+ONE OPERATOR PER CELL. This module holds the small operator catalog the slice implements
+from specification Part II section 61: the completeness operator `degrade`, and the
+controlled single-variable interventions `blackout`, `backdate`, `strip_identity` and
+`chain_forge`. A cell applies exactly one of them, and a result carrying two specs is
+refused: a cell that mixed a controlled intervention with random loss, or two controlled
+interventions with each other, could not attribute its effect to either. The manifest
+always names the operator that actually ran.
+
+DELETE ONLY, AND THAT PARAGRAPH IS ABOUT `degrade`. The completeness operator removes
+whole records and never alters one. A degraded record would change its own event id, and
+an oracle could then no longer re-link the degraded bundle to the truth stream by id -
+which is the one thing the truth stream is for. The interventions that do alter a record
+(`backdate`, `strip_identity`) and the one that fabricates records (`chain_forge`)
+therefore carry both ids of everything they touch in the manifest, which is what keeps
+the re-link possible for them too.
 
 NESTING IS THE WHOLE POINT, AND IT IS STRUCTURAL HERE. Two cells of the completeness axis
 are comparable only if the lower cell saw strictly less than the higher one. If the 70%
@@ -58,12 +70,19 @@ __all__ = [
     "OUTAGE_BLOCK_SPAN_NS",
     "Backdate",
     "Blackout",
+    "ChainForge",
     "Completeness",
     "DegradationResult",
+    "ForgedRef",
     "RemovedRef",
+    "ResealedRef",
+    "StripIdentity",
+    "StrippedRef",
     "backdate",
     "blackout",
+    "chain_forge",
     "degrade",
+    "strip_identity",
     "write_degraded_raw",
     "write_manifest",
 ]
@@ -229,6 +248,98 @@ class RewrittenRef:
 
 
 @dataclass(frozen=True, slots=True)
+class StrippedRef:
+    """One record that lost named attribute keys, the keys it lost, and both of its ids.
+
+    Both ids travel for the same reason they do on a rewrite: a raw event's id is minted
+    from its members and `attrs` is one of them, so removing a key mints a new id. A
+    reader holding only the degraded stream could not otherwise say which record of the
+    parent stream this was.
+    """
+
+    source_id: str
+    seq: int
+    fields: tuple[str, ...]
+    was_event_id: str
+    now_event_id: str
+
+    def sort_key(self) -> tuple[bytes, int]:
+        return (canon.byte_order_key(self.source_id), self.seq)
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "fields": list(self.fields),
+            "now_event_id": self.now_event_id,
+            "seq": self.seq,
+            "source_id": self.source_id,
+            "was_event_id": self.was_event_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ForgedRef:
+    """One fabricated line. It has no parent record and it witnesses nothing.
+
+    `fate` and `kind` are the specification's ledger vocabulary (61.7.2): SYNTHETIC, kind
+    FORGED, no parent. They are written into the manifest so that a reader counting
+    witnesses cannot count a fabrication as an observation - a derivation whose whole
+    evidence set is synthetic is a phantom derivation, not support.
+
+    A forged line is this operator's fabrication. It is never attacker activity and the
+    specification forbids describing it as one, here or in any other output.
+    """
+
+    source_id: str
+    seq: int
+    t_evt_ns: int
+    event_type: str
+    event_id: str
+
+    def sort_key(self) -> tuple[bytes, int]:
+        return (canon.byte_order_key(self.source_id), self.seq)
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "event_id": self.event_id,
+            "event_type": self.event_type,
+            "fate": "synthetic",
+            "kind": "forged",
+            "seq": self.seq,
+            "source_id": self.source_id,
+            "t_evt_ns": str(self.t_evt_ns),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ResealedRef:
+    """One real record whose sequence number the reseal moved, with both seqs and both ids.
+
+    `seq` is a hashed member of a raw event, so renumbering a record mints a new id for it
+    even though nothing a reader would call content changed. Both are recorded, because a
+    reseal that silently re-identified half a source would make the pre-forgery stream
+    uncitable.
+    """
+
+    source_id: str
+    was_seq: int
+    now_seq: int
+    was_event_id: str
+    now_event_id: str
+
+    def sort_key(self) -> tuple[bytes, int]:
+        return (canon.byte_order_key(self.source_id), self.now_seq)
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "now_event_id": self.now_event_id,
+            "now_seq": self.now_seq,
+            "source_id": self.source_id,
+            "was_event_id": self.was_event_id,
+            "was_seq": self.was_seq,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class Blackout:
     """WHOLE_SOURCE_BLACKOUT, specification Part II section 61.
 
@@ -320,6 +431,140 @@ class Backdate:
 
 
 @dataclass(frozen=True, slots=True)
+class StripIdentity:
+    """STRIP-IDENTITY, specification Part II section 61.4.6, mode REMOVE.
+
+    Remove the named attribute keys from every record of `source_id` that carries one, and
+    change nothing else. This is how a record survives while the entity it named does not:
+    the line is still delivered, still parses, still holds its place in the source's
+    sequence, and no longer joins to anything.
+
+    WHAT IT DOES NOT DO. It deletes no record, moves no timestamp, renumbers no sequence
+    and touches no other source, so nothing that would make an ABSENCE visible moves: the
+    chain still verifies, the numbering is still dense, the inter-arrival profile is
+    unchanged. The specification classes this operator OBS-N on every chain class for
+    exactly that reason, and an implementation that also dropped the line would be
+    measuring deletion while claiming to measure identity loss.
+
+    It does not blank and it does not hash. The specification's BLANK and HASH_OPAQUE modes
+    leave a key present with an empty or opaque value, which is a different observable - a
+    field that is there and useless rather than a field that is gone - and is a second
+    operator rather than a parameter of this one.
+
+    A raw event's id is minted from its members and `attrs` is one of them, so every
+    stripped record arrives under a NEW event id. That is stated rather than hidden: the
+    manifest carries both ids for every record this operator touches.
+
+    Selecting a source that delivered nothing, or fields no record carries, is refused
+    rather than silently doing nothing, because an intervention that quietly did not happen
+    is reported downstream as a cell that found nothing.
+    """
+
+    source_id: str
+    fields: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not self.source_id:
+            raise SchemaError("StripIdentity: source_id is required")
+        if not isinstance(self.fields, tuple):
+            raise SchemaError("StripIdentity: fields must be a tuple of attribute keys")
+        if not self.fields:
+            raise SchemaError("StripIdentity: at least one field is required")
+        if any(not isinstance(name, str) or not name for name in self.fields):
+            raise SchemaError("StripIdentity: a field name must be a non-empty string")
+        if tuple(sorted(set(self.fields), key=canon.byte_order_key)) != self.fields:
+            raise SchemaError("StripIdentity: fields must be unique and in bytewise order")
+
+    def selects(self, record: RawEvent) -> bool:
+        return source_key(record.source_id) == self.source_id
+
+    def strips(self, record: RawEvent) -> tuple[str, ...]:
+        """The named keys this record actually carries, in the spec's declared order.
+
+        The declared order, never the record's and never a set's, so that two records
+        carrying the same keys produce identical manifest rows whatever order their attrs
+        arrived in.
+        """
+        if not self.selects(record):
+            return ()
+        present = frozenset(key for key, _ in record.attrs)
+        return tuple(name for name in self.fields if name in present)
+
+    def to_scf(self) -> dict[str, Any]:
+        return {"fields": list(self.fields), "source_id": self.source_id}
+
+
+@dataclass(frozen=True, slots=True)
+class ChainForge:
+    """CHAIN-FORGE, specification Part II section 61.4.8: fabricate records a chained
+    source's integrity chain cannot distinguish from the ones it handed over.
+
+    `count` fabricated records are inserted immediately after the record numbered
+    `after_seq` on `source_id`, and every later record of that source is renumbered forward
+    by `count`. That renumbering IS the reseal at this layer and it is not a flag: leaving
+    the numbering alone would either reuse a sequence number, which ingest quarantines as a
+    collision, or leave a hole, which S7 reads as SUPPRESSED on a chained source. Either
+    outcome is a forgery that announces itself, and the operator exists to produce one that
+    does not.
+
+    WHY THERE IS NOTHING TO RE-HASH HERE, AND WHY THAT IS THE POINT. The chain is INGEST'S
+    seal, computed after degradation over the records ingest received (`ingest.chain_seal`
+    with `ingest.chain_genesis`). A forgery inserted before ingest is therefore sealed by
+    ingest along with everything else, and the chain verifies link for link over a bundle
+    that contains fabrications. `chain_hash` establishes that the bundle was not altered
+    AFTER ingest and nothing whatever about what the source actually emitted. This operator
+    makes that limit demonstrable instead of asserted.
+
+    WHAT IT DOES NOT DO. It deletes nothing and conceals no deletion: the specification
+    withdrew Part I's `forge_provenance` - which rewrote chain links so an existing
+    deletion looked clean - for exactly that reason, and no operator in the closed catalog
+    conceals a deletion. It creates no ground-truth step, so fabrication leaves ground truth
+    unchanged and a fabricated line witnesses nothing. It never touches another source, and
+    it never moves a real record's timestamp.
+
+    `template`, in the specification's words, is drawn from the source's own observed
+    vocabulary: `event_type` must be one the source actually emitted in this stream, or the
+    fabrication would be distinguishable by vocabulary alone and the operator would be
+    demonstrating nothing.
+
+    `seq` is a hashed member of a raw event, so every renumbered record arrives under a NEW
+    event id. The manifest carries both ids for every record the reseal moved.
+    """
+
+    source_id: str
+    after_seq: int
+    count: int
+    event_type: str
+    attrs: tuple[tuple[str, str], ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.source_id or not self.event_type:
+            raise SchemaError("ChainForge: source_id and event_type are required")
+        if isinstance(self.after_seq, bool) or isinstance(self.count, bool):
+            raise SchemaError("ChainForge: a bool is not a sequence number or a count")
+        canon.u32(self.after_seq)
+        canon.u32(self.count)
+        if self.count == 0:
+            raise SchemaError("ChainForge: a count of zero fabricates nothing")
+        if not isinstance(self.attrs, tuple):
+            raise SchemaError("ChainForge: attrs must be a tuple of pairs")
+        keys = tuple(key for key, _ in self.attrs)
+        if tuple(sorted(set(keys), key=canon.byte_order_key)) != keys:
+            raise SchemaError(
+                "ChainForge: template attribute keys must be unique and in bytewise order"
+            )
+
+    def to_scf(self) -> dict[str, Any]:
+        return {
+            "after_seq": self.after_seq,
+            "attrs": {key: value for key, value in self.attrs},
+            "count": self.count,
+            "event_type": self.event_type,
+            "source_id": self.source_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class DegradationResult:
     """The surviving stream and the manifest that accounts for every deletion."""
 
@@ -332,6 +577,46 @@ class DegradationResult:
     blackout: Blackout | None = None
     backdate: Backdate | None = None
     rewritten: tuple[RewrittenRef, ...] = ()
+    strip_identity: StripIdentity | None = None
+    stripped: tuple[StrippedRef, ...] = ()
+    chain_forge: ChainForge | None = None
+    forged: tuple[ForgedRef, ...] = ()
+    resealed: tuple[ResealedRef, ...] = ()
+
+    def __post_init__(self) -> None:
+        """A cell varies one thing, and no manifest row describes a change nothing made.
+
+        The specification orders operators (61.4.0) for a plan that applies several; this
+        slice runs one operator per cell, so a result carrying two specs is refused here
+        rather than reported under whichever name `_operator_name` happens to check first.
+        A cell that mixed two interventions could not attribute its effect to either.
+        """
+        applied = [
+            name
+            for name, spec in (
+                ("whole_source_blackout", self.blackout),
+                ("backdate", self.backdate),
+                ("strip_identity", self.strip_identity),
+                ("chain_forge", self.chain_forge),
+            )
+            if spec is not None
+        ]
+        if len(applied) > 1:
+            raise SchemaError(
+                "DegradationResult: a cell applies one operator; "
+                f"{' with '.join(applied)} could not attribute an effect to either"
+            )
+        for rows, owner, name in (
+            (self.rewritten, self.backdate, "rewritten"),
+            (self.stripped, self.strip_identity, "stripped"),
+            (self.forged, self.chain_forge, "forged"),
+            (self.resealed, self.chain_forge, "resealed"),
+        ):
+            if rows and owner is None:
+                raise SchemaError(
+                    f"DegradationResult: {name} rows without the operator that produced "
+                    "them would describe a change that nothing did"
+                )
 
     @property
     def raw_bytes(self) -> bytes:
@@ -369,6 +654,17 @@ class DegradationResult:
             document["backdate"] = {
                 **self.backdate.to_scf(),
                 "rewritten": [r.to_scf() for r in self.rewritten],
+            }
+        if self.strip_identity is not None:
+            document["strip_identity"] = {
+                **self.strip_identity.to_scf(),
+                "stripped": [r.to_scf() for r in self.stripped],
+            }
+        if self.chain_forge is not None:
+            document["chain_forge"] = {
+                **self.chain_forge.to_scf(),
+                "forged": [r.to_scf() for r in self.forged],
+                "resealed": [r.to_scf() for r in self.resealed],
             }
         if self.nested_parent_manifest_hash is not None:
             document["nested_parent_manifest_hash"] = self.nested_parent_manifest_hash
@@ -564,12 +860,217 @@ def backdate(raw: tuple[RawEvent, ...], spec: Backdate) -> DegradationResult:
     )
 
 
+def strip_identity(raw: tuple[RawEvent, ...], spec: StripIdentity) -> DegradationResult:
+    """Apply STRIP-IDENTITY: remove `spec.fields` from the records of one source.
+
+    Deterministic and seedless - which records lose which keys is fixed by the source and
+    the field list and by nothing else, so there is nothing for a seed to choose. Every
+    record of the source carrying one of the named keys loses it; a record that never
+    carried one is passed through as the same object rather than rebuilt, which is what
+    makes the operator a genuine no-op exactly where there is nothing to remove.
+
+    Nothing is deleted, nothing is reordered and no other source is read, so `completeness`
+    is the identity 1/1 and `removed` is empty. The manifest names the operator, the fields
+    and both ids of every record touched.
+
+    A selection that matches nothing - an unknown source, or fields no record carries - is
+    refused rather than returned as an empty intervention, because a cell whose operator
+    quietly did nothing is reported downstream as a cell that found nothing.
+    """
+    if not isinstance(spec, StripIdentity):
+        raise SchemaError("strip_identity: spec must be a StripIdentity")
+
+    stripped: list[StrippedRef] = []
+    survivors: list[RawEvent] = []
+    for record in raw:
+        removed_keys = spec.strips(record)
+        if not removed_keys:
+            survivors.append(record)
+            continue
+        dropped = frozenset(removed_keys)
+        kept = RawEvent(
+            source_id=record.source_id,
+            seq=record.seq,
+            t_evt_ns=record.t_evt_ns,
+            event_type=record.event_type,
+            attrs=tuple((key, value) for key, value in record.attrs if key not in dropped),
+        )
+        survivors.append(kept)
+        stripped.append(
+            StrippedRef(
+                source_id=source_key(record.source_id),
+                seq=record.seq,
+                fields=removed_keys,
+                was_event_id=str(record.event_id),
+                now_event_id=str(kept.event_id),
+            )
+        )
+
+    if not stripped:
+        raise SchemaError(
+            f"strip_identity: no record on {spec.source_id!r} carries any of "
+            f"{list(spec.fields)} to remove",
+            code="E-DEGRADE-SELECT",
+        )
+
+    ordered = tuple(sorted(survivors, key=lambda r: r.sort_key()))
+    canon.check_strictly_ascending(
+        [r.sort_key() for r in ordered], lambda k: k, where="strip_identity.raw"
+    )
+    return DegradationResult(
+        raw=ordered,
+        removed=(),
+        completeness=Completeness.of(1, 1),
+        degradation_seed=0,
+        parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
+        strip_identity=spec,
+        stripped=tuple(sorted(stripped, key=lambda ref: ref.sort_key())),
+    )
+
+
+def chain_forge(raw: tuple[RawEvent, ...], spec: ChainForge) -> DegradationResult:
+    """Apply CHAIN-FORGE: insert fabricated records and reseal the numbering after them.
+
+    Deterministic and seedless - the insertion point, the count and the template fix every
+    member of every fabricated record, and their instants are an integer interpolation of
+    the gap the insertion point leaves, so there is nothing for a seed to choose. The
+    fabricated instants land strictly inside that gap: a record outside it would contradict
+    its own sequence number and a temporal-consistency pass would catch the forgery for a
+    reason that has nothing to do with the chain.
+
+    Nothing is deleted, so `completeness` is the identity 1/1 and `removed` is empty. The
+    manifest names the operator, marks every fabricated line SYNTHETIC/FORGED so it cannot
+    be counted as an observation, and records both seqs and both ids of every real record
+    the reseal renumbered.
+
+    Refused rather than quietly turned into something else: a source that delivered no
+    record; an `after_seq` that source does not have; an `after_seq` that is its last
+    record, where a forgery would extend the tail and need no reseal, which is a different
+    operator; an `event_type` the source never emitted, which would be distinguishable by
+    vocabulary alone; and a gap too narrow to hold `count` distinct instants strictly
+    inside it.
+    """
+    if not isinstance(spec, ChainForge):
+        raise SchemaError("chain_forge: spec must be a ChainForge")
+
+    source = sorted(
+        (r for r in raw if source_key(r.source_id) == spec.source_id), key=lambda r: r.seq
+    )
+    if not source:
+        raise SchemaError(
+            f"chain_forge: {spec.source_id!r} delivered no record to forge onto",
+            code="E-DEGRADE-SELECT",
+        )
+    canon.check_strictly_ascending(
+        [r.seq for r in source], lambda k: k, where=f"chain_forge.{spec.source_id}.seq"
+    )
+    vocabulary = tuple(sorted({r.event_type for r in source}, key=canon.byte_order_key))
+    if spec.event_type not in vocabulary:
+        raise SchemaError(
+            f"chain_forge: {spec.source_id!r} never emitted {spec.event_type!r}; a "
+            "fabrication outside the source's own vocabulary is distinguishable without "
+            "looking at the chain at all",
+            code="E-DEGRADE-SELECT",
+        )
+
+    host_index = next(
+        (index for index, r in enumerate(source) if r.seq == spec.after_seq), None
+    )
+    if host_index is None:
+        raise SchemaError(
+            f"chain_forge: {spec.source_id!r} has no record numbered {spec.after_seq}",
+            code="E-DEGRADE-SELECT",
+        )
+    if host_index + 1 == len(source):
+        raise SchemaError(
+            f"chain_forge: record {spec.after_seq} is the last on {spec.source_id!r}; "
+            "appending past the end needs no reseal and is not this operator",
+            code="E-DEGRADE-SELECT",
+        )
+
+    host = source[host_index]
+    successor = source[host_index + 1]
+    gap = successor.t_evt_ns - host.t_evt_ns
+    if gap < spec.count + 1:
+        raise SchemaError(
+            f"chain_forge: the {gap} ns between records {host.seq} and {successor.seq} of "
+            f"{spec.source_id!r} cannot hold {spec.count} distinct instants strictly "
+            "inside it",
+            code="E-DEGRADE-SELECT",
+        )
+    step = gap // (spec.count + 1)
+
+    forged: list[ForgedRef] = []
+    fabricated: list[RawEvent] = []
+    for index in range(spec.count):
+        record = RawEvent(
+            source_id=host.source_id,
+            seq=spec.after_seq + 1 + index,
+            t_evt_ns=host.t_evt_ns + step * (index + 1),
+            event_type=spec.event_type,
+            attrs=spec.attrs,
+        )
+        fabricated.append(record)
+        forged.append(
+            ForgedRef(
+                source_id=spec.source_id,
+                seq=record.seq,
+                t_evt_ns=record.t_evt_ns,
+                event_type=record.event_type,
+                event_id=str(record.event_id),
+            )
+        )
+
+    resealed: list[ResealedRef] = []
+    out: list[RawEvent] = list(fabricated)
+    for record in raw:
+        if source_key(record.source_id) != spec.source_id or record.seq <= spec.after_seq:
+            out.append(record)
+            continue
+        moved = RawEvent(
+            source_id=record.source_id,
+            seq=record.seq + spec.count,
+            t_evt_ns=record.t_evt_ns,
+            event_type=record.event_type,
+            attrs=record.attrs,
+        )
+        out.append(moved)
+        resealed.append(
+            ResealedRef(
+                source_id=spec.source_id,
+                was_seq=record.seq,
+                now_seq=moved.seq,
+                was_event_id=str(record.event_id),
+                now_event_id=str(moved.event_id),
+            )
+        )
+
+    ordered = tuple(sorted(out, key=lambda r: r.sort_key()))
+    canon.check_strictly_ascending(
+        [r.sort_key() for r in ordered], lambda k: k, where="chain_forge.raw"
+    )
+    return DegradationResult(
+        raw=ordered,
+        removed=(),
+        completeness=Completeness.of(1, 1),
+        degradation_seed=0,
+        parent_raw_hash=canon.hash_ref(RAW_FILE_KIND, render_raw(raw)),
+        chain_forge=spec,
+        forged=tuple(sorted(forged, key=lambda ref: ref.sort_key())),
+        resealed=tuple(sorted(resealed, key=lambda ref: ref.sort_key())),
+    )
+
+
 def _operator_name(result: DegradationResult) -> str:
     """The operator that actually ran, so a manifest never describes one as another."""
     if result.backdate is not None:
         return "backdate"
     if result.blackout is not None:
         return "whole_source_blackout"
+    if result.strip_identity is not None:
+        return "strip_identity"
+    if result.chain_forge is not None:
+        return "chain_forge"
     return "delete"
 
 
