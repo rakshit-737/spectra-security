@@ -251,7 +251,13 @@ def seq_feasible(left: tuple[int, int], right: tuple[int, int], within: int) -> 
     Each side is a closed tick range. An observed fact is a single point `(t, t)`; a
     licensed fact is the span of the blind window its step could have occupied. The
     difference `right - left` ranges over `[r_lo - l_hi, r_hi - l_lo]`, and the constraint
-    holds for some pair exactly when that range meets `(0, within]`.
+    holds for some pair exactly when that range meets `(0, within]`. The meet is written
+    out rather than split into two comparisons: the earlier form asked for
+    `r_hi - l_lo > 0 and r_lo - l_hi <= within`, which is the same thing for `within >= 1`
+    and wrong for `within == 0`, where `(0, 0]` is EMPTY and nothing can land in it. A
+    `seq` operator that omits `within` parses as 0, so the case is reachable from a rule
+    table even though this one gives every `seq` rule a positive bound. It over-admitted,
+    which is the INC-0010 direction: a pair impossible for every placement entering P_max.
 
     This is the sound over-approximation the envelope needs. It invents no precision - it
     uses the whole window - and it drops no real possibility, since one satisfying pair is
@@ -262,7 +268,7 @@ def seq_feasible(left: tuple[int, int], right: tuple[int, int], within: int) -> 
     """
     l_lo, l_hi = left
     r_lo, r_hi = right
-    return (r_hi - l_lo) > 0 and (r_lo - l_hi) <= within
+    return max(r_lo - l_hi, 1) <= min(r_hi - l_lo, within)
 
 
 class Engine:
