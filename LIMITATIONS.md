@@ -61,6 +61,32 @@ measured.
 **NOT MEASURED.** This block blocks release; see gate G-LIMITS-COMPLETE.
 <!-- END GENERATED: blind_spot_volume -->
 
+## What the temporal-consistency pass cannot see
+
+The pass of ADR-0016 answers one question: does a recorded timestamp contradict the order that its
+own source recorded, or a temporal bound the rule table declares? Where it finds one it names the
+fewest timestamps that would have to be disbelieved, marks their sources, and weakens the verdict.
+
+Four things defeat it, and three of them defeat it completely:
+
+- **A consistently rewritten source.** Move every record of one source by the same amount and the
+  order is intact. There is no contradiction to find, and the pass reports nothing.
+- **A forged chain.** A chained source's records can be re-sealed after modification. The chain then
+  verifies, and the pass reads what it is given.
+- **A source with no sequence number.** The recorded order is the only thing the pass compares
+  against. Without it there is nothing to contradict.
+- **A rewrite inside the noise.** A record moved by less than the gap to its neighbours contradicts
+  nothing, and the pass is silent.
+
+It is therefore not tamper detection, not backdating detection and not a suppression detector, and
+no document, transcript or interface in this repository may describe it as any of those. What it
+adds is narrow and real: a verdict that something can refuse. Before it existed, the strongest
+verdict SPECTRA issues rested on a check that could never fire.
+
+The pass also does not decide WHICH timestamp is wrong. A contradiction says the recorded values
+cannot all be true; the correction set is the smallest set that would restore consistency, which is
+a different claim and a weaker one.
+
 ## Entity resolution is the largest soundness risk
 
 Every downstream proof is a proof about the entities the resolver produced. A false merge does not
@@ -77,8 +103,10 @@ data; no data has been measured.
 ## When we flag and what that costs
 
 A run that trips a soundness-affecting flag — ambiguous entity resolution, capped grounding, a
-capped corridor set, a greedy cover, subset-only minimality, a licence voided by backdating — is
-never presented as robust. The share of runs that carry a flag is therefore part of the honest
+capped corridor set, a greedy cover, subset-only minimality — is never presented as robust. The
+flag for a licence voided by backdating is permanently false and is not in that list, because
+nothing voids a licence: a disputed timestamp weakens the verdict and leaves the licensed set
+alone (ADR-0016), and a flag that can never be set is not a flag a reader should weigh. The share of runs that carry a flag is therefore part of the honest
 result, not a footnote: a kernel that flags most of its runs has answered few questions. The two
 blocks below will report the flagged share by flag and the capped share by cap. They will be
 generated from measured data; no data has been measured.
