@@ -4,6 +4,8 @@ SPECTRA computes which settings of a declared control catalog make a reconstruct
 
 This is a statement about the model, not about what would have happened. The attacker is non-adaptive, the rule table and control catalog are hand-written, and an unmodelled technique remains unmodelled. See LIMITATIONS.md.
 
+[Overview: what it computes and how much exists](docs/OVERVIEW.md) — [Reading a certificate](docs/READING-A-CERTIFICATE.md)
+
 [Limitations and known-unsound regions](LIMITATIONS.md) — [What SPECTRA does not do](docs/NON-GOALS.md)
 
 > **Status: pre-alpha. A Python reference slice runs end to end, and in one
@@ -90,7 +92,7 @@ is green. Where code exists without its gate, the row says so rather than claimi
 |----|----------|------|--------|
 | M0 | Skeleton and toolchain: a clone builds, lints and tests an empty system, offline | `make m0-verify` | not started |
 | M1 | Seeded synthetic generator and recorded ground truth | `make m1-verify` | implemented in Python; gate not built |
-| M2 | Ingest, entity resolution, event store | `make m2-verify` | ingest and entity resolution implemented in Python; no event store; gate not built |
+| M2 | Ingest, entity resolution, event store | `make m2-verify` | ingest and entity resolution implemented in Python; the event store is an in-process SQLite index over a sealed bundle, not the specified service; gate not built |
 | M3 | Vertical slice: scenario to replayed control configuration, end to end | `make m3-verify` | runs end to end; the pre-registered blackout cell shows the designed effect (BUILD_LOG INC-0011); gate not built |
 | M4 | Kernel stages A-D: liveness, licences, silent envelope, fixpoint | `make m4-verify` | implemented in Python, not in the specified Rust; gate not built |
 | M5 | Kernel stage E and the certificate object | `make m5-verify` | implemented in Python, not in the specified Rust; gate not built |
