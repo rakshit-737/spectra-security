@@ -10,7 +10,7 @@
 # STATUS: not started. Exactly four gates below are IMPLEMENTED: G-SKELETON-001,
 # which gates this skeleton and nothing else; G-PYREF-001, which runs every unit
 # suite of the Python reference slice (ADR-0013); G-VS-PREREG-0001, which re-runs
-# the slice's one pre-registered prediction end to end; and G-WIN-001, which is
+# the slice's two pre-registered predictions end to end; and G-WIN-001, which is
 # the Makefile sandbox guard, evaluates on every make invocation in this
 # repository, and is enforced before every commit by .pre-commit-config.yaml.
 # Every other gate below is DECLARED only. Declaring a gate does not make it run;
