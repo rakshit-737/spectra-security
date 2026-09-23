@@ -609,6 +609,46 @@ class TestTemporalDispute(_Base):
         self.assertTrue(self.fixture.body["silent"])
 
 
+class TestPremiumSets(_Base):
+    """O13b. The premium is the number this project is for, and until this obligation the
+    emitter was the only thing that computed its set difference."""
+
+    def test_a_forged_premium_is_refused(self) -> None:
+        def mutate(body):
+            body["premium"]["blindness_premium"] = body["premium"]["nec_max"] + [
+                "ctl:zz_invented"
+            ]
+
+        self.assertRejects(self._mutate(mutate), "E-PREMIUM-SETS")
+
+    def test_a_premium_that_keeps_an_occurring_control_is_refused(self) -> None:
+        """The difference is what makes the number mean "needed only because of blindness"."""
+
+        def mutate(body):
+            premium = body["premium"]
+            premium["occ_min"] = sorted(set(premium["occ_min"]) | set(premium["nec_max"]))
+
+        self.assertRejects(self._mutate(mutate), "E-PREMIUM-SETS")
+
+    def test_an_entry_for_a_control_outside_the_premium_is_refused(self) -> None:
+        def mutate(body):
+            entry = dict(body["premium"]["per_control"][0])
+            entry["control_id"] = "ctl:zz_not_in_premium"
+            body["premium"]["per_control"] = body["premium"]["per_control"] + [entry]
+
+        self.assertRejects(self._mutate(mutate), "E-PREMIUM-SETS")
+
+    def test_a_suppressed_premium_has_no_sets_to_check(self) -> None:
+        def mutate(body):
+            body.pop("premium")
+            body["premium_suppressed_reason"] = "corridor_cap"
+
+        report = self._run(self._mutate(mutate))
+        self.assertTrue(
+            any("no sets to check" in r.detail for r in report.results), report.render()
+        )
+
+
 class TestVersionComparison(_Base):
     """min_checker was compared with the checker's version as a string, so "1.10" sorted
     below "1.9", and a value that was not a string could not be compared at all."""

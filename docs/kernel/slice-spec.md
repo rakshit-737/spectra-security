@@ -761,6 +761,8 @@ Obligations run in EXACTLY this order, stopping at the first failure. Each may a
                    an event_id present in bundle.jsonl with a matching record hash, every GHOST or LICENSED node
                    carries evidence:[] and a licence and matches its instance's ghost flag, and the tree
                    re-derives the goal under S \ {removed_control}                            E-WITNESS-{CYCLE,EVENT,CUT}
+  O13b premium     blindness_premium re-derives as NEC(Psi_max) \ OCC(Psi_min) from the published sets, and every
+                   per_control entry names a control that is in it                                E-PREMIUM-SETS
   O14b dispute     a ROBUST verdict is refused when the pinned liveness document suspects any source or marks the
                    verdict tamper-sensitive; every disputed event's source is suspected, which a voiding
                    implementation would fail                                                  VRD-001

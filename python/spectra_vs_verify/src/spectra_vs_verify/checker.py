@@ -1550,6 +1550,55 @@ def _o13_psi_hit(state: _State) -> ObligationResult:
     )
 
 
+def _o13b_premium_sets(state: _State) -> ObligationResult:
+    """The premium's set arithmetic, re-derived rather than trusted.
+
+    `blindness_premium` is defined as `NEC(Psi_max) \ OCC(Psi_min)`, and until this
+    obligation existed the emitter was the only thing that computed it: O14 checks the
+    preconditions under which a premium may be PUBLISHED, not the sets themselves. A defect
+    in the emitter's set difference would therefore have reached a certificate this checker
+    accepts, which is the failure the two-implementation design exists to catch
+    (`docs/kernel/spec-drift.md`).
+
+    The premium is the number this project is for, so it is the worst member to leave
+    un-rederived. Everything needed is in the certificate: all three sets are published.
+    """
+    body = state.body
+    if "premium" not in body:
+        reason = _member(body, "premium_suppressed_reason", "body")
+        return ObligationResult(
+            "O13b premium sets",
+            True,
+            f"the premium is absent, suppressed as {reason!r}; there are no sets to check",
+        )
+    premium = _member(body, "premium", "body")
+    nec_max = _member(premium, "nec_max", "premium")
+    occ_min = _member(premium, "occ_min", "premium")
+    published = _member(premium, "blindness_premium", "premium")
+    _ascending(nec_max, where="premium.nec_max")
+    _ascending(occ_min, where="premium.occ_min")
+    _ascending(published, where="premium.blindness_premium")
+    expected = [control for control in nec_max if control not in set(occ_min)]
+    _require(
+        published == expected,
+        "E-PREMIUM-SETS",
+        f"blindness_premium is {published}; NEC(Psi_max) \ OCC(Psi_min) is {expected}",
+    )
+    for entry in _member(premium, "per_control", "premium"):
+        _require(
+            entry["control_id"] in published,
+            "E-PREMIUM-SETS",
+            f"{entry['control_id']} carries a premium entry but is not in the premium",
+        )
+    return ObligationResult(
+        "O13b premium sets",
+        True,
+        f"the premium re-derives: {len(nec_max)} necessary, {len(occ_min)} occurring, "
+        f"{len(published)} in the difference",
+        cost=len(nec_max) + len(occ_min),
+    )
+
+
 def _o14_flags(state: _State) -> ObligationResult:
     verdict = _member(state.body, "verdict", "body")
     flags = _member(verdict, "flags", "verdict")
@@ -1875,6 +1924,7 @@ OBLIGATIONS: Final[tuple[tuple[str, Any], ...]] = (
     ("O11", _o11_ghost),
     ("O12", _o12_witnesses),
     ("O13", _o13_psi_hit),
+    ("O13b", _o13b_premium_sets),
     ("O14", _o14_flags),
     ("O14b", _o14b_temporal_dispute),
     ("O15", _o15_minimality),
