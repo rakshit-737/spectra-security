@@ -1,23 +1,227 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SPECTRA console - not started</title>
+    <!--
+      SPECTRA certificate viewer.
+
+      Owning spec sections: Part I 32.7 and 39; Part II 75.2 C10.
+
+      NO BUILD STEP. This is plain HTML plus ES modules, loaded from `src/` by relative
+      path. There is no bundler, no framework, no dependency and no network call. Open it
+      through `node src/serve.js`; a module script fetched from `file://` has an opaque
+      origin and every browser refuses it.
+
+      THE STRING CATALOG. Every user-visible sentence lives in `src/strings.js`, so a
+      future G-UI-STRINGS gate has one file to lint. Exactly two literals sit in this
+      document instead, because both must exist before or without the module graph:
+
+        * the <title>, which the browser shows before any script runs;
+        * the <noscript>, which is shown precisely when no script runs.
+
+      Both are byte-identical to `STRINGS.page.title` and `STRINGS.page.noscript`, and
+      `tests/catalog.test.js` fails if they drift. Every other label, hint and heading on
+      this page is empty here and filled from the catalog at load.
+
+      THE VERDICT IS NEVER COMPUTED CLIENT-SIDE (Part II 75.2 C10). Nothing in `src/`
+      derives a safety value, a cut, a premium or a count. The page reads a certificate
+      and renders what is in it; it recomputes no digest and replays no instance, so
+      nothing it shows is a second opinion about the certificate.
+    -->
+    <title>SPECTRA certificate viewer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fbfbf9;
+        --fg: #16181d;
+        --muted: #5b6270;
+        --rule: #d9d7d0;
+        --panel: #ffffff;
+        --accent: #6b3fa0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161a;
+          --fg: #e6e7ea;
+          --muted: #9aa1ad;
+          --rule: #2a2e36;
+          --panel: #1a1d22;
+          --accent: #bda4e0;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0 16px 64px;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          15px/1.55 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      .wrap {
+        max-width: 78rem;
+        margin: 0 auto;
+      }
+      header {
+        padding: 32px 0 20px;
+        border-bottom: 1px solid var(--rule);
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 1.4rem;
+        letter-spacing: -0.01em;
+      }
+      #subtitle {
+        margin: 0;
+        color: var(--muted);
+      }
+      .pickers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 20px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      .picker {
+        flex: 1 1 22rem;
+      }
+      .picker label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .picker .hint {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      input[type="file"] {
+        font: inherit;
+        max-width: 100%;
+      }
+      .panel {
+        margin: 26px 0;
+        padding: 16px 18px;
+        background: var(--panel);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+      }
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .line {
+        margin: 2px 0;
+        font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .line[data-indent="1"] {
+        padding-left: 2ch;
+      }
+      .line[data-indent="2"] {
+        padding-left: 4ch;
+      }
+      .line[data-indent="3"] {
+        padding-left: 6ch;
+      }
+      .line[data-indent="4"] {
+        padding-left: 8ch;
+      }
+      .line[data-indent="5"] {
+        padding-left: 10ch;
+      }
+      .line[data-indent="6"] {
+        padding-left: 12ch;
+      }
+      .note {
+        font-family: inherit;
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+      .strong {
+        font-weight: 700;
+      }
+      .token {
+        font-weight: 700;
+        color: var(--accent);
+        border-left: 3px solid var(--accent);
+        padding-left: 10px;
+        margin-bottom: 8px;
+      }
+      details {
+        margin: 26px 0;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      #plaintext {
+        margin: 10px 0 0;
+        padding: 14px;
+        background: var(--panel);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      noscript p {
+        padding: 16px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+      }
+    </style>
   </head>
   <body>
-    <!--
-      Placeholder host document.
-      Owning spec sections: Part I 32.7 and 39; Part II 75.2 C10.
-      Status: not started. There is no component, no router, no framework and no
-      data path. Nothing may be displayed here that does not trace to an API
-      field (Part I 32.7), and the verdict is never computed client-side.
-      TODO(bundler): the script reference below assumes a dev server that serves
-      TypeScript from source (Part I 32.7 names Vite). If a different bundler is
-      chosen, change this src and frontend/package.json together.
-    -->
-    <div id="root"></div>
-    <noscript>The SPECTRA console is not implemented.</noscript>
-    <script type="module" src="/src/main.ts"></script>
+    <div class="wrap">
+      <header>
+        <h1 id="title"></h1>
+        <p id="subtitle"></p>
+      </header>
+
+      <noscript>
+        <p>
+          This page renders a certificate with ES modules and no framework. With scripting
+          off there is nothing to show.
+        </p>
+      </noscript>
+
+      <div class="pickers">
+        <div class="picker">
+          <label for="cert-input" id="cert-label"></label>
+          <input id="cert-input" type="file" accept=".spcert,.json,application/json" />
+          <p class="hint" id="cert-hint"></p>
+        </div>
+        <div class="picker">
+          <label for="liveness-input" id="liveness-label"></label>
+          <input id="liveness-input" type="file" accept=".json,application/json" />
+          <p class="hint" id="liveness-hint"></p>
+        </div>
+      </div>
+
+      <main id="sections"></main>
+
+      <details>
+        <summary id="plaintext-label"></summary>
+        <p class="hint" id="plaintext-hint"></p>
+        <pre id="plaintext"></pre>
+      </details>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
   </body>
 </html>

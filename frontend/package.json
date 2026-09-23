@@ -3,20 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "SPECTRA console. Not started: no component, no router, no data path.",
+  "description": "SPECTRA certificate viewer. Plain ES modules, no build step, no dependency.",
   "license": "Apache-2.0",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "echo 'spectra: console build not implemented (Part I 32.7, 39). Status: not started.' 1>&2; exit 1",
-    "dev": "echo 'spectra: console dev server not implemented (Part I 33.3, target dev). Status: not started.' 1>&2; exit 1",
-    "test": "echo 'spectra: console tests not implemented (Part I 43). Status: not started.' 1>&2; exit 1"
-  },
-  "devDependencies": {
-    "typescript": "5.6.2"
+    "test": "node --test tests",
+    "serve": "node src/serve.js",
+    "build": "echo 'spectra: there is no build. The page loads ./src/app.js as a module by relative path; a bundler would add a step nothing here needs.' 1>&2; exit 1"
   },
   "spectra": {
-    "status": "not started",
-    "todo": "Part I 33.6 pins no TypeScript version; 5.6.2 is chosen to match the pinned Node 20.17.0 line and must be added to .tool-versions and toolchains.lock. The bundler (Part I 32.7 names Vite) and every runtime dependency are deliberately absent until the first screen is written.",
-    "invariant": "No component may fabricate a verdict, count or hash; every displayed number traces to an API field (Part I 32.7), and the verdict is never computed client-side (Part II 75.2 C10)."
+    "status": "the viewer renders a certificate; the prove flow of M8 is not started",
+    "why_no_dependencies": "This machine is offline and no package may be installed, so a dependency would be a file nobody can fetch and a lockfile nobody can honour. TypeScript was removed for the same reason: a .ts file that nothing can compile is a file that lies about being built. The suites run on the runtime the repository already has.",
+    "invariant": "The viewer computes no verdict, no count and no digest. Every figure it shows is read from a file that was already emitted, and a page that recomputed one would be a second implementation nobody checks (Part II 75.2 C10)."
   }
 }
