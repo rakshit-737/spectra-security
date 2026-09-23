@@ -1033,3 +1033,112 @@ $ CI run 35870003427 (ubuntu-24.04, CPython 3.12.3)
 ```
 
 ---
+
+## INC-0014  five agents in parallel, and the defect the property tests found
+
+date: 2026-09-23
+status: DONE
+concern: multiple, deliberately: five independent workstreams on disjoint files
+
+### What was built
+
+Five subagents worked in parallel on file sets chosen not to overlap, with the Makefile,
+the gate registry, the workflows and the build log kept out of their reach so that
+integration stayed in one place. Every piece was re-run and re-read here before it was
+committed; nothing was taken on a report.
+
+| Workstream | Result |
+| --- | --- |
+| Kernel property tests | 16 tests; four invariants held, the fifth found a defect |
+| Event store (M2) | SQLite index over a sealed bundle, 33 tests |
+| Degradation operators | STRIP_IDENTITY and CHAIN_FORGE, 123 tests in that suite |
+| Certificate viewer (M8) | plain ES modules, no build step, 90 tests on node |
+| Reader documentation | an overview and a field-by-field certificate guide |
+
+### The defect
+
+`ground.seq_feasible` admitted pairs that no placement satisfies, whenever `within == 0`.
+
+```
+seq_feasible((0, 1), (0, 1), 0)  ->  True
+```
+
+No `l` and `r` in `[0, 1]` satisfy `l < r <= l + 0`, because `(0, 0]` is empty. The closed
+form asked for `r_hi - l_lo > 0 and r_lo - l_hi <= within`, which is the correct meet for
+`within >= 1` and wrong at zero. It is reachable: a `seq` operator that omits `within`
+parses as 0. The shipped rule table gives every `seq` rule a positive bound, so the slice
+never hit it - latent, not live.
+
+The direction is the INC-0010 direction, which is why it matters: it OVER-admits, so a
+pair impossible for every placement can enter P_max and put a control in the blindness
+premium that no sensor gap explains. The fix is one expression, and the exhaustive check
+that now guards it covers both sides over `[0, 8)` and `within` over `[0, 5)`: 6480 cases,
+zero disagreements with a brute-force reference.
+
+The four invariants that held: P_min contained in P_max, monotonicity of blindness across
+a nested ladder, determinism under permutation of the input, and the bracket ordering.
+
+### What the documentation pass found
+
+Writing two documents that had to be true of the specification AND of a real certificate
+turned up eight places where the two disagree, now listed in `docs/kernel/spec-drift.md`.
+Three were corrected immediately, because they were statements ADR-0016 had falsified and
+nobody had revisited: `cert.py` said flag bit 5 is false because the pass is not
+implemented (it is implemented; the flag is false because nothing is ever voided), and the
+slice-spec had `disputed_events` in the source profile, which was my own error when
+amending it.
+
+The same list contains two missing checker obligations. One is now closed: O13b re-derives
+the premium's set arithmetic, which until now only the emitter computed. A defect there
+would have reached a certificate the checker accepts, and the premium is the number this
+project is for.
+
+### What the matrix produced, and the trap in it
+
+The first degradation sweep printed a non-empty premium at c=80% - `ctl:priv_approval`,
+the same control the pre-registered cell names. It is not a finding. That row's lower
+corridor set is empty, so the premium degenerates to NEC(Psi_max), which cannot separate a
+control needed because a sensor went blind from a control needed at all. The table now
+names the levels where that applies, above the artifact rather than in a footnote, because
+the column would otherwise read as a result.
+
+### The claims registry has records
+
+Two, both TUNED, both anchored on the result record that states them and backed by
+`research/results/<registration>.json`, which the gate's own run writes. The checker's
+ORPHAN rule caught the first attempt, where the records existed and the sentences did not:
+you may not register a claim you do not make.
+
+TUNED, not GREEN, and that cost the README its figures: this repository has one scenario,
+authored and edited by the author who wrote the predictions, and the registry forbids a
+tuned-pool result on a headline surface. The counts moved to the result records.
+
+### Commands run
+
+```
+$ <every suite>
+23 suites passing, 0 failing
+
+$ node --test frontend/tests
+90 tests, 90 pass, 0 fail
+
+$ python scripts/demo.py
+5 cells; S11 ACCEPT on all five; PREDICTION HELD (0001) and PREDICTION HELD (0002)
+
+$ python scripts/matrix.py
+6 nested levels; 3 derive no goal; 1 degenerate premium, named as such
+
+$ CI run 35893610782 (ubuntu-24.04)
+4 gates green: skeleton, reference, prereg, frontend
+```
+
+### What parallel agents cost
+
+Two collisions, both caught by reading rather than by a tool. The documentation agent
+wrote "the database and the UI do not exist" while two other agents were creating exactly
+those, and narrowed the claim itself rather than shipping a sentence that had gone stale
+mid-session. The viewer agent's suite needed a manifest file because `node --test` does not
+expand a bare directory on this runtime, which only surfaced because the Makefile target
+written here assumed it would.
+
+---

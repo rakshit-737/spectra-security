@@ -15,14 +15,16 @@ This is a statement about the model, not about what would have happened. The att
 > What exists: a seeded synthetic generator, ingest, entity resolution, a rule compiler,
 > grounding, liveness and licences, the silent envelope, reachability, a minimal-cut
 > search, a certificate emitter and a separate checker - all in Python, under
-> `python/spectra_vs/` and `python/spectra_vs_verify/`, with 21 test suites. One command,
+> `python/spectra_vs/` and `python/spectra_vs_verify/`, with 23 test suites, an in-process
+> SQLite index over a sealed bundle, and a certificate viewer of plain ES modules with 90
+> suites of its own. One command,
 > `python scripts/demo.py`, runs the pipeline in five cells - full telemetry, a random 70%
 > cell, a pre-registered sensor blackout, and a pre-registered backdated record with the
 > temporal-consistency pass on and off - and prints whether each prediction held.
 >
 > What does not: the specified Rust kernel and Go checker (this machine has neither
 > toolchain; see [ADR-0013](docs/adr/0013-the-slice-is-a-python-reference-implementation.md)),
-> the container range, the database, the user interface, and every gate but four. No
+> the container range, and every gate but five. No
 > milestone is green. The checker shares an author, a language and a reading of the
 > specification with the emitter, so no certificate it accepts is independently verified.
 >
@@ -98,7 +100,7 @@ is green. Where code exists without its gate, the row says so rather than claimi
 | M5 | Kernel stage E and the certificate object | `make m5-verify` | implemented in Python, not in the specified Rust; gate not built |
 | M6 | Independent Go checker and differential gates | `make m6-verify` | not started - a Python checker exists, the specified Go checker does not |
 | M7 | Degradation, tampering, redundancy, observation set, frontier | `make m7-verify` | degradation operators, decisive observation set and the temporal-consistency pass implemented in Python (ADR-0016; recorded-order contradictions only); redundancy index and frontier not started; gate not built |
-| M8 | Full user interface and the prove flow | `make m8-verify` | not started |
+| M8 | Full user interface and the prove flow | `make m8-verify` | a certificate viewer renders an emitted certificate and is gated (G-FE-001); it computes nothing and no browser has opened it; the prove flow is not started |
 | M9 | Polyglot surface and measured performance | `make m9-verify` | not started |
 | M10 | Documentation, demo, release | `make release-check` | not started |
 
