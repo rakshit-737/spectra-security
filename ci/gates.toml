@@ -7,17 +7,18 @@
 # row here is a defect, not a gate. The tier model is documented once, in
 # .github/workflows/README.md; it is not repeated here.
 #
-# STATUS: not started. Exactly four gates below are IMPLEMENTED: G-SKELETON-001,
+# STATUS: not started. Exactly five gates below are IMPLEMENTED: G-SKELETON-001,
 # which gates this skeleton and nothing else; G-PYREF-001, which runs every unit
 # suite of the Python reference slice (ADR-0013); G-VS-PREREG-0001, which re-runs
-# the slice's two pre-registered predictions end to end; and G-WIN-001, which is
+# the slice's two pre-registered predictions end to end; G-FE-001, which runs the
+# certificate viewer's own suites on the CI node runtime; and G-WIN-001, which is
 # the Makefile sandbox guard, evaluates on every make invocation in this
 # repository, and is enforced before every commit by .pre-commit-config.yaml.
 # Every other gate below is DECLARED only. Declaring a gate does not make it run;
 # the tier workflows carry the enablement state, and every job except the
-# skeleton, reference and prereg jobs is explicitly skipped with its reason and
-# its enabling milestone stated there. No gate below other than those four has
-# ever passed, because no gate below other than those four has ever run.
+# skeleton, reference, prereg and frontend jobs is explicitly skipped with its
+# reason and its enabling milestone stated there. No gate below other than those
+# five has ever passed, because no gate below other than those five has ever run.
 #
 # FIELDS (74.4)
 #   id             stable identifier, referenced by docs, workflows and the ledger
